@@ -174,3 +174,19 @@ are callbacks, so literal `$&` in a name cannot expand into the original token.
 Only known exact names (case-insensitive, canonical Unicode) are covered; aliases,
 unknown names and spelling variants are not anonymity guarantees. Raw notes stay
 local by default. Real outbound entry points remain S27d.
+
+## 2026-11-04 — S14 safe diagnostics use a codebook, not raw text
+
+Reference regex sanitization preserves arbitrary free text and may leak names,
+unknown key formats, notes or error paths. To satisfy S14, diagnostics retain only
+five static operational event codes and omit ALL arbitrary metadata/error/context,
+without traversing properties/getters/causes or coercing objects. No secret registry
+stores keys: registerSecret remains a compatibility method but need not retain
+anything. This intentionally sacrifices raw messages/stacks for privacy. Existing
+logger/reporter method names remain; crash captured_at uses snake_case. No raw
+caller-supplied id/path/name/key is allowed. Last100 records bounded in memory,
+returned copies cannot poison retained records, crash IDs monotonic. Diagnostic
+codebook/clock/sanitizer dependencies are trusted application composition, not AI
+inputs. Actual device crash SDK/ingress error wiring remains later work; don't
+log dropped messages, even through the sanitizer. Application errors still need
+explicit caller handling, not swallowed failures or a claim of device proof.

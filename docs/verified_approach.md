@@ -296,3 +296,27 @@ Blast radius: new scrubber module/tests + barrel; PrivacyRedactor.redactText cal
 scrubber before names, as in reference. Existing name tests/full suite rerun.
 No actual provider boundary yet; structured context/notes allowlists belong to
 S27d and cannot be inferred from string scrubbing. No new dependency.
+
+## S14 diagnostics minimization (2026-11-04)
+
+S13 headf688e75 CI41850324160 all five green. Research angles: OWASP Logging
+Cheat Sheet data exclusions/verification (retrieved chunk2), reference
+safeTelemetry.ts/layer2.privacy 2.5, docs/PRIVACY. Reference structural secret
+patterns do not remove arbitrary names/notes, and recursive serialization reads
+getters, error properties and causes. A regex denylist alone cannot satisfy S14.
+Use stricter codebook-only diagnostics: five fixed event codes; all other message
+text replaced, ALL arbitrary metadata/error/stack/context omitted before traversal.
+SecretSanitizer retains public methods but registerSecret need not retain keys
+because all free text is discarded; document deliberate behavior deviation.
+No generic raw payload serializer is provided. High confidence in exclusion by
+construction; diagnostic usefulness is reduced intentionally, not a silent claim
+of equivalent free-text logs. Operational errors must still propagate to callers.
+
+Blast radius: additive core/privacy/safeTelemetry.ts, barrel/tests only. Preserve
+SafeLogger info/warn/error/log/dumpText and CrashReporter capture/get/dump entry
+points. Inject clock (default Date), return copies rather than internal mutable
+records, bounded last100 records with monotonically increasing crash IDs. No
+console, disk, network or SDK sink; app/platform crash handlers are later wiring,
+not device proof. Do not feed dropped sensitive messages to diagnostics at all.
+Provider keys/Telegram tokens/unknown names, cycles/getters/proxies tested as
+omitted values. Backup settings exclusion remains separately tested in storage.
