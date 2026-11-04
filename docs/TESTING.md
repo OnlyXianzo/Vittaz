@@ -4,18 +4,18 @@ All test data is synthetic. Never use real transactions, names, bank messages, k
 
 ## Layers
 
-| Layer | What it checks | Runs on |
-| --- | --- | --- |
-| 0 | Environment | PC |
-| 1 | Core logic | PC or cloud sandbox |
-| 2 | Privacy rules (blockers) | PC or cloud sandbox |
-| 3 | Parsers and importer | PC or cloud sandbox |
-| 4 | Assistant with a fake provider | PC or cloud sandbox |
-| 5 | Telegram connector with a fake API | PC or cloud sandbox |
-| 6 | Agent policy and injection | PC or cloud sandbox |
-| 7 | LangChain check in the app | Android phone |
-| 8 | On-device behavior | Android phone |
-| 9 | Performance | Phone and PC |
+| Layer | What it checks                     | Runs on             |
+| ----- | ---------------------------------- | ------------------- |
+| 0     | Environment                        | PC                  |
+| 1     | Core logic                         | PC or cloud sandbox |
+| 2     | Privacy rules (blockers)           | PC or cloud sandbox |
+| 3     | Parsers and importer               | PC or cloud sandbox |
+| 4     | Assistant with a fake provider     | PC or cloud sandbox |
+| 5     | Telegram connector with a fake API | PC or cloud sandbox |
+| 6     | Agent policy and injection         | PC or cloud sandbox |
+| 7     | LangChain check in the app         | Android phone       |
+| 8     | On-device behavior                 | Android phone       |
+| 9     | Performance                        | Phone and PC        |
 
 A failing layer 2 test blocks everything after it.
 

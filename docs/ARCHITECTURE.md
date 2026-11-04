@@ -66,10 +66,10 @@ This is the recommended direction for Vittaz because the primary platform is Exp
 
 ### Recommended arrangement
 
-| Context | Database connection |
-|---|---|
-| Android app | `expo-sqlite` with Drizzle's Expo SQLite driver |
-| CLI (Node) | `better-sqlite3` with Drizzle's better-sqlite3 driver |
+| Context        | Database connection                                                       |
+| -------------- | ------------------------------------------------------------------------- |
+| Android app    | `expo-sqlite` with Drizzle's Expo SQLite driver                           |
+| CLI (Node)     | `better-sqlite3` with Drizzle's better-sqlite3 driver                     |
 | Future desktop | A separately selected SQLite adapter behind the same repository contracts |
 
 Use the same logical schema and migration history across supported adapters. Verify migration compatibility and query behaviour against every adapter in automated tests.

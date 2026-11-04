@@ -7,13 +7,32 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build --force",
     "test": "vitest run",
-    "check": "tsc --noEmit"
+    "check": "npm run typecheck",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc -p tsconfig.check.json --noEmit",
+    "test:coverage": "vitest run --coverage",
+    "test:privacy": "vitest run --testNamePattern=privacy_ --passWithNoTests",
+    "secret:scan": "python3 .agents/skills/secret-scan/scripts/deep_git_scan.py ."
   },
   "devDependencies": {
-    "@types/node": "^26.6.6",
-    "typescript": "^5.9.3",
-    "vitest": "^5.1.0"
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "@vitest/coverage-v8": "5.1.0",
+    "eslint": "10.14.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
+  },
+  "engines": {
+    "node": ">=24.22.2 <25"
+  },
+  "packageManager": "npm@11.19.1",
+  "overrides": {
+    "minimatch": "11.0.1"
   }
 }

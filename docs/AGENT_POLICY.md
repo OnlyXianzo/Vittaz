@@ -29,10 +29,10 @@ Even if a model is fully fooled, it can only create pending proposals and read w
 
 ## Tool permissions
 
-| Tool | Access |
-| --- | --- |
-| `propose_transaction` | Creates a pending proposal only |
-| `find_person`, `query_transactions`, `get_balance`, `get_month_summary`, `check_unverified` | Read-only |
+| Tool                                                                                        | Access                          |
+| ------------------------------------------------------------------------------------------- | ------------------------------- |
+| `propose_transaction`                                                                       | Creates a pending proposal only |
+| `find_person`, `query_transactions`, `get_balance`, `get_month_summary`, `check_unverified` | Read-only                       |
 
 Not available to the assistant: approve, reject, undo, import, backup, restore, changing settings or credentials, setting up connectors, and sending messages anywhere except replying to the paired user. A connector that can send to third parties (for example email) needs explicit user confirmation for each send.
 

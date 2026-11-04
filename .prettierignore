@@ -1,0 +1,5 @@
+.agents/
+reference/
+canvas/
+coverage/
+package-lock.json
