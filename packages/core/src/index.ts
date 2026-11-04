@@ -76,3 +76,5 @@ export type {
   SensitiveReason,
   SensitiveCheckResult,
 } from "./privacy/sensitiveFilter.js";
+export { PrivacyRedactor } from "./privacy/redactor.js";
+export type { NameMapping } from "./privacy/redactor.js";

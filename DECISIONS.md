@@ -162,3 +162,15 @@ use the filter before any logging/storage/provider activity and prove integratio
 The restored sandbox had stale Git metadata, missing review instructions and old
 CI/scanner files. Archived it externally, fetched main, verified all application
 files match main, and restored exact upstream tooling/workflow (no rewrite).
+
+## 2026-11-04 — S12 name mapping separation
+
+PrivacyRedactor is pure and in-memory; seed it with ordered canonical names from
+async storage at the future application boundary, not the reference's synchronous
+DatabaseAdapter. Placeholder identity is stable for that mapping and reproducible
+from the same ordered seed, NOT yet proved across device restarts. Reserved
+Person_N names are rejected to prevent token/name cascades. Reverse substitutions
+are callbacks, so literal `$&` in a name cannot expand into the original token.
+Only known exact names (case-insensitive, canonical Unicode) are covered; aliases,
+unknown names and spelling variants are not anonymity guarantees. Raw notes stay
+local by default. Real outbound entry points remain S27d.

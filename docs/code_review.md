@@ -201,3 +201,13 @@ be caught by safe ingress error handling (S14/S27d), never log raw errors.
 format/build/CLI/privacy/audit/scan pass. No new independent review claimed.
 Limit: actual notification/assistant channels do not yet exist; unit callback
 sinks are not app-wide zero-trace proof. S12-S16 and G2 remain pending.
+
+## S12 bounded self-review — 2026-11-04
+
+S11 CI41849250052 all five green. S12 missing-module red, then68 total tests with
+100% implemented-source coverage. Inspected escaping, copy-on-read mappings,
+case-insensitive deduplication, Unicode mark/digit/underscore boundaries,
+longest-first overlap handling and exact Person_1/Person_10 reversal. Reserved
+placeholder-containing names rejected; callback substitutions preserve literal
+`$&`. No Node/DB imports. Stable mapping seeded in memory; persistence/provider
+integration deliberately not claimed. No independent external review claimed.

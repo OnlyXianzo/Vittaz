@@ -252,3 +252,28 @@ prove the real entry points separately. Exact keywords are not universal secret
 or adversarial-language detection; homoglyphs, arbitrary paraphrases, secrets
 without contextual labels and runtime memory erasure remain unproved. No claim
 that zero trace across all app entry points or G2 is complete. No new dependency.
+
+## S12 pure name replacement (2026-11-04)
+
+S11 exact head 21a2bc8 passed CI41849250052 all five jobs. Next implement only
+name replacement, not scrubber, inline-name discovery or provider integration.
+Sources: read-only reference redactor.ts/layer2.privacy 2.1/2.3, MDN Unicode
+properties, normalize and String.replace, docs/PRIVACY. MDN confirms callback
+replacement avoids `$&` interpretation on reversal; Unicode letters/marks/digits
+prevent substring or Devanagari matra splits. Confidence high for known-name
+replacement, not general anonymization (reference/docs agree).
+
+Use a pure in-memory PrivacyRedactor seeded with ordered canonical names;
+registerCounterparty returns stable Person_N within that mapping, case-insensitive
+duplicate reuse, longest-first exact Unicode-token replacement and reversible
+reply placeholders. Reserve Person_N in registered names to prevent cascading or
+ambiguous token mappings. Keep copy-on-read mappings. No core DB/Node import and
+no synchronous persistence port: later AssistantService must seed mappings from
+async persisted counterparties, retain canonical order and keep them local. A
+restart without the same seed is NOT persistent identity proof. This deliberate
+split replaces the reference's synchronous DB constructor. Unknown names/aliases,
+misspellings and raw notes remain unsafe and must not be sent by default.
+
+Blast radius: additive core privacy/redactor.ts, its tests and barrel only.
+No existing agent/parser/provider callers. Future S13 composes scrubbing; S15
+adversarial cases and S27d real outbound integrations remain separate steps.
