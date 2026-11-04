@@ -262,3 +262,14 @@ runner/agent tooling/mobile are NOT included in that coverage percentage. Actual
 npm run test:privacy passes38 selected tests (34 core primitives +4 CI-contract
 checks); meta selector no longer counts as a privacy test. Real CLI smoke remains
 version only, not full CLI journeys. No new independent review claimed.
+
+## Publication rebase and G2 pause — 2026-11-04
+
+Read actual PR9 owner comment6633473106: S11 approval, not S12-S16 independent
+review or G2 sign-off. PR9 was already owner-merged as f7f3561, so later commits
+were not assumed to be included in that closed PR. Main also contains owner's
+separate UI PR10. Rebased five remaining commits onto main3db9401 without opening
+or editing UI; preserved new root UI exclusions. Repeated clean-dist93tests100%
+and every local check. New PR11 head26ffd20 CI41852883630 all five green.
+G2 report accurately distinguishes Phase D primitives from later integration,
+unknown-name, persistence and device proof. Stop before S17 for owner decision.
