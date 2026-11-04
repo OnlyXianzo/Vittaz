@@ -1,33 +1,73 @@
 # Vittaz
 
-A personal expense and khata tracker. Local-first, privacy-conscious, with optional AI assistance.
+**Vittaz** is a local-first personal expense and khata application. It is designed to make recording everyday money activity quick, understandable, and reliable, with optional AI assistance that never approves or saves a transaction on the user's behalf.
 
-## What is this
+The initial target is Android. A command-line interface supports development and headless workflows; desktop support may follow later.
 
-Vittaz helps you track daily expenses, settle debts with friends, and keep a clean ledger — all on your device. It's built for people who want to know where their money goes without uploading their financial life to someone else's server.
+> **Project status:** Early planning. The product name is Vittaz. The software license has not yet been selected.
 
-The AI part is optional and works under a strict rule: it can suggest entries, but it can never write to your ledger without your approval.
+## What Vittaz aims to do
 
-## Current status
+- Record cash, UPI, and bank activity without requiring AI.
+- Track money spent, received, lent, borrowed, receivables, and payables.
+- Review entries suggested from messages and other supported inputs.
+- Keep AI-generated entries pending until the user approves them.
+- Maintain an audit history and provide a way to undo mistakes.
+- Keep the primary ledger on the user's device.
+- Offer optional AI providers and local models with clear privacy controls.
+- Export and import data so users can move their ledger between devices.
 
-Early development. The project structure and technology choices are still being figured out.
+## Product principles
 
-## Goals
+1. **Local-first:** the user's ledger is stored on their device. Vittaz does not require an account or a Vittaz-operated server.
+2. **Human approval:** AI may prepare a proposal, but only the user can approve, reject, or undo it.
+3. **Deterministic money handling:** monetary values are stored as integer paise. Financial calculations do not use floating-point arithmetic.
+4. **Privacy by design:** raw financial notifications and personal notes are not sent to cloud models by default.
+5. **Reversible actions:** approved changes are recorded in an audit history, and backups support recovery.
+6. **Useful without AI:** users can record and manage transactions manually.
+7. **One assistant, many channels:** the app, the CLI and Telegram talk to the same assistant, with the same tools, rules and conversation history.
 
-- Track expenses with minimal friction (3 taps or a quick message)
-- Parse bank SMS and payment app notifications automatically
-- Keep a khata (lending/borrowing ledger) with friends
-- Run entirely on-device with no cloud requirement
-- Support AI-assisted entry creation with mandatory human approval
-- Android first, CLI for power users, desktop later
+## Planned capabilities
 
-## Non-goals (for now)
+| Area | Direction |
+|---|---|
+| Ledger | Cash, UPI and bank accounts; income, expenses, lending and borrowing |
+| Review | A queue for unverified or AI-proposed entries |
+| AI assistance | Natural-language entry drafting and read-only financial questions |
+| Import | Supported notification formats and spreadsheet imports |
+| Backup | Local backups and user-controlled export/import |
+| Messaging | Optional Telegram connector to the same assistant |
+| Voice and OCR | Later input methods, subject to on-device quality and privacy testing |
 
-- Cloud sync
-- Multi-user / shared ledgers  
-- Play Store release
-- Merchant/GST features
+Features may change as implementation and testing reveal practical constraints. See [the roadmap](docs/ROADMAP.md).
+
+## Platform direction
+
+- **Android:** primary application platform.
+- **CLI:** a companion interface for development, testing, imports, and headless use.
+- **Desktop:** a possible later application for Windows and Linux.
+
+## Documentation
+
+- [Product overview](docs/PRODUCT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Features and behaviour](docs/FEATURES.md)
+- [Data model](docs/DATA_MODEL.md)
+- [Privacy and security](docs/PRIVACY.md)
+- [Assistant and personalization](docs/ASSISTANT.md)
+- [Agent policy](docs/AGENT_POLICY.md)
+- [Telegram connector](docs/TELEGRAM.md)
+- [Connectors and MCP](docs/CONNECTORS.md)
+- [Testing](docs/TESTING.md)
+- [Build plan](Plan.md)
+- [Decisions](DECISIONS.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Contributing](docs/CONTRIBUTING.md)
 
 ## License
 
-GPL-3.0
+The project license is **undecided**. Until a license is selected and a corresponding license file is added, do not assume that the source code is available for unrestricted reuse, redistribution, or commercial use.
+
+## Project status
+
+Vittaz is in the planning and foundation stage. The documents describe intended behaviour, not a claim that every listed feature is already implemented. Check the repository and release notes for current implementation status.
