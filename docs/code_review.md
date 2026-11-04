@@ -187,3 +187,17 @@ code head c989e99 passed 55 tests and CI41843604522. During final gate-document
 publication, fetch showed PR6 already merged by owner as a082d17; no attempt was
 made to re-merge or overwrite main. Rebased the documentation-only commit onto
 that merge and publish gate evidence separately. G1 still awaits sign-off.
+
+## S11 bounded privacy self-review — 2026-11-04
+
+G1 explicitly approved by owner in conversation. Eight new tests first failed
+for missing sensitiveFilter module, then passed. Inspected all explicit reason
+patterns, Unicode boundaries, noncoercing invalid-input handling, stateless regex
+use, and callback-not-invoked assertions for DB/log/network spies. No private
+payload is returned on drop, no sink is accepted by the classifier. Original safe
+text reaches the handler exactly once; handler failures propagate and must later
+be caught by safe ingress error handling (S14/S27d), never log raw errors.
+63 full-suite tests and 100% implemented-source coverage locally; lint/types/
+format/build/CLI/privacy/audit/scan pass. No new independent review claimed.
+Limit: actual notification/assistant channels do not yet exist; unit callback
+sinks are not app-wide zero-trace proof. S12-S16 and G2 remain pending.
