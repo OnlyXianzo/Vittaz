@@ -1,8 +1,8 @@
 # State
 
-current_step: S4 in progress — migrations green locally; async repositories next
-last_green_commit: 333bfa7d712c22627c70b484d4edfa30efce2ff2 (PR2 head; five required CI jobs passed)
-gate_status: S1-S3 complete; G1 pending; no frontend approval
-blocked_on: nothing; S4 migration CI to verify after push
-next_actions: verify migration commit CI; implement async core repository ports and serialized Drizzle adapter through failing tests
-notes: PR2 merged without bypass as ecf7d33107f00328ddafb94054caa24debab5164 after required CI success and zero unresolved threads. Migration module has 27 tests green, implemented core/storage 100% coverage; empty/v1 upgrade/rerun, rollback, future/downgrade/invalid versions, SQL sum and money/FK constraints covered. Drizzle pinned 0.45.4; better-sqlite3 13.0.3 ships native prebuilds and needs no Python install. S4 not complete until repositories pass; SQL batch tests do not yet prove S5 use cases. Privacy still bootstrap only. Reference/UI unchanged. GH_TOKEN location recorded only in external session handoff, never repository.
+current_step: S4 async repositories/storage implemented locally; final CI pending
+last_green_commit: f3bf7285479c652776a62db62ccb4dba8a2367fd
+gate_status: S1-S3 complete; S4 pending final CI; G1 pending; UI prohibited
+blocked_on: nothing
+next_actions: verify final S4 CI; S5 transactions/status through TDD; continue sequentially toward G1
+notes: PR2 merged ecf7d33107f00328ddafb94054caa24debab5164. PR3 migration CI https://github.com/OnlyXianzo/Vittaz/actions/runs/41838467754 passed quality/privacy/test/security/build. Async core ports, complete four-table Drizzle query mapping and private serialized Node store now implemented with 35 tests green and 100% implemented-core/storage coverage. Awaited transactions rollback correctly; read capabilities omit writes, handles expire, reentrancy rejected; no Python native build. Baseline migrations and SQL sums ported; S5-S10 not implemented. Full outbound privacy is still pending; bootstrap privacy is not G2. No frontend/reference changes, no 50% claim. External credential location only in session handoff.

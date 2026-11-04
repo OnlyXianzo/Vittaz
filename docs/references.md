@@ -75,3 +75,9 @@ better-sqlite3. Installed better-sqlite3 **13.0.3** ships N-API prebuilds inside
 the npm package (`gypfile: false`, no install script); no separate prebuild-install
 command exists or is needed. Native in-memory smoke query succeeded without any
 Python/build step. This supersedes older-driver installation assumptions.
+
+### S4 async repository adapter — 2026-11-04
+
+- Node **24.22.2**, https://nodejs.org/docs/latest-v24.x/api/async_context.html — AsyncLocalStorage.run/getStore for per-store reentrancy detection, isolated to Node adapter.
+- Drizzle **0.45.4**, https://orm.drizzle.team/docs/insert and https://orm.drizzle.team/docs/select — parameterized values and eq selectors; installed stable driver/session source cross-checked.
+- https://orm.drizzle.team/docs/sql-schema-declaration — explicit SQLite table mappings; existing SQL migrations remain authoritative for constraints (no Drizzle-Kit generation used).
