@@ -18,6 +18,7 @@ test("dependencies_are_exactly_pinned", () => {
     "package.json",
     "packages/core/package.json",
     "packages/storage/package.json",
+    "packages/agent/package.json",
     "apps/cli/package.json",
     "apps/mobile/package.json",
   ]) {

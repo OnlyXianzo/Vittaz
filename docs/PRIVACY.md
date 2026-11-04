@@ -129,4 +129,4 @@ provider/device configuration. Those actual pipelines/device adapters do not yet
 exist. Unknown aliases/typos/homographs and free-text notes remain local-only by
 policy; S17/S27d must enforce that policy with real integration tests before use.
 See DECISIONS.md for explicit name/diagnostic tradeoffs. G1 is owner-approved;
-G2 and G3 require separate owner decisions. Do not use real messages or credentials.
+G2 was subsequently accepted; owner authorized checked autonomous backend checkpoints. G3 technical evidence is still incomplete. Do not use real messages or credentials.

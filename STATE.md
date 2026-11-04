@@ -1,11 +1,11 @@
 # State
 
-current_step: S20 test-only fake provider implemented; verify exact-head CI then S21
-last_green_commit: 3b01eb59de1fbb79818ddb29e563229a3d2a3475
+current_step: S21 provider adapter/fallback implemented; rebased owner main; exact-head CI before S22
+last_green_commit: 9bc8a9a20496b42998cf11154aac3c8a0b0b5e03
 gate_status: G1 and G2 owner accepted; future backend checkpoints may advance autonomously only after technical checks pass; G3 not yet technically satisfied
 blocked_on: nothing; preserve step-by-step green CI and protected merges
-next_actions: publish S20 green CI then S21 provider adapter/fallback; autonomous backend continuation
-owner_authorization: all subsequent checked backend checkpoints approved; no technical gate/protection bypass or frontend scope
-ci_proof: PR15 exact3b01eb5 CI41857459215 five SUCCESS; protected merge6e44d40087d14f3ab6370fcaf99f694ddadda707. S20 push CI next.
-local_proof: S20 correct missing-helper red, five actual loopback server tests;131tests24files100% implemented production core/storage coverage. All lint/types/format/privacy/build/CLI/audit0/scan0 pass.
-notes: Fake is test-only synthetic in-memory captures, no production provider or DB. Test support coverage is not part of production-source denominator. S21+AI/Telegram/CLI flows/mutation/device proofs pending; G3 not complete. UI/.agents untouched.
+next_actions: publish S21 green after preserving concurrent owner main, then S22 validated tool registry
+owner_authorization: checked autonomous backend progression, no UI/protection/evidence bypass
+ci_proof: PR16 exact9bc8a9a CI41858117990 five SUCCESS; protected merge95fdaffc47dd438edcbada75943cd6bfcfc2bcf8. Main merges aa8a26a/18dcfc9/6e44d40/95fdaff CI41855470216/41855970692/41857825986/41858746138 SUCCESS. Concurrent owner UI-only PR13 main a4a1987750e6499b984292e9e4ee98eec86c6db6 preserved by clean rebase, unchanged UI/.agents.
+local_proof: S21 pool/client missing-module reds, sensitive history/abort/null usage/request-meta regressions;151tests26files100% implemented agent/core/storage metrics; full lint/types/format/privacy/build/compiled adapter smoke/CLI/audit0/scan0 green again after owner-main rebase.
+notes: No DB/logger capability or tool execution in adapter. Bounded JSON/SSE fallback and static errors, keyless omission, deadlines and caller abort supported under Node24 fakes, not real Kilo/Expo. Sensitive full wire guard is not universal name/secret detection; future service redaction required. S22+ full assistant/Telegram/CLI/mutation/device proofs pending. G3 not ready; UI/.agents unchanged.
