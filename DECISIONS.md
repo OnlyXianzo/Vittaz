@@ -98,3 +98,13 @@ secret must not escape detection because its disk version is clean. Output is
 strictly detector/source metadata; 64 MiB limits fail rather than silently
 truncate. Regex detection and inherited fixture exceptions remain a limited
 baseline, not a guarantee against all secret formats.
+
+## 2026-11-04 — Storage compatibility and money columns
+
+Keep legacy reference `benefit`, `tags_json`, and split fields for behavior
+preservation; add independent numeric `benefit_paise` and scalar `tag` required
+by Plan.md. They are not aliases; no inferred conversion of legacy text to money.
+Later import tests must explicitly map both forms. Use safe-integer SQL bounds
+and core guards at repository entry. Node-native code lives only in storage.
+S4 will be delivered as migrations then async repositories, not marked complete
+on migration-only proof. Native prebuilt installation avoids Python build tools.
