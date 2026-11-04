@@ -78,3 +78,4 @@ export type {
 } from "./privacy/sensitiveFilter.js";
 export { PrivacyRedactor } from "./privacy/redactor.js";
 export type { NameMapping } from "./privacy/redactor.js";
+export { scrubOutboundText } from "./privacy/scrubber.js";

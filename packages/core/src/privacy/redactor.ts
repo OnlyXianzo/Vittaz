@@ -1,3 +1,5 @@
+import { scrubOutboundText } from "./scrubber.js";
+
 export interface NameMapping {
   name: string;
   placeholder: string;
@@ -33,7 +35,7 @@ export class PrivacyRedactor {
 
   redactText(input: unknown): string {
     if (typeof input !== "string" || input.length === 0) return "";
-    let result = input.normalize("NFC");
+    let result = scrubOutboundText(input).normalize("NFC");
     const longestFirst = this.getAllMappings().sort(
       (a, b) => b.name.length - a.name.length,
     );
