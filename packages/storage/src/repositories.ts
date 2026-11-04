@@ -1,3 +1,4 @@
+import type { SnapshotStore } from "./backup.js";
 import Database from "better-sqlite3";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -8,7 +9,6 @@ import {
   assertNonNegativePaise,
 } from "@vittaz/core";
 import type {
-  LedgerStore,
   LedgerRepositories,
   ReadLedgerRepositories,
   WriteRepository,
@@ -17,7 +17,7 @@ import * as schema from "./schema.js";
 import { migrate } from "./migrations.js";
 
 /** Owns its private native connection. Every callback is serialized, including reads. */
-export function openLedgerStore(filename: string): LedgerStore {
+export function openLedgerStore(filename: string): SnapshotStore {
   const native = new Database(filename);
   try {
     native.pragma("foreign_keys = ON");
@@ -275,6 +275,56 @@ export function openLedgerStore(filename: string): LedgerStore {
   return {
     read: (work) => enqueue(() => unit(false, (_repos, read) => work(read))),
     transaction: (work) => enqueue(() => unit(true, (repos) => work(repos))),
+    exportSnapshot: () =>
+      enqueue(() =>
+        unit(false, async (repos) => ({
+          tables: {
+            wallets: await repos.wallets.list(),
+            counterparties: db
+              .select()
+              .from(schema.counterparties)
+              .orderBy(schema.counterparties.id)
+              .all(),
+            proposals: await repos.proposals.list(),
+            transactions: await repos.transactions.list(),
+            audit_log: (await repos.audit.list()).sort(
+              (a, b) =>
+                a.created_at.localeCompare(b.created_at) ||
+                a.id.localeCompare(b.id),
+            ),
+          },
+          settings: db
+            .select()
+            .from(schema.app_settings)
+            .where(eq(schema.app_settings.key, "send_notes_to_cloud"))
+            .all(),
+        })),
+      ),
+    replaceSnapshot: (payload) =>
+      enqueue(() =>
+        unit(true, async (repos) => {
+          db.delete(schema.audit_log).run();
+          db.delete(schema.transactions).run();
+          db.delete(schema.proposals).run();
+          db.delete(schema.counterparties).run();
+          db.delete(schema.wallets).run();
+          for (const row of payload.tables.wallets)
+            await repos.wallets.insert(row);
+          for (const row of payload.tables.counterparties)
+            db.insert(schema.counterparties).values(row).run();
+          for (const row of payload.tables.proposals)
+            await repos.proposals.insert(row);
+          for (const row of payload.tables.transactions)
+            await repos.transactions.insert(row);
+          for (const row of payload.tables.audit_log)
+            await repos.audit.insert(row);
+          db.delete(schema.app_settings)
+            .where(eq(schema.app_settings.key, "send_notes_to_cloud"))
+            .run();
+          for (const row of payload.settings)
+            db.insert(schema.app_settings).values(row).run();
+        }),
+      ),
     close: () =>
       enqueue(async () => {
         if (!closed) {

@@ -1,8 +1,8 @@
 # State
 
-current_step: S5-S8 implemented and rebased onto main 231d95d; exact-head CI pending
-last_green_commit: 9416e8dc18c268ec60a91472036d5d99abdf86c9 (pre-rebase S8; CI 41841346433)
-gate_status: S1-S8 implemented; rebased PR5 CI/merge pending; G1 pending
-blocked_on: nothing; await required exact-head CI before merge
-next_actions: push rebased PR5 with exact lease, verify five required checks and review-thread resolution, merge normally; resume S9 backup afterward
-notes: Owner review comments 6632302029 and 6632410929 requested rebase after PR4; resolved DECISIONS conflict preserving both sections. AGENTS.md and .agents unchanged from current main; Rule15 honored, owner's original tooling retained. Fresh install/clean-dist: 47 tests pass, implemented core/storage 100% coverage, full local checks/audit0/scans0. Unfinished S9 excluded, externally preserved in /home/user/vittaz-s9-backup-wip.patch; known TypeScript audit-row narrowing error remains there. Reference/UI untouched; privacy bootstrap not G2; no 50%/backend-readiness claim. External credential path recorded only in session handoff.
+current_step: S10 allowance implemented locally; CI pending before G1 report
+last_green_commit: 966e00a115c2561915ddc38e4935591f5840a009
+gate_status: S1-S9 complete; S10 CI pending; G1 owner sign-off not granted
+blocked_on: nothing before CI; must stop at G1 for owner sign-off
+next_actions: verify S10 CI, publish core-gate report with all eight layer-one equivalents, merge protected PR6 if green; stop before Phase D pending G1
+notes: PR5 requested rebase/correction merged 7f4093049d44942e99cc541e8ff62291016a1672; merged main CI41842787129 passed. PR6 backup head966e00a CI41843092936 five jobs green. S10 clock-injected Asia/Kolkata dates, Gregorian leap/month handling and exact integer allowance implemented. 55 tests and 100% implemented core/storage coverage, plus original1000-entry create/audit/store sum. S9 plaintext export is checksummed not encrypted/authenticated, release decision recorded. Owner Rule15 protected, .agents unchanged, no UI/reference changes, privacy bootstrap only. All31 and50%/backend readiness not achieved.

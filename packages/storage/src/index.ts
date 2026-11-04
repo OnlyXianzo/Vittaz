@@ -5,3 +5,14 @@ export {
 } from "./migrations.js";
 export type { MigrateOptions, MigrateResult } from "./migrations.js";
 export { openLedgerStore } from "./repositories.js";
+export {
+  createBackup,
+  restoreBackup,
+  EXPORT_PRIVACY_WARNING,
+} from "./backup.js";
+export type {
+  SnapshotStore,
+  BackupPayload,
+  LedgerBackup,
+  KhataclawBackup,
+} from "./backup.js";

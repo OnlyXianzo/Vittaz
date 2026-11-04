@@ -146,3 +146,34 @@ owner review, not newly asserted independent-agent execution. CodeRabbit optiona
 Unfinished S9 backup work is excluded from this PR and preserved separately; it
 has a known TypeScript audit-row narrowing error to fix before any later commit.
 Required exact-head CI and normal branch protections remain prerequisites to merge.
+
+## S9 bounded self-review — 2026-11-04
+
+Resumed only after owner-requested PR5 rebase/merge, preserving Rule15 and leaving
+agent tooling unchanged. Fixed the uncommitted type error by treating snapshot
+export as unknown and returning Zod-validated cloned payload, not by casting
+AuditLogRow.entity_type to a literal. LedgerStore core port remains unchanged;
+Node-only SnapshotStore holds raw snapshot/replacement capabilities which must
+not be given to AI. Five ledger tables plus allowlisted setting match reference
+backup scope; nonallowlisted local settings/analytics/notifications excluded.
+Checksum is corruption detection, not authentication/encryption (DECISIONS).
+
+Tests reproduce full round-trip/idempotent restore, all fields/embedded audit
+snapshots/counterparty rows, strict format/schema/money/tag/secret-setting rejects,
+checksum mismatch, duplicate/FK rollback leaving target unchanged, invalid local
+export and deterministic audit ordering. 51 current tests after owner's scanner
+restoration; implemented core/storage coverage 100%. No new independent review
+claimed. Current schema-v2 snapshots only; older external conversion deferred.
+
+## S10 bounded self-review — 2026-11-04
+
+S9 head 966e00a passed all five jobs in CI 41843092936. Allowance is pure integer
+math with checked BigInt intermediate outputs and explicit India Gregorian date
+selection when omitted; injected clock and explicit dates are independently
+tested. Leap/century/year bounds, month/year rollovers, malformed dates, money
+invalids/overflow, positive rounding and canonical zero on negative fractions
+covered. Original 1000-entry creation path now proves one audit per write and
+exact stored sum, supplementing the existing SQL sum regression. 55 tests and
+100% implemented core/storage coverage locally. All eight layer-one baseline
+families implemented; actual remote proof required before G1 report. No new
+independent review claimed, privacy/device/agent/UI phases not implemented.

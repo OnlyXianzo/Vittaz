@@ -88,3 +88,17 @@ Python/build step. This supersedes older-driver installation assumptions.
 
 - https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID — Web Crypto v4 UUID; Node 24 supports it. Default runtime uses global Crypto, not node:crypto. Mobile supplies an injected ID/clock implementation; device support is not presumed.
 - Reference b21801c `ledger/ledger.ts` manual/capture/status and baseline_1_4, cross-checked with Plan.md S5 and atomic SQLite unit-of-work tests. No new packages.
+
+### S9 validated backup — 2026-11-04
+
+- Zod **4.6.7**, https://zod.dev/api — strictObject, safeParse, literals/enums, bounded integer number and refinement schemas; installed source/types cross-check.
+- Node **24.22.2**, https://nodejs.org/docs/latest-v24.x/api/crypto.html — createHash('sha256').update(payload).digest('hex'), isolated to Node storage, not core.
+- Reference b21801c backup.ts and baseline_1_7 — deterministic five-table snapshot, allowlisted send_notes_to_cloud, checksum rejection and atomic restore.
+
+- https://zod.dev/basics (4.6.7, 2026-11-04): safeParse produces a typed deep clone after validation; use the parsed data rather than pretending a raw audit entity_type:string is already narrowed to 'transaction'. Node snapshot export is intentionally unknown until validated. No unsafe audit-row narrowing cast retained.
+
+### S10 allowance/time — 2026-11-04
+
+- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat — explicit timeZone and formatToParts for injected-clock India dates; runtime Node24.22.2.
+- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/UTC — 0-99 year remapping; avoid by Gregorian month/leap arithmetic.
+- Reference b21801c allowance.ts/baseline_1_8 cross-checks hand-worked results; existing BigInt safe money boundaries also apply to intermediate disposable output.

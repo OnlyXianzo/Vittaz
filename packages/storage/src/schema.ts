@@ -104,3 +104,13 @@ export const audit_log = sqliteTable("audit_log", {
   undone: integer("undone").$type<AuditLogRow["undone"]>().notNull(),
   created_at: text("created_at").$type<AuditLogRow["created_at"]>().notNull(),
 });
+export const counterparties = sqliteTable("counterparties", {
+  id: text("id").notNull().primaryKey(),
+  name: text("name").notNull(),
+  placeholder: text("placeholder").notNull(),
+  created_at: text("created_at").notNull(),
+});
+export const app_settings = sqliteTable("app_settings", {
+  key: text("key").notNull().primaryKey(),
+  value_json: text("value_json").notNull(),
+});

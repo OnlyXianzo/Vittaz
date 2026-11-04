@@ -180,3 +180,42 @@ Reuse existing safe BigInt-backed money aggregation and reject unsafe totals.
 Sources: reference wallet.ts/baseline_1_6, Plan S8, DATA_MODEL accounts, existing
 money guards; high confidence. No libraries/APIs added. Blast radius: new pure
 wallet use cases, real-storage tests, full wallet-equivalence audit regression.
+
+## S9 backup/restore (2026-11-04)
+
+Port reference five-table ledger snapshot and allowlisted setting, SHA-256
+payload integrity and explicit unredacted-data warning. Snapshot and replacement
+are serialized storage capabilities, not core SQL or AI tools. Read consistent
+snapshot in one read transaction; restore all ledger tables in one write unit,
+child-first deletion/parent-first insertion, so malformed rows/FKs roll back.
+Retain reference backup envelope/format identifier and camelCase metadata for
+behavior preservation; database/ledger row keys stay snake_case.
+
+Research: reference backup.ts/baseline_1_7, official Node crypto createHash,
+Zod 4.6.7 official API (strictObject, safeParse, number bounds, enums), SQLite
+atomicity and docs/PRIVACY. High confidence for checksum/integrity and atomicity;
+checksum is not authentication or encryption. Add strict envelope/row validation,
+allowlisted settings on both directions, signed-safe paise checks and embedded
+audit snapshot validation before any destructive work. Accept supported current
+schema v2 only; older foreign backup conversion is not silently guessed.
+
+Blast radius: storage-only backup module and schema validation, two snapshot
+capabilities on the Node store; core LedgerStore remains unchanged. Counterparty
+and setting query mappings added solely to preserve existing stored backup data.
+No new privacy use cases or secure-storage implementation. Zod pinned 4.6.7.
+
+## S10 allowance and G1 parity (2026-11-04)
+
+Preserve baseline_1_8 inputs/results and truncation-toward-zero allowance. Optional
+omitted date uses injectable clock and explicit Asia/Kolkata Gregorian/Latin
+Intl formatToParts; explicit date remains deterministic and does not read clock.
+Sources: reference allowance.ts/baseline_1_8, Plan S10, MDN Intl/Date.UTC and
+existing money guards. MDN confirms Date.UTC maps years 0-99 to 1900-1999, so use
+Gregorian leap arithmetic instead of copying that historical reference bug.
+Support years 1-9999 only. Compute disposable/division with BigInt and range-check
+returned integers; canonicalize sub-paise negative quotient to 0, not -0.
+High confidence, no dependency. Device Intl parity remains Phase I. Blast radius:
+new pure allowance module, barrel and tests. Add original 1000-entry create-use-
+case audit/sum regression to finish baseline_1_1, not merely direct SQL sum.
+G1 requires all eight layer-one equivalents in CI and explicit owner sign-off;
+this is not 50%, backend readiness or permission for UI/privacy-phase progress.

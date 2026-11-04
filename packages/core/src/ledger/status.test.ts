@@ -189,3 +189,24 @@ test("ledger_rejects_invalid_values_before_any_write", async () => {
   expect(await store.read((r) => r.transactions.list())).toEqual([]);
   expect(await store.read((r) => r.audit.list())).toEqual([]);
 });
+
+test("baseline_1_1_create_1000_entries_and_audits_preserves_exact_totals", async () => {
+  const store = open();
+  let expected = 0n;
+  for (let i = 1; i <= 1000; i++) {
+    const amountPaise = i * 100 + ((i * 37) % 100);
+    expected += BigInt(amountPaise);
+    await createManualTransaction(store, {
+      amountPaise,
+      direction: "debit",
+      category: "synthetic_batch",
+      occurredAt: "2026-11-04T10:00:00Z",
+    });
+  }
+  const rows = await store.read((r) => r.transactions.list());
+  expect(rows.length).toBe(1000);
+  expect(rows.reduce((sum, row) => sum + BigInt(row.amount_paise), 0n)).toBe(
+    expected,
+  );
+  expect((await store.read((r) => r.audit.list())).length).toBe(1000);
+});
