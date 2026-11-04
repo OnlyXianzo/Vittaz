@@ -211,3 +211,15 @@ longest-first overlap handling and exact Person_1/Person_10 reversal. Reserved
 placeholder-containing names rejected; callback substitutions preserve literal
 `$&`. No Node/DB imports. Stable mapping seeded in memory; persistence/provider
 integration deliberately not claimed. No independent external review claimed.
+
+## S13 bounded self-review — 2026-11-04
+
+S12 CI41849814147 all five green. S13 red missing module before implementation;
+75 tests/100% implemented-source coverage green. Reviewed full URI before handles,
+labelled references before numeric removal, grouped/fullwidth/Devanagari accounts,
+mask suffixes and 30-digit nontruncation. Existing redactor composes scrubber;
+known name reversals do not restore removed identifiers. Invalid values are not
+coerced. Broad email-like handles/long numbers intentionally over-redact. No
+provider/structured transaction payload boundary exists yet; raw notes remain
+local by policy, not proven by this string-only module. Encoded unknown formats
+and other scripts remain documented limitations. No independent review claimed.

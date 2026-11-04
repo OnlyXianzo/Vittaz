@@ -110,7 +110,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 - [x] **S11. Sensitive filter.** OTP, PIN, CVV, password and "do not share" drop the message with no trace anywhere.
 - [x] **S12. Name replacement.** Exact match, longest name first, stable `Person_N` placeholders, reversible on the reply.
-- [ ] **S13. Scrubber.** Remove UPI references, VPA handles and account numbers from anything sent out.
+- [x] **S13. Scrubber.** Remove UPI references, VPA handles and account numbers from anything sent out.
 - [ ] **S14. Safe logger and crash reporter.** Keys, tokens and names never appear.
 - [ ] **S15. Adversarial name tests.** Lowercase, Hinglish (`aman ko 450 diye`), Devanagari names, nicknames, typos, names inside notes. Fix real leaks. Record limits in `DECISIONS.md`.
 - [ ] **S16. Privacy gate in CI.** The privacy job must pass before any later job runs.

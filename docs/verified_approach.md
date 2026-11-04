@@ -277,3 +277,22 @@ misspellings and raw notes remain unsafe and must not be sent by default.
 Blast radius: additive core privacy/redactor.ts, its tests and barrel only.
 No existing agent/parser/provider callers. Future S13 composes scrubbing; S15
 adversarial cases and S27d real outbound integrations remain separate steps.
+
+## S13 identifier scrubber (2026-11-04)
+
+S12 head70641dd CI41849814147 all five green. Research: reference redactor.ts
+scrubbing sequence and layer2.privacy 2.2, MDN replace/normalize, OWASP Logging
+Cheat Sheet data-to-exclude (bank/card/phone identifiers). High confidence in
+explicit pattern removal; no source supports universal unstructured-data secrecy.
+Use pure scrubOutboundText; NFKC + existing Devanagari digit normalization and
+format-control removal, then whole UPI URI, labelled references, VPA/email-like
+handles, IFSC, labelled/masked accounts, Indian phone and >=9-digit standalone
+sequences (including grouping). Replace whole identifiers, not truncation. Broad
+VPA/long-number matches intentionally over-redact; amounts/date text unchanged in
+ordinary cases. Do not silently claim support for arbitrary percent-encoded URIs,
+all numeral scripts or indirect identifiers. Notes remain local by default.
+
+Blast radius: new scrubber module/tests + barrel; PrivacyRedactor.redactText calls
+scrubber before names, as in reference. Existing name tests/full suite rerun.
+No actual provider boundary yet; structured context/notes allowlists belong to
+S27d and cannot be inferred from string scrubbing. No new dependency.

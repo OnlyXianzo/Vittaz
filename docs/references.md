@@ -114,3 +114,9 @@ Python/build step. This supersedes older-driver installation assumptions.
 
 - MDN String.replace https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace — global regex and callback return literal values (no replacement-token expansion). Native ECMAScript, Node24.22.2; no package.
 - MDN normalize/Unicode property escapes (S11 URLs above), reference b21801c privacy/redactor.ts and layer2.privacy.test.ts:173-203 — longest-first exact matching, stable canonical mappings and Person_10 versus Person_1. Persistence/provider proof is not included in this pure step.
+
+### S13 identifiers — 2026-11-04
+
+- OWASP Logging Cheat Sheet, Data to exclude: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html — account/payment-card/telephone identifiers must not be raw diagnostics/outbound context. Rolling guidance fetched 2026-11-04.
+- MDN String.normalize / String.replace / Unicode property escapes (S11-S12 URLs): compatibility normalization is appropriate for detection but may alter display; sanitize outbound copies only. Native Node24.22.2.
+- Read-only reference b21801c privacy/redactor.ts:224-275 + layer2.privacy.test.ts:107-171: identifier patterns and ordering; longer/grouped numeric identifiers are conservatively removed rather than leaked or truncated. No package added.
