@@ -164,3 +164,12 @@ headers and extras, bounded-inflate/CRC-check all entries, reject mismatched siz
 ZIP64/encryption/multidisk/non-store/non-deflate/duplicate or overlapping records.
 No hand-rolled decompressor. Lock SRI:
 sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==
+
+### S20 fake provider harness — 2026-11-04
+
+Node24.22.2 https://nodejs.org/docs/latest-v24.x/api/http.html and http.json
+(createServer/listen/close/closeAllConnections: force-close AFTER close to avoid
+race); MDN https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
+(SSE text/event-stream, data frames separated by blank lines). Read-only reference
+b21801c tests/helpers/fakeOpenAIServer.ts cross-checked for scripted status,
+stream/truncation/delay and in-memory captures. No new dependencies, no live API.

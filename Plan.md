@@ -125,7 +125,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 ### Phase F: AI layer (`packages/agent`)
 
-- [ ] **S20. Fake provider server.** An OpenAI-compatible fake with streaming and scripted failures. Test helper only.
+- [x] **S20. Fake provider server.** An OpenAI-compatible fake with streaming and scripted failures. Test helper only.
 - [ ] **S21. Provider adapter and key fallback.** 400 never falls back. 401 disables the key. 429 skips it for a while. A broken stream restarts on the next key. All keys failing gives one clear error.
 - [ ] **S22. Tool registry.** snake_case tools (section 7) with Zod validation. Malformed calls never reach the database.
 - [ ] **S23. Read-only Q&A loop.** Step limit, token budget and timeout. Read-only tools. Database in read-only mode.
