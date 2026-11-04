@@ -287,3 +287,16 @@ normal spending, and sanitized local unknown queues. Async queue CRUD/missing/
 rollback/expired scope covered; migration/backup format unchanged. Standard Node
 fixtures do not prove a real Android listener or all bank formats. S18 dedup still
 pending. No independent reviewer/external execution claim for this step.
+
+## S18 bounded self-review — 2026-11-04
+
+Red first: five expected behavior failures (duplicate actions/unique keys/window
+and reference conflict) then111tests21files100% implemented-source coverage.
+Concurrent Promise.all captures on one serialized store commit once, exact
+reference beyondwindow, inclusive ±5min/zero/invalid windows, events split,
+conflicting references/accounts and ambiguous fallback, manual/import isolation,
+missing-only enrichment, actual audit undo and audit-failure rollback checked.
+Synthetic corrupt reference identity cannot silently match wrong money/event.
+No nested root-store access. All lint/types/format/privacy/build/CLI/audit/scan
+passed. Real multi-process contention/device replay/performance remain unmeasured;
+existing SQLite IMMEDIATE semantics are not proof of device execution.

@@ -1,7 +1,5 @@
-import {
-  defaultLedgerRuntime,
-  insertAutoCapturedTransaction,
-} from "../ledger/ledger.js";
+import { captureDeduplicatedNotification } from "./deduplication.js";
+import { defaultLedgerRuntime } from "../ledger/ledger.js";
 import type { LedgerRuntime } from "../ledger/ledger.js";
 import type { LedgerStore, TransactionRow } from "../ledger/repositories.js";
 import { normalizeIndicDigits, parseRupeesToPaise } from "../ledger/money.js";
@@ -23,6 +21,7 @@ export interface IncomingNotification {
 export interface ProcessNotificationOptions {
   allowedPackages?: ReadonlySet<string>;
   localParserAvailable?: boolean;
+  dedupWindowMs?: number;
 }
 export interface ProcessNotificationResult {
   action:
@@ -35,7 +34,8 @@ export interface ProcessNotificationResult {
     | "recorded_reversal"
     | "recorded_refund"
     | "recorded_transaction"
-    | "routed_unknown_format";
+    | "routed_unknown_format"
+    | "deduplicated";
   committed: boolean;
   reason?: string;
   amountPaise?: number;
@@ -187,9 +187,10 @@ export async function processNotification(
         ? `utr:${ref}:${direction}:${amountPaise}`
         : `${eventType}:${ref}:${amountPaise}`
       : null;
-    const { transaction } = await insertAutoCapturedTransaction(
+    const { transaction, deduplicated } = await captureDeduplicatedNotification(
       store,
       {
+        walletId: "bank_default",
         amountPaise,
         direction,
         eventType,
@@ -200,15 +201,18 @@ export async function processNotification(
         source: "notification",
         occurredAt,
       },
+      options.dedupWindowMs ?? 300000,
       runtime,
     );
     return {
-      action: isReversal
-        ? "recorded_reversal"
-        : isRefund
-          ? "recorded_refund"
-          : "recorded_transaction",
-      committed: true,
+      action: deduplicated
+        ? "deduplicated"
+        : isReversal
+          ? "recorded_reversal"
+          : isRefund
+            ? "recorded_refund"
+            : "recorded_transaction",
+      committed: !deduplicated,
       transaction,
     };
   }

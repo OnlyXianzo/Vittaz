@@ -142,3 +142,8 @@ Python/build step. This supersedes older-driver installation assumptions.
 - MDN Date.parse https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse — nonstandard formats implementation-dependent; accept explicit ISO-Z or safe epoch only. Native Node24.22.2; device parity unproved.
 - Drizzle **0.45.4** https://orm.drizzle.team/docs/sql-schema-declaration — typed mapping for existing SQLite table, snake_case SQL keys; current docs cross-checked installed stable source and existing adapters. No new dependency/migration.
 - Read-only reference b21801c notificationParser.ts and layer3.parsers.test.ts baselines3.1-3.4; OWASP Logging/privacy references above: ingress rejects before side effects, unknown formats local only.
+
+### S18 atomic matching — 2026-11-04
+
+- SQLite **3.53.4** https://www.sqlite.org/lang_transaction.html — BEGIN transactions do not nest; IMMEDIATE obtains write transaction before lookup/modify, explicit rollback. Existing Node store serializes awaited units.
+- Read-only reference b21801c notificationParser.ts:170-290 / layer3.parsers.test.ts:139-188; cross-check audit/undo contracts: exact reference first, amount+inclusive window fallback, conservative account/source/reference conflicts and audited enrichment documented in DECISIONS. No new dependencies.
