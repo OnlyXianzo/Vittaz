@@ -370,3 +370,15 @@ abort before/during provider/query, non-cooperating async timeout, malformed or
 unknown usage, overflow, duplicate IDs and history bounds. Correct elapsed-time
 regression red before fix; not just timer-event timeout proof. No independent
 review, exact billing ceiling or whole assistant/device readiness claim.
+
+## S24 bounded self-review — 2026-11-04
+
+8 metadata tests,185tests30files total,100% implemented-source metrics. Correct
+missing-module, credential metadata alias, clock-error reds before fixes. Actual
+HTTP usage-to-SQLite strict metadata row; fallback winner attribution/one logical
+row; synthetic integer pricing/half-up rounding/free/unpriced/usage-unknown. Prompt,
+reply, credentials not in analytics; financial backup excludes operational rows.
+Sensitive/provider failure has no analytics; malformed/gGetter/extra/unsafe number/
+outcome rejection creates none. Overflow/clock/sink errors static, no HTTP retry.
+Query registry receives no analytics capability. No independent review or billing
+accuracy/current market pricing/full assistant privacy claim.

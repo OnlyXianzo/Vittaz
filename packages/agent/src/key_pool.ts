@@ -80,6 +80,19 @@ export class KeyPool {
       )
     )
       throw new Error("Invalid key configuration");
+    const publicLabels = keys.flatMap((k) => [
+      k.nickname,
+      k.provider ?? "openai-compatible",
+      k.model ?? "gpt-4o-mini",
+    ]);
+    if (
+      keys.some(
+        (k) =>
+          k.apiKey.length > 0 &&
+          publicLabels.some((label) => label.includes(k.apiKey)),
+      )
+    )
+      throw new Error("Invalid key configuration");
     this.#cooldown = cooldown(options.defaultCooldownMs ?? 30000);
     this.#now = options.nowFn ?? (() => Date.now());
     this.#entries = keys.map((k) => ({

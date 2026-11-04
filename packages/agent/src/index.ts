@@ -34,3 +34,4 @@ export type {
   AnswerQuestionResult,
   QaStopReason,
 } from "./qa_loop.js";
+export { AnalyticsClient, AnalyticsError } from "./analytics.js";
