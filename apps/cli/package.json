@@ -1,0 +1,14 @@
+{
+  "name": "@vittaz/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@vittaz/core": "*"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@vittaz/mobile",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@vittaz/core": "*"
+  }
+}
