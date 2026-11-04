@@ -169,3 +169,14 @@ unsupported/corrupt/stale errors and rollback tests hedge against damaged local
 state. Confidence high for normal paths; imported external snapshots still
 require later backup validation. No new library. Blast radius: new audit module,
 ledger/barrel re-exports and integration tests; no schema or provider change.
+
+## S8 wallets/accounts (2026-11-04)
+
+Use reference wallet summary rules: all credits in, normal debits out; debit
+refund/reversal events do not count as cash out. Only committed transactions in
+the requested wallet participate; proposals do not. Preserve default cash wallet
+and opening-balance APIs; add account creation for planned cash/bank/UPI types.
+Reuse existing safe BigInt-backed money aggregation and reject unsafe totals.
+Sources: reference wallet.ts/baseline_1_6, Plan S8, DATA_MODEL accounts, existing
+money guards; high confidence. No libraries/APIs added. Blast radius: new pure
+wallet use cases, real-storage tests, full wallet-equivalence audit regression.

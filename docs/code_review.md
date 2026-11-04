@@ -103,3 +103,21 @@ is introduced. Stale-undo extension is recorded in DECISIONS. 48 tests and 100%
 implemented core/storage coverage locally. Wallet-summary equivalence follows S8.
 Audit snapshots are local trusted records, not an authenticated external format;
 backup parsing/validation remains S9. No new independent review claimed.
+
+S7 publication correction: inventory prose omitted both expected `ported` and
+`pending` labels, causing the inventory test to fail after the code suite was
+green. The shell incorrectly continued to commit/push after that failed command.
+Corrected prose in 00ea599 and switched all subsequent command batches to
+`set -e`; reran full checks before pushing the correction. No failing head is to
+be merged, and the gate remains pending until exact-head remote CI passes.
+
+## S8 bounded self-review — 2026-11-04
+
+S7 corrected head 00ea599 passed CI 41840867890 all five jobs. Wallet summaries
+preserve reference treatment of refunds/reversals, exclude pending proposals and
+other accounts, and use checked BigInt-backed sums/balances. Cash/bank/UPI account
+creation and safe opening-balance update tested; no transfer or lending use case
+added. Baseline_1_5 now verifies wallet summary equivalence after edit/approval
+undo. 51 tests and 100% implemented core/storage coverage. Large unsafe totals
+fail rather than silently round. Opening balance config follows reference API,
+not a proposal/AI mutation. No new independent review claimed.

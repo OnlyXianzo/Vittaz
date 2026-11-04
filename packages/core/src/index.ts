@@ -57,3 +57,9 @@ export type {
 } from "./ledger/approval.js";
 export { updateTransaction, undoAuditEntry } from "./ledger/audit.js";
 export type { UpdateTransactionPatch } from "./ledger/audit.js";
+export {
+  createWallet,
+  setWalletOpeningBalance,
+  getWalletSummary,
+} from "./ledger/wallet.js";
+export type { WalletSummary } from "./ledger/wallet.js";

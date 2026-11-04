@@ -1,8 +1,8 @@
 # State
 
-current_step: S7 edit/audit/undo implemented locally; CI pending
-last_green_commit: 4ca95ba8b4995de8617f76a196811e6d9ed50fa5
-gate_status: S1-S6 complete; S7 CI pending; G1 pending
+current_step: S8 accounts/wallet implemented locally; CI pending
+last_green_commit: 00ea59941be4a1b1bc25bc24812de6f9dc6f9b05
+gate_status: S1-S7 complete; S8 CI pending; G1 pending
 blocked_on: nothing
-next_actions: verify S7 CI, implement S8 wallet/account summaries, then S9 backup/restore and S10 allowance
-notes: PR5 contains ledger workflow. S6 CI 41840252895 five jobs green. S7 exact row/proposal undo, deletion restoration, stale guard, forbidden status edits, corrupt-shape/repeat rejection and injected failure rollback covered. 48 tests; implemented core/storage coverage 100%. Wallet-summary part of baseline_1_5 awaits S8. No UI/reference changes; privacy bootstrap only; backend not yet ready. Continue loop until required G1 sign-off, do not claim 50%.
+next_actions: verify S8 CI, implement S9 checksummed validated backup/restore, then S10 allowance
+notes: PR5 ledger workflow; S7 CI 41840867890 five jobs green after inventory prose fix. S8 wallet summaries and account kinds, safe totals, isolation from proposals/other wallets and exact undo balance regression covered. 51 tests, 100% implemented core/storage coverage. Reference/UI unchanged; privacy bootstrap only; no 50% or backend-readiness claim. Continue until G1 sign-off.
