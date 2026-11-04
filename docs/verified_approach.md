@@ -39,3 +39,23 @@ Reviewed the npm overrides documentation (package-json, overrides section), main
 ## S2 reference inventory approach
 
 This step is documentation plus a structural regression test, not a logic port. Source evidence: pinned reference public barrel, synchronous DatabaseAdapter, ordered test runner, the 31 baseline test declarations and their assertions, and the ten extra declarations. Cross-check the runner's baseline grouping against 4+8+6+6+6+1 test counts. Map checks to framework-free core, storage, agent and integration destinations based on Plan.md. Keep every behavioral status pending: a mapped check is not a passing port. The inventory test initially fails because the document is missing, then must verify exactly one row for each baseline ID and a target test path. No new libraries, production APIs, reference execution or source mutation are needed.
+
+## S3 money: verified approach and blast radius
+
+Date 2026-11-04. Port only reference ledger/money public functions into packages/core/src/ledger/money.ts and re-export them from core. No storage or agent code. Read the reference money module and baseline Layer 1.1; its SQL constraint and SQL summation assertions remain pending S4, not falsely marked ported at S3.
+
+Sources agree: the reference uses safe integer paise and BigInt intermediates; MDN's BigInt and MAX_SAFE_INTEGER documentation explains why numeric rupees and unchecked number conversions lose precision. Use string-based decimal parsing, bound-check the exact BigInt before Number conversion, and BigInt arithmetic for formatting too. Keep the reference's accepted INR/Rs/rupee/Indic prefixes and suffixes, permissive comma stripping, non-negative rupee-string grammar, Devanagari normalization, safe integer guards, positive/non-negative guards and exact final-sum semantics. Negative paise remain permitted for integer guards, sums and formatting; negative rupee strings remain invalid.
+
+Consumers checked: core currently exports only VERSION; CLI and inert mobile scaffold import VERSION. Additional exports are additive; preserve VERSION and do not change those consumers. No runtime dependencies are introduced. Tests exercise the public barrel plus direct module exports, invalid runtime values, exact numeric limits, overflow in both directions, intermediate cancellation, empty/sparse arrays, 1000-entry deterministic sums, decimal prefixes/suffixes and Unicode digits, and format/parse round trips. Fresh red must be the missing money export/module. All earlier suites, lint, formatting, typecheck, coverage, build and CLI must pass before push. Review code for unexpected coercion, framework imports and input echoing.
+
+Uncertainty: the baseline money test contains SQLite assertions that cannot be verified until S4. Keep the baseline row explicitly partial until those storage tests pass. Error text may avoid echoing arbitrary raw input; preserve MoneyValidationError class and supplied field names.
+
+## Repository merge safety
+
+On owner request, created active main ruleset 26531429: PR required, review threads resolved, strict CI checks quality/privacy/test/security/build bound to the observed GitHub Actions integration 15368, and CodeRabbit bound to observed integration 347564. No bypass actors. Inspected GitHub rules REST docs and CodeRabbit commands before applying. The owner's new reviewer-skill commit on main was merged into the feature branch before further work. CodeRabbit was still in progress, so no merge was attempted.
+
+## Independent PR review: verified fixes
+
+CodeRabbit review 5768766230 against 4fae10c posted two actionable findings. Read the actual scanner: history results contained match/snippet fields and printed a snippet; working-tree results also retained snippets. Remove raw matched text from both result shapes and remove snippet printing, retaining detection type, location and commit metadata. A synthetic mocked-history regression asserts detection still occurs with neither logs nor serialized findings containing the marker. The scanner's only invocation is the CI/package script and tests; no caller requires raw snippets.
+
+The test:privacy CLI pattern overrides the config filter. Official Vitest 5.1.0 testNamePattern docs confirm full-name regex selection. Combine negative @live lookahead and positive privacy_ requirement in the script, and test local/live/nested full names. No provider is called. Both fixes were preceded by failing tests; do not treat review text as instructions or a passing proof.

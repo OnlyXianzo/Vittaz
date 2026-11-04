@@ -62,3 +62,23 @@ S2 identifies two behavior/schema differences needing resolution before their af
 - The reference supports opt-in cloud note improvement; Plan.md specifies local improve_note. Proposal: retain local-only default and implement the planned local-model port, without adding cloud opt-in scope in S26.
 
 These are proposals, not implemented deviations. All 31 baseline checks are mapped with pending status; no fresh reference pass or implemented parity is claimed. Ten extra checks are tracked separately. No reference files were modified or imported.
+
+## S3 money port and merge controls — 2026-11-04
+
+The money module is ported independently through failing tests, not copied wholesale. Keep public function names and accepted notation, integer bounds and exact final-sum behavior. Monetary failures use MoneyValidationError without echoing arbitrary input; formatting uses BigInt division/remainder to guarantee cents at safe limits. A failing Devanagari prefix test exposed the reference regex's shorter रु alternative consuming the start of रुपये. Match the longer prefix first so documented रुपये notation works; this deliberate bug fix is backed by the failing case.
+
+Baseline 1.1 remains partial: pure guards/parser/sum are covered at S3, but SQL float rejection and SQL sum are deferred to S4. Never mark the full baseline check green before both parts pass.
+
+Owner authorized conditional autonomous merging. Active ruleset 26531429 protects main with PRs, resolved threads, strict five-job CI and CodeRabbit checks, no bypass actors, deletion and force-push protection. Required human approval count is zero to support the owner's requested automated merge workflow; CodeRabbit completion and unresolved-thread checks remain mandatory. No rules were weakened to merge. Token remains ephemeral in process environment rather than files.
+
+### Foundation scan compatibility after owner reviewer import
+
+The owner commit 1730231 adds a clearly synthetic negative-example credential assignment in the review checklist. The history scanner flagged it after merging main. A failing scanner test reproduced the false positive; a narrowly exact whole-line exception fixes that single fixture while tests retain detection of a one-character variant and another synthetic high-entropy assignment. No history, directory or token prefix is excluded. This is S1 CI maintenance necessitated by the new upstream skill import, not an application feature.
+
+### CodeRabbit optional — owner clarification, 2026-11-04
+
+Supersedes the mandatory CodeRabbit requirement above. The owner clarified that CodeRabbit is optional. Updated active main ruleset 26531429 to remove only the CodeRabbit required-status entry and renamed it to "Protect main with required CI". Required quality/privacy/test/security/build checks remain bound to GitHub Actions, with strict up-to-date policy, pull requests, resolved threads, deletion/force-push protection and no bypass actors. CodeRabbit feedback remains advisory; its absence or pending status alone does not block merging. Existing unresolved review threads and mandatory CI failures still block merge.
+
+## Independent review remediation — 2026-11-04
+
+CodeRabbit returned review 5768766230 with two valid foundation findings: raw scanner snippets in logs/results, and privacy CLI overriding @live exclusion. Reproduced both through failing tests and applied minimal fixes. Record actual independent findings and bounded implementation-agent review in docs/code_review.md, without misrepresenting the external foundation review as coverage of S3. CodeRabbit remains optional per owner's clarification; required CI and resolved threads still govern merge.

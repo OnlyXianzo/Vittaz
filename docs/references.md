@@ -40,3 +40,16 @@ Checked on 2026-11-04. Exact direct dependency versions are pinned in package.js
 
 - Exact root override: minimatch 11.0.1. Official npm override API: https://docs.npmjs.com/cli/v11/configuring-npm/package-json#overrides ; maintainer patch: https://github.com/isaacs/minimatch/releases/tag/v11.0.1 . Checked 2026-11-04.
 - After reviewing CommonJS/ESM exports and installed consumer call sites, a failing lockfile test confirmed the vulnerable versions, then the override removed them. Clean npm ci, ESLint, TypeScript and Vitest passed; npm audit reports zero vulnerabilities. This supersedes the unresolved finding above. Remove the temporary override once upstream toolchains adopt the fix.
+
+## Money and repository governance references (2026-11-04)
+
+- ECMAScript safe integers / BigInt, language built-ins (no third-party dependency): https://tc39.es/ecma262/multipage/numbers-and-dates.html#sec-number.issafeinteger ; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt ; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER . Runtime remains pinned Node 24.22.2 and TypeScript 5.9.3. Reference behavior independently checked in the pinned reference money module and Layer 1.1 assertions.
+- GitHub rulesets REST API, version 2022-11-28: https://docs.github.com/en/rest/repos/rules?apiVersion=2022-11-28 . Read creation schema, pull_request parameters, required_status_checks and active branch-rule verification before applying. Ruleset id 26531429 created and active on main.
+- GitHub PR reviews REST API, version 2022-11-28: https://docs.github.com/en/rest/pulls/reviews?apiVersion=2022-11-28 . Used to inspect reviews; no approval or reviewer identity is fabricated.
+- CodeRabbit hosted review service, unversioned: https://docs.coderabbit.ai/guides/commands . Observed installed bot/check in the PR; review command available if needed. Require its check and resolve findings before merge.
+
+### Review remediation APIs (2026-11-04)
+
+- Vitest 5.1.0 full-name pattern selection: https://vitest.dev/config/testnamepattern . CLI filter must include both privacy selection and @live exclusion.
+- GitHub REST pull requests and merge API: https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request . Use expected head SHA to avoid merging an untested concurrent update.
+- GitHub GraphQL pull-request review threads: https://docs.github.com/en/graphql/reference/pulls . Use thread IDs obtained from the live query; never invent them or resolve unfixed findings.
