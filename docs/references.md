@@ -188,3 +188,10 @@ reference b21801c tools.ts/layer4.3/4.5 and existing core createProposal, wallet
 integer sum, redactor contracts. No new dependency. Registry gets explicit
 application query/balance/propose function ports, NOT database/repository/SQL
 handles. Read-only storage/PRAGMA unit proof remains separate S23 integration.
+
+## S23 (2026-11-04) — bounded Q&A and physical readonly
+
+- https://www.sqlite.org/pragma.html#pragma_query_only — query_only blocks database changes but is reversible by trusted SQL and does not itself make a connection truly readonly. Combine no SQL capability with driver readonly open. High confidence, cross-checked driver docs/actual SQLite tests.
+- https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md — readonly open of existing file; fileMustExist is ignored in readonly mode. No migration on readonly connection. Pinned13.0.3 already installed, SQLite3.53.4; no new dependency/native build.
+- https://nodejs.org/docs/latest-v24.x/api/globals.html#class-abortcontroller —24.22.2 AbortController, AbortSignal.any; cancellation cooperative, a race must bound a non-cooperating async adapter. Pending native synchronous SQL cannot be preempted by a JS timer. High confidence for JS async boundary, no hard CPU deadline claim.
+- Reference b21801c agentService/layer4.4/4.5: preserve financial read answers and stop semantics, async ports not raw SQL; fail closed on forbidden tools rather than forward private error text. Buffer replies (no unvalidated streaming callbacks). Provider-reported usage budget is a stop control, not a guaranteed billing ceiling.

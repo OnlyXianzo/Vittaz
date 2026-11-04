@@ -345,3 +345,35 @@ rows still needing human confirmation. Reference get_category_breakdown and
 list_recent_transactions behaviors are covered via catalog monthly breakdown and
 query_transactions; no extra advertised tools. Static validation/execution errors
 omit provider/storage payloads. No framework/provider/SQL integration in registry.
+
+## 2026-11-04 — owner G3 approval; S23 readonly Q&A
+
+Owner: "Continue and G3 is also approved by me". Record G3 owner permission,
+not technical completion; remaining Plan/G3 evidence must pass before readiness.
+No UI scope change. Restored snapshot git metadata was stale; preserved full
+workspace archive and metadata-difference stash, fetched authoritative commits.
+Owner merged UI PR18/main6f149ab into S22 headce6add4. Revalidated164tests100% plus
+full quality; exactce6 CI41867920638 five SUCCESS, no review threads, normal
+SHA-pinned protected PR19 merge2e8681c5621a12bf456096c528a13892aeee571c. No stale
+20e7 merge or protection bypass; owner UI/.agents changes retained.
+
+S23 shares private repository implementation between writer and separate existing
+file readonly constructor. Readonly opens with native readonly:true plus
+query_only ON, no migrations, current schema required. Returned object has read
+and close only; no native connection, SQL, transaction/restore/export capabilities.
+Core getWalletSummary needs only the existing read port (no behavior change).
+Tests instrument actual private native connection and attempt DELETE/DDL with
+query_only both ON and OFF; native readonly still blocks writes.
+
+Q&A constructs QA-only registry internally from trusted application query ports.
+Step/token/deadline/options/output bounds, combined cancellation and bounded waits
+for non-cooperating async adapters. Both actual S21 HTTP client+S20 fake and actual
+readonly SQLite integration tested; no network while holding repository scope.
+Missing/zero/invalid usage fails closed; provider-reported token stop is NOT an
+exact billing/input-token ceiling. No added tokenizer guess. Completion reservation
+capped by remaining budget. Synchronous work cannot be preempted, but elapsed
+monotonic deadline checked after provider yields (regression red before fix).
+Raw provider/storage errors never exposed. Replies buffered until validated;
+no streaming callback here. Internal synthetic call IDs, private provider text
+not echoed with calls, validated argument echo canonicalized/redacted/scrubbed.
+No full AssistantService/history/analytics/channel/persistent privacy proof yet.

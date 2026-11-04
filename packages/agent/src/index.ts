@@ -28,3 +28,9 @@ export {
   PROPOSE_TRANSACTION_TOOL_SPEC,
 } from "./tools.js";
 export type { ToolRegistry, QaDataSource, ProposePending } from "./tools.js";
+export { ReadOnlyQaLoop, QaValidationError } from "./qa_loop.js";
+export type {
+  AnswerQuestionOptions,
+  AnswerQuestionResult,
+  QaStopReason,
+} from "./qa_loop.js";
