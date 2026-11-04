@@ -1,6 +1,15 @@
 import type { Dispatch, ReactNode } from "react";
-import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Action, Transaction } from "./types";
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Inbox,
+  NotebookText,
+  Settings,
+  Users,
+} from "lucide-react";
+import type { Action, Screen, Transaction } from "./types";
 import { formatPaise } from "./money";
 
 export type DispatchAction = Dispatch<Action>;
@@ -118,6 +127,44 @@ export function PageHeader({
       </div>
       {right}
     </div>
+  );
+}
+
+const NAV: Array<{ screen: Screen; label: string; icon: typeof Home }> = [
+  { screen: "home", label: "Home", icon: Home },
+  { screen: "inbox", label: "Inbox", icon: Inbox },
+  { screen: "ledger", label: "Ledger", icon: NotebookText },
+  { screen: "people", label: "People", icon: Users },
+  { screen: "settings", label: "Settings", icon: Settings },
+];
+
+export function BottomNav({
+  current,
+  dispatch,
+  pendingCount,
+}: {
+  current: Screen;
+  dispatch: DispatchAction;
+  pendingCount: number;
+}) {
+  return (
+    <nav className="bar" aria-label="Primary">
+      {NAV.map(({ screen, label, icon: Icon }) => (
+        <button
+          key={screen}
+          className={current === screen ? "on" : ""}
+          onClick={() => dispatch({ type: "navigate", screen })}
+          type="button"
+          aria-current={current === screen ? "page" : undefined}
+        >
+          <Icon size={18} aria-hidden="true" />
+          <span>{label}</span>
+          {screen === "inbox" && pendingCount > 0 && (
+            <em className="nav-badge">{pendingCount}</em>
+          )}
+        </button>
+      ))}
+    </nav>
   );
 }
 

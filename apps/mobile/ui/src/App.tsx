@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef } from "react";
 import type { Dispatch } from "react";
-import { Toast } from "./components";
+import { BottomNav, Toast } from "./components";
 import { createInitialState, reducer } from "./state";
 import { selectPending } from "./selectors";
 import type { Action, AppState, Screen } from "./types";
@@ -16,36 +16,19 @@ import { ChatScreen } from "./screens/ChatScreen";
 import { ModelsScreen } from "./screens/ModelsScreen";
 import { OnboardingScreen } from "./screens/OnboardingScreen";
 
-const SHEET_TITLES: Record<Screen, string> = {
-  chat: "Chat",
-  home: "Overview",
-  inbox: "Pending inbox",
-  review: "Review transaction",
-  ledger: "Ledger",
-  people: "People",
-  settings: "Settings",
-  add: "Add transaction",
-  quick: "Paste a message",
-  models: "Choose model",
-  "onboarding-welcome": "Welcome",
-  "onboarding-how": "How it works",
-  "onboarding-ai": "Pick your AI",
-};
-
+const NAV_SCREENS: Screen[] = ["home", "inbox", "ledger", "people", "settings"];
 const PREVIEW_SCREENS: Array<{ id: string; label: string }> = [
-  { id: "chat", label: "Chat window" },
-  { id: "chat-approval", label: "Chat, approval" },
-  { id: "chat-thinking", label: "Chat, tool run" },
-  { id: "chat-privacy", label: "Chat, privacy guard" },
-  { id: "chat-telegram", label: "Chat, Telegram mock" },
-  { id: "home", label: "Overview panel" },
+  { id: "home", label: "Home" },
   { id: "inbox", label: "Pending inbox" },
   { id: "review", label: "Review transaction" },
   { id: "ledger", label: "Ledger" },
   { id: "people", label: "People" },
   { id: "settings", label: "Settings" },
   { id: "add", label: "Add transaction" },
-  { id: "quick", label: "Paste a message" },
+  { id: "quick", label: "Quick ingestion" },
+  { id: "chat", label: "Chat" },
+  { id: "chat-approval", label: "Chat, approval" },
+  { id: "chat-thinking", label: "Chat, thinking" },
   { id: "models", label: "Choose model" },
   { id: "onboarding-welcome", label: "Onboarding, welcome" },
   { id: "onboarding-how", label: "Onboarding, how it works" },
@@ -69,13 +52,15 @@ function ScreenView({
     case "ledger":
       return <LedgerScreen state={state} dispatch={dispatch} />;
     case "people":
-      return <PeopleScreen state={state} dispatch={dispatch} />;
+      return <PeopleScreen state={state} />;
     case "settings":
       return <SettingsScreen state={state} dispatch={dispatch} />;
     case "add":
       return <AddScreen state={state} dispatch={dispatch} />;
     case "quick":
       return <QuickScreen state={state} dispatch={dispatch} />;
+    case "chat":
+      return <ChatScreen state={state} dispatch={dispatch} />;
     case "models":
       return <ModelsScreen state={state} dispatch={dispatch} />;
     case "onboarding-welcome":
@@ -83,26 +68,23 @@ function ScreenView({
     case "onboarding-ai":
       return <OnboardingScreen state={state} dispatch={dispatch} />;
     default:
-      return null;
+      return <HomeScreen state={state} dispatch={dispatch} />;
   }
 }
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const pendingCount = selectPending(state).length;
   const deviceRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLElement>(null);
-  const sheetOpen = state.screen !== "chat";
-  const isOnboarding = state.screen.startsWith("onboarding");
 
   useEffect(() => {
-    const root = sheetOpen ? sheetRef.current : deviceRef.current;
-    const heading = root?.querySelector<HTMLElement>("h1");
+    const heading = deviceRef.current?.querySelector<HTMLElement>("h1");
     heading?.focus({ preventScroll: true });
-  }, [state.screen, sheetOpen]);
+  }, [state.screen]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || !sheetOpen) return;
+      if (event.key !== "Escape") return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
@@ -111,11 +93,13 @@ export default function App() {
           target.tagName === "SELECT")
       )
         return;
+      if (state.screen === "home" || state.screen.startsWith("onboarding"))
+        return;
       dispatch({ type: "back" });
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [sheetOpen]);
+  }, [state.screen]);
 
   useEffect(() => {
     if (!state.toast) return;
@@ -135,30 +119,19 @@ export default function App() {
     }
     if (id === "chat-approval") {
       dispatch({
-        type: "send_chat_text",
-        text: "Paid 450 to Aman for lunch. He owes me half.",
+        type: "set_quick_input",
+        value: "Paid 450 to Aman for lunch. He owes me half.",
       });
-      dispatch({ type: "finish_chat_thinking" });
+      dispatch({ type: "analyze_quick" });
       return;
     }
     if (id === "chat-thinking") {
+      dispatch({ type: "navigate", screen: "chat" });
       dispatch({
-        type: "send_chat_text",
-        text: "How much did I spend on food in October?",
+        type: "set_chat_input",
+        value: "How much did I spend on food in October?",
       });
-      return;
-    }
-    if (id === "chat-privacy") {
-      dispatch({ type: "attach_mock", kind: "sms" });
-      dispatch({ type: "finish_chat_thinking" });
-      return;
-    }
-    if (id === "chat-telegram") {
-      dispatch({
-        type: "send_chat_text",
-        text: "Send my summary to Telegram",
-      });
-      dispatch({ type: "finish_chat_thinking" });
+      dispatch({ type: "send_chat" });
       return;
     }
     if (id === "onboarding-welcome")
@@ -170,6 +143,7 @@ export default function App() {
     dispatch({ type: "navigate", screen: id as Screen });
   }
 
+  const showNav = NAV_SCREENS.includes(state.screen);
   return (
     <div className="preview-shell">
       <aside className="preview-panel" aria-label="UI preview controls">
@@ -177,12 +151,12 @@ export default function App() {
           <span className="k">V</span>
           <div>
             <strong>Vittaz UI</strong>
-            <small>Chat-first preview</small>
+            <small>Mobile preview</small>
           </div>
         </div>
         <p className="preview-note">
-          Synthetic data only. The assistant, tool calls and Telegram delivery
-          are mocked. No backend, AI provider or bot is connected.
+          Synthetic data only. No backend, AI provider, Telegram bot or device
+          storage is connected.
         </p>
         <label className="preview-label" htmlFor="screen-jump">
           Screen
@@ -206,29 +180,15 @@ export default function App() {
       </aside>
       <main className="device-wrap">
         <div className="device" data-screen={state.screen} ref={deviceRef}>
-          <div className="screen-scroll chat-only">
-            <ChatScreen state={state} dispatch={dispatch} />
+          <div className={`screen-scroll ${showNav ? "with-nav" : ""}`}>
+            <ScreenView state={state} dispatch={dispatch} />
           </div>
-          {sheetOpen && (
-            <div className="sheet-layer">
-              <button
-                className="sheet-backdrop"
-                aria-label="Close panel"
-                onClick={() => dispatch({ type: "back" })}
-                type="button"
-              />
-              <section
-                className={`sheet ${isOnboarding ? "full" : ""}`}
-                role="dialog"
-                aria-modal="true"
-                aria-label={SHEET_TITLES[state.screen]}
-                ref={sheetRef}
-              >
-                <div className="sheet-scroll">
-                  <ScreenView state={state} dispatch={dispatch} />
-                </div>
-              </section>
-            </div>
+          {showNav && (
+            <BottomNav
+              current={state.screen}
+              dispatch={dispatch}
+              pendingCount={pendingCount}
+            />
           )}
           {state.toast && (
             <Toast

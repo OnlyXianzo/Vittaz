@@ -1,5 +1,3 @@
-import type { AssistantIntent } from "./assistant";
-
 export type Screen =
   | "home"
   | "inbox"
@@ -23,7 +21,6 @@ export type InboxFilter = "all" | "upi" | "sms";
 export type ModelId =
   "auto" | "qwen-1.5b" | "qwen-3b" | "claude" | "gemini" | "free";
 export type ChatMode = "idle" | "thinking" | "approval";
-export type ChatStepState = "queued" | "running" | "done" | "waiting";
 
 export interface Transaction {
   id: string;
@@ -52,22 +49,16 @@ export interface Person {
 }
 
 export interface ChatStep {
-  id: string;
   label: string;
   tool: string;
   detail: string;
-  args?: string;
-  result?: string;
-  state: ChatStepState;
+  state: "done" | "running" | "waiting";
 }
 
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
-  /** Labels of sensitive spans removed before the assistant read the text. */
-  redacted?: string[];
-  variant?: "text" | "telegram";
 }
 
 export interface Settings {
@@ -95,9 +86,6 @@ export interface AppState {
   chatMessages: ChatMessage[];
   chatSteps: ChatStep[];
   chatProposalId: string | null;
-  chatIntent: AssistantIntent | null;
-  chatRemoved: string[];
-  chatTelegramPreview: string | null;
   quickInput: string;
   quickRecentIds: string[];
   addDraft: AddDraft;
@@ -138,10 +126,6 @@ export type Action =
   | { type: "set_review_digest"; value: Settings["reviewDigest"] }
   | { type: "set_chat_input"; value: string }
   | { type: "send_chat" }
-  | { type: "send_chat_text"; text: string }
-  | { type: "attach_mock"; kind: "sms" | "screenshot" }
-  | { type: "advance_chat" }
-  | { type: "clear_chat" }
   | { type: "finish_chat_thinking" }
   | { type: "set_quick_input"; value: string }
   | { type: "analyze_quick" }

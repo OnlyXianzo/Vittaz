@@ -1,11 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 
@@ -17,199 +11,155 @@ function renderApp() {
   const nav = within(screen.getByRole("navigation", { name: "Primary" }));
   const jump = (id: string) =>
     userEvent.setup().selectOptions(screen.getByLabelText("Screen"), id);
-  const sheet = () => within(screen.getByRole("dialog"));
-  return { main, nav, jump, sheet };
+  return { main, nav, jump };
 }
 
-describe("chat-first preview", () => {
-  it("opens straight into the assistant window with no bottom tab bar", () => {
+describe("App preview", () => {
+  it("renders the home screen and navigates with bottom nav", async () => {
+    const user = userEvent.setup();
     const { main, nav } = renderApp();
+    expect(main.getByText("Vittaz")).toBeInTheDocument();
+    expect(main.getByText("Pending review")).toBeInTheDocument();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    expect(main.getByText("This month")).toBeInTheDocument();
+    await user.click(nav.getByRole("button", { name: "People" }));
     expect(
-      main.getByRole("heading", { name: "Vittaz AI", level: 1 }),
+      main.getByText("Receivables and payables in this synthetic preview."),
     ).toBeInTheDocument();
-    expect(main.getByLabelText("Message")).toBeInTheDocument();
-    expect(main.getByText("Send me anything")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    for (const label of ["Ledger", "Inbox", "People", "Settings"]) {
-      expect(nav.getByRole("button", { name: new RegExp(label) })).toBeTruthy();
-    }
   });
 
-  it("sends a typed message to the assistant and shows the tool run", async () => {
+  it("approves a pending entry from the inbox", async () => {
     const user = userEvent.setup();
-    const { main } = renderApp();
-    await user.type(main.getByLabelText("Message"), "I spent 299 on Zomato");
-    await user.click(main.getByRole("button", { name: "Send" }));
-    expect(main.getByLabelText("Conversation")).toHaveTextContent(
-      "I spent 299 on Zomato",
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: /Inbox/ }));
+    await user.click(main.getAllByRole("button", { name: "Review" })[0]);
+    expect(main.getByText("Review transaction")).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Approve" }));
+    expect(main.getByText("Pending inbox")).toBeInTheDocument();
+    expect(main.getByText("All 2")).toBeInTheDocument();
+  });
+
+  it("rejects a pending entry from review", async () => {
+    const user = userEvent.setup();
+    const { main, jump } = renderApp();
+    await jump("review");
+    await user.click(main.getByRole("button", { name: "Reject" }));
+    expect(main.getByText("Pending inbox")).toBeInTheDocument();
+    expect(main.getByText("All 2")).toBeInTheDocument();
+  });
+
+  it("adds a manual transaction and shows it in the ledger", async () => {
+    const user = userEvent.setup();
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    await user.click(main.getByRole("button", { name: "Add transaction" }));
+    const amount = main.getByLabelText("Amount");
+    await user.clear(amount);
+    await user.type(amount, "123.45");
+    await user.click(main.getByRole("button", { name: "Save transaction" }));
+    expect(main.getByText("This month")).toBeInTheDocument();
+    expect(main.getByText("₹123.45")).toBeInTheDocument();
+  });
+
+  it("improves and keeps a note", async () => {
+    const user = userEvent.setup();
+    const { main, jump } = renderApp();
+    await jump("add");
+    await user.click(main.getByRole("button", { name: /Improve note/ }));
+    expect(main.getByText("Improved note")).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Use this" }));
+    expect((main.getByLabelText("Note") as HTMLTextAreaElement).value).toMatch(
+      /They owe me/,
     );
-    expect(main.getByText("privacy_scan")).toBeInTheDocument();
-    expect(
-      await main.findByText(/Nothing is saved until you approve it/),
-    ).toBeInTheDocument();
-    expect(main.getByText("propose_transaction")).toBeInTheDocument();
-    expect(main.getByRole("button", { name: "Approve" })).toBeInTheDocument();
   });
 
-  it("sends anything pasted into the composer straight to the assistant", async () => {
-    const { main } = renderApp();
-    const input = main.getByLabelText("Message");
-    fireEvent.paste(input, {
-      clipboardData: { getData: () => "I spent 450 on lunch with Aman" },
-    });
-    expect(main.getByLabelText("Conversation")).toHaveTextContent(
-      "I spent 450 on lunch with Aman",
-    );
-    expect(
-      await main.findByText(/Nothing is saved until you approve it/),
-    ).toBeInTheDocument();
-  });
-
-  it("strips account numbers and phone numbers before the assistant reads them", async () => {
-    const user = userEvent.setup();
-    const { main } = renderApp();
-    await user.click(main.getByRole("button", { name: "Add to chat" }));
-    await user.click(main.getByRole("button", { name: "Bank SMS sample" }));
-    const conversation = main.getByLabelText("Conversation");
-    expect(conversation).toHaveTextContent("[account hidden]");
-    expect(conversation).not.toHaveTextContent("50100234567890");
-    expect(conversation).not.toHaveTextContent("18002586161");
-    expect(
-      main.getByText(/Hidden before sending: account number/),
-    ).toBeInTheDocument();
-    expect(
-      await main.findByText(/Removed account number, phone number/),
-    ).toBeInTheDocument();
-  });
-
-  it("opens the overview panel from the add menu", async () => {
-    const user = userEvent.setup();
-    const { main, sheet } = renderApp();
-    await user.click(main.getByRole("button", { name: "Add to chat" }));
-    await user.click(main.getByRole("button", { name: /Overview/ }));
-    expect(sheet().getByText("Net spend this month")).toBeInTheDocument();
-  });
-
-  it("hides UPI IDs, emails and cards from an attached screenshot", async () => {
-    const user = userEvent.setup();
-    const { main } = renderApp();
-    await user.click(main.getByRole("button", { name: "Add to chat" }));
-    await user.click(main.getByRole("button", { name: "Screenshot sample" }));
-    const conversation = main.getByLabelText("Conversation");
-    expect(conversation).toHaveTextContent("[UPI ID hidden]");
-    expect(conversation).toHaveTextContent("[email hidden]");
-    expect(conversation).toHaveTextContent("[card hidden]");
-    expect(conversation).not.toHaveTextContent("aman@okhdfcbank");
-    expect(conversation).not.toHaveTextContent("4111");
-  });
-
-  it("runs a mock Telegram tool and shows the message it would send", async () => {
+  it("runs quick ingestion into a chat approval", async () => {
     const user = userEvent.setup();
     const { main } = renderApp();
     await user.click(
-      main.getByRole("button", { name: "Send my summary to Telegram" }),
+      main.getByRole("button", { name: /Add or ask by message/ }),
     );
-    expect(
-      await main.findByText("telegram_send_message", {}, { timeout: 4000 }),
-    ).toBeInTheDocument();
-    expect(await main.findByText("Mock delivery")).toBeInTheDocument();
-    expect(main.getByText(/Vittaz daily summary \(mock\)/)).toBeInTheDocument();
+    await user.type(
+      main.getByLabelText("Transaction text"),
+      "I spent 299 on Zomato",
+    );
+    await user.click(main.getByRole("button", { name: "Analyze" }));
+    expect(main.getByText("Assistant")).toBeInTheDocument();
     expect(
       main.getByText(
-        /Nothing was sent\. Pairing a real bot is a backend feature\./,
+        "I drafted this entry. Nothing is saved until you approve it.",
       ),
     ).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Approve" }));
+    expect(main.getByText(/Approved\. The preview ledger/)).toBeInTheDocument();
   });
 
-  it("answers a ledger question from the synthetic data", async () => {
+  it("runs a chat question through deterministic demo steps", async () => {
     const user = userEvent.setup();
-    const { main } = renderApp();
+    const { main, jump } = renderApp();
+    await jump("chat");
     await user.type(
       main.getByLabelText("Message"),
       "How much did I spend on food?",
     );
     await user.click(main.getByRole("button", { name: "Send" }));
     expect(
-      main.getByText(/Demo tool run\. No cloud model or Telegram request/),
-    ).toBeInTheDocument();
-    expect(await main.findByText(/confirmed spending is/)).toBeInTheDocument();
-    expect(main.getByText("sum_by_category")).toBeInTheDocument();
-  });
-
-  it("approves a drafted entry from the chat window", async () => {
-    const user = userEvent.setup();
-    const { main, jump } = renderApp();
-    await jump("chat-approval");
-    await user.click(main.getByRole("button", { name: "Approve" }));
-    expect(main.getByText(/Approved\. The preview ledger/)).toBeInTheDocument();
-  });
-
-  it("opens other screens as panels over the chat and closes them again", async () => {
-    const user = userEvent.setup();
-    const { main, nav, sheet } = renderApp();
-    await user.click(nav.getByRole("button", { name: "Ledger" }));
-    expect(
-      sheet().getByRole("heading", { name: "Ledger", level: 1 }),
+      main.getByText("Demo steps only. No cloud model is called."),
     ).toBeInTheDocument();
     expect(
-      main.getByRole("heading", { name: "Vittaz AI", level: 1 }),
+      await main.findByText(/confirmed food entries total/),
     ).toBeInTheDocument();
-    await user.click(main.getByRole("button", { name: "Close panel" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("adds a manual transaction from a panel and shows it in the ledger", async () => {
+  it("filters and searches the ledger", async () => {
     const user = userEvent.setup();
-    const { nav, sheet } = renderApp();
+    const { main, nav } = renderApp();
     await user.click(nav.getByRole("button", { name: "Ledger" }));
-    await user.click(sheet().getByRole("button", { name: "Add transaction" }));
-    const amount = sheet().getByLabelText("Amount");
-    await user.clear(amount);
-    await user.type(amount, "123.45");
-    await user.click(sheet().getByRole("button", { name: "Save transaction" }));
-    expect(sheet().getByText("₹123.45")).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Cash" }));
+    expect(main.getByText("Tea stall")).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Search" }));
+    await user.type(main.getByLabelText("Search ledger"), "amazon");
+    expect(main.getByText("No entries")).toBeInTheDocument();
   });
 
-  it("approves and rejects pending entries from the review panel", async () => {
+  it("keeps ask-before-saving enabled and toggles other settings", async () => {
     const user = userEvent.setup();
-    const { jump, sheet } = renderApp();
-    await jump("inbox");
-    await user.click(sheet().getAllByRole("button", { name: "Review" })[0]);
-    await user.click(sheet().getByRole("button", { name: "Approve" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await jump("inbox");
-    expect(sheet().getByText("All 2")).toBeInTheDocument();
-    await user.click(sheet().getAllByRole("button", { name: "Review" })[0]);
-    await user.click(sheet().getByRole("button", { name: "Reject" }));
-    await jump("inbox");
-    expect(sheet().getByText("All 1")).toBeInTheDocument();
-  });
-
-  it("keeps ask-before-saving locked on", async () => {
-    const user = userEvent.setup();
-    const { nav, sheet } = renderApp();
+    const { main, nav } = renderApp();
     await user.click(nav.getByRole("button", { name: "Settings" }));
-    const toggle = sheet().getByRole("switch", { name: "Ask before saving" });
+    const toggle = main.getByRole("switch", { name: "Ask before saving" });
     expect(toggle).toHaveAttribute("aria-checked", "true");
     await user.click(toggle);
     expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(main.getByText(/always requires approval/)).toBeInTheDocument();
+    const notes = main.getByRole("switch", { name: "Send notes to cloud" });
+    await user.click(notes);
+    expect(notes).toHaveAttribute("aria-checked", "true");
   });
 
-  it("walks through onboarding and lands back in the chat", async () => {
+  it("selects a model preference", async () => {
     const user = userEvent.setup();
-    const { main, jump, sheet } = renderApp();
-    await jump("onboarding-welcome");
-    expect(sheet().getByText(/welcome to Vittaz/)).toBeInTheDocument();
-    await user.click(sheet().getByRole("button", { name: "Get started" }));
-    await user.click(sheet().getByRole("button", { name: "Continue" }));
-    await user.click(sheet().getByRole("button", { name: "Finish setup" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const { main, jump } = renderApp();
+    await jump("models");
+    await user.click(main.getByRole("button", { name: /Claude/ }));
     expect(
-      main.getByRole("heading", { name: "Vittaz AI", level: 1 }),
+      main.getByText(/Model preference set to claude/),
     ).toBeInTheDocument();
   });
 
-  it("renders every preview state without crashing", async () => {
+  it("walks through onboarding", async () => {
+    const user = userEvent.setup();
+    const { main, jump } = renderApp();
+    await jump("onboarding-welcome");
+    expect(main.getByText(/welcome to Vittaz/)).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Get started" }));
+    expect(main.getByText("How entries get in")).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Continue" }));
+    expect(main.getByText("Pick how the AI runs")).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Finish setup" }));
+    expect(main.getByText("Pending review")).toBeInTheDocument();
+  });
+
+  it("renders every preview screen without crashing", async () => {
     const user = userEvent.setup();
     render(<App />);
     const select = screen.getByLabelText("Screen");
@@ -223,33 +173,51 @@ describe("chat-first preview", () => {
   });
 });
 
-describe("chat accessibility", () => {
-  it("moves focus to the panel heading and back to the chat heading", async () => {
+describe("preview accessibility", () => {
+  it("exposes a level-one heading for the current screen", async () => {
     const user = userEvent.setup();
-    const { main, nav, sheet } = renderApp();
-    await user.click(nav.getByRole("button", { name: "Ledger" }));
-    expect(sheet().getByRole("heading", { name: "Ledger" })).toHaveFocus();
-    await user.keyboard("{Escape}");
+    const { main, nav } = renderApp();
     expect(
-      main.getByRole("heading", { name: "Vittaz AI", level: 1 }),
+      main.getByRole("heading", { name: "Vittaz", level: 1 }),
+    ).toBeInTheDocument();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    expect(
+      main.getByRole("heading", { name: "Ledger", level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it("moves focus to the screen heading after navigation", async () => {
+    const user = userEvent.setup();
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    expect(
+      main.getByRole("heading", { name: "Ledger", level: 1 }),
     ).toHaveFocus();
   });
 
-  it("does not close the panel when Escape is pressed inside a field", async () => {
+  it("returns to the previous screen with Escape", async () => {
     const user = userEvent.setup();
-    const { jump, sheet } = renderApp();
-    await jump("add");
-    const amount = sheet().getByLabelText("Amount");
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    await user.keyboard("{Escape}");
+    expect(
+      main.getByRole("heading", { name: "Vittaz", level: 1 }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("preview accessibility edge cases", () => {
+  it("does not navigate away when Escape is pressed inside a form field", async () => {
+    const user = userEvent.setup();
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    await user.click(main.getByRole("button", { name: "Add transaction" }));
+    const amount = main.getByLabelText(/Amount/);
     await user.click(amount);
     await user.keyboard("{Escape}");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      main.getByRole("heading", { name: "Add transaction", level: 1 }),
+    ).toBeInTheDocument();
     expect(amount).toHaveFocus();
-  });
-
-  it("announces the conversation as a live log", () => {
-    const { main } = renderApp();
-    const log = main.getByLabelText("Conversation");
-    expect(log).toHaveAttribute("aria-live", "polite");
-    expect(log).toHaveAttribute("role", "log");
   });
 });
