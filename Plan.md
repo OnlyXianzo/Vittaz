@@ -113,7 +113,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 - [x] **S13. Scrubber.** Remove UPI references, VPA handles and account numbers from anything sent out.
 - [x] **S14. Safe logger and crash reporter.** Keys, tokens and names never appear.
 - [x] **S15. Adversarial name tests.** Lowercase, Hinglish (`aman ko 450 diye`), Devanagari names, nicknames, typos, names inside notes. Fix real leaks. Record limits in `DECISIONS.md`.
-- [ ] **S16. Privacy gate in CI.** The privacy job must pass before any later job runs.
+- [x] **S16. Privacy gate in CI.** The privacy job must pass before any later job runs.
 
 **Gate G2:** every privacy test is green, including S15.
 

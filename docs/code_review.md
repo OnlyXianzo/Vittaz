@@ -247,3 +247,18 @@ boundaries, cold-start examples and rejection of pronouns/digit-only candidates.
 Explicit limitation assertions are NOT cloud-safety assertions: unknown aliases,
 typos/homographs and arbitrary prose remain local-only requirements for S27d.
 No independent external review or full reference extra parity claimed.
+
+## S16 bounded CI self-review — 2026-11-04
+
+S15 CI41851645643 all five green. Missing runner module first failed, then CI
+contract tests assert required five primitive suites and reject missing, empty,
+skipped, failed, live-only or selector-only evidence. Installed JSON reporter probe
+caught stdout assumption; use fresh temp file instead, no undocumented field.
+Actual copied runner + synthetic fake child tests verify success/nonzero child/
+missing report/malformed JSON/zero tests exit codes, cleanup, and no raw child
+payload echo. Lint caught regex-space style; fixed and reran full suite.
+93 tests across19files, clean-dist100% implemented core/storage source coverage;
+runner/agent tooling/mobile are NOT included in that coverage percentage. Actual
+npm run test:privacy passes38 selected tests (34 core primitives +4 CI-contract
+checks); meta selector no longer counts as a privacy test. Real CLI smoke remains
+version only, not full CLI journeys. No new independent review claimed.

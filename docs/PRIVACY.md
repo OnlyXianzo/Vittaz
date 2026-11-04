@@ -105,3 +105,28 @@ Notifications, imported files, emails, web pages, tool outputs and messages from
 ## Future connectors
 
 A connector that reads external data, such as Gmail, needs its own review of scopes, token storage, retention and what can reach a model, before it is built. Reading and sending are separate permissions.
+
+## Implemented Phase D primitives (2026-11-04; G2 not signed off)
+
+- Pure sensitive classifier + guarded callback: rejects before processor invocation,
+  returns static reason codes; English/Hinglish/Devanagari patterns, invalid input
+  fails closed. Future ingress paths must call it before persistence/logging/network.
+- Local in-memory known-name mappings: longest-first Unicode-token replacement,
+  case/canonical/compatibility normalization, reversible Person_N; masks original
+  Person_N tokens to prevent impersonation. Basic inline payment-name heuristics
+  are NOT universal name recognition. Seed stable names via future async storage.
+- Outbound-copy scrubbing: UPI URI/reference/handle, IFSC, account/card, phone and
+  long numeric identifiers. Broad matches may over-redact; encoded/unknown formats
+  and indirect identifiers are not comprehensively recognized.
+- Safe diagnostics: only fixed event codes, generated clock/id and omitted markers.
+  Never retain raw messages/stack/metadata/context or traverse untrusted values.
+- Fail-closed CI requires actual passing primitive suites, no bootstrap escape;
+  downstream test/security/build jobs remain gated on privacy.
+
+This is NOT proof of zero trace across all application entry points, full reference
+layer2 integration, Android/Expo parity, anonymity, encrypted backups or secure
+provider/device configuration. Those actual pipelines/device adapters do not yet
+exist. Unknown aliases/typos/homographs and free-text notes remain local-only by
+policy; S17/S27d must enforce that policy with real integration tests before use.
+See DECISIONS.md for explicit name/diagnostic tradeoffs. G1 is owner-approved;
+G2 and G3 require separate owner decisions. Do not use real messages or credentials.

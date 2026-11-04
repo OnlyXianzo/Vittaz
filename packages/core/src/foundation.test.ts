@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import config from "../../../vitest.config.js";
+import { privacyTestPattern } from "../../../scripts/privacy_check.js";
 
 const read = (path: string) =>
   readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
@@ -56,13 +57,8 @@ test("glob_tooling_uses_security_patched_minimatch", () => {
   }
 });
 
-test("privacy_selector_excludes_live_names", () => {
-  const command = manifest.scripts["test:privacy"] as string;
-  const match = command.match(
-    /--testNamePattern=(?:'([^']+)'|"([^"]+)"|(\S+))/,
-  );
-  expect(match).not.toBeNull();
-  const pattern = new RegExp(match![1] ?? match![2] ?? match![3]);
+test("test_selector_excludes_live_names", () => {
+  const pattern = new RegExp(privacyTestPattern);
   expect(pattern.test("privacy_zero_trace")).toBe(true);
   expect(pattern.test("suite > privacy_zero_trace")).toBe(true);
   expect(pattern.test("privacy_zero_trace @live")).toBe(false);

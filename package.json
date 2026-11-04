@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.check.json --noEmit",
     "test:coverage": "vitest run --coverage",
-    "test:privacy": "vitest run --testNamePattern='^(?!.*@live)(?=.*privacy_)' --passWithNoTests",
+    "test:privacy": "node scripts/privacy_check.ts",
     "secret:scan": "python3 .agents/skills/secret-scan/scripts/deep_git_scan.py ."
   },
   "devDependencies": {

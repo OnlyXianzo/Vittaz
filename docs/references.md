@@ -130,3 +130,8 @@ Python/build step. This supersedes older-driver installation assumptions.
 
 - Unicode UTS39 **revision34, Unicode18.0.0**, published2026-08-27: https://www.unicode.org/reports/tr39/ — normalization is not general confusable/name detection. No conformance claim or Unicode data dependency added.
 - MDN normalize/Unicode property escapes (above) and read-only reference b21801c extra.nameLeak.test.ts / extra.hinglish.test.ts: known casing/possessives, cold-start clear payment constructions and matra safety. Node24.22.2 native APIs; future provider/Expo parity remains unproved.
+
+### S16 CI evidence — 2026-11-04
+
+- Vitest **5.1.0** https://vitest.dev/guide/reporters.html — JSON reporter defaults to file output; outputFile CLI option documented. Installed probe confirms passed/failed totals, success, testResults/assertionResults and no numRuntimeErrorTestSuites field.
+- Node **24.22.2** https://nodejs.org/docs/latest-v24.x/api/child_process.html — spawnSync argument array, status, timeout/maxBuffer; existing Node fs/os APIs provide fresh temporary report directory with guaranteed cleanup. Native erasable TypeScript runner, no dependency.

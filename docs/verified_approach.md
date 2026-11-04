@@ -345,3 +345,28 @@ No new model, parser package, dependency or real financial data.
 Blast radius: redactor only, new adversarial tests and documented limitations.
 No provider/persistence exists to wire now. Full extra multi-turn/device/zero-trace
 reference tests remain pending S27d/S35; pure tests cannot count those as ported.
+
+## S16 fail-closed privacy CI (2026-11-04)
+
+S15 headb9253c5 CI41851645643 all five green. Official Vitest5.1.0 reporter docs
+and an installed-version probe show JSON now writes a file by default; do NOT
+assume JSON stdout or an undocumented numRuntimeErrorTestSuites field. Node24
+child_process docs support argument-array spawnSync with timeout/maxBuffer.
+Cross-check installed JSON evidence, current workflow and Plan S16.
+
+Replace permissive bootstrap command with a Node-native TypeScript runner. It
+runs the pinned Vitest CLI with the existing non-live privacy-name selector,
+reads a JSON report from a fresh OS temporary directory and deletes it in finally.
+Require successful process/report, nonzero passing tests, no failures and actual
+passed assertions from ALL five privacy primitive suites (sensitive, names,
+scrubber, telemetry, adversarial). Thus metadata selector/self-tests or empty/
+skipped suites cannot constitute privacy evidence. Fail closed on child errors,
+malformed/missing reports. Print only a static status, never raw failed payloads;
+full local Vitest reruns provide developer details using synthetic fixtures.
+High confidence for CI enforcement, NOT zero-trace application integration.
+
+Blast radius: development script, package test:privacy command, selector meta-test,
+new CI-contract tests and bootstrap workflow description. Existing job graph
+already gates test/security on privacy and build transitively; assert it rather
+than weakening it. Keep immutable actions and protections. No dependencies,
+agent-tooling rewrite, application logic, migration or UI changes in this step.
