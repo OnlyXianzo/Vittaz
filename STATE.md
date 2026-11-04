@@ -1,8 +1,8 @@
 # State
 
-current_step: Python-free tooling correction locally complete; S4 next (not implemented)
-last_green_commit: c31c76f775c82e16db8de4db87937fd616e568e1 (remote main); tooling correction locally revalidated
-gate_status: Phase B complete; S3 complete; G1 pending
-blocked_on: required remote CI pending after publication
-next_actions: push feat/python-free-security-tooling, open PR, verify all five required CI jobs and resolve validated threads before merge; then S4 async repositories/storage through TDD
-notes: PR1 merged exact tested head 39b20604b9cf755f57f6d8d6c250fc129991119b into main c31c76f775c82e16db8de4db87937fd616e568e1; merged main CI https://github.com/OnlyXianzo/Vittaz/actions/runs/41836015590 passed all five required jobs. Python scanner/tests replaced by native Node TypeScript, unused Python surface helper removed. 22 local tests green, core-only coverage 100% (not scanner coverage), lint/typecheck/format/build/privacy bootstrap/audit/secret scan pass. Current feature remote CI pending; no merge claimed. Optional CodeRabbit remains optional, no local subagent available. Reference unchanged, UI/canvas untouched; S4 and 50% not achieved.
+current_step: S4 async repositories/storage implemented locally; final CI pending
+last_green_commit: f3bf7285479c652776a62db62ccb4dba8a2367fd
+gate_status: S1-S3 complete; S4 pending final CI; G1 pending; UI prohibited
+blocked_on: nothing
+next_actions: verify final S4 CI; S5 transactions/status through TDD; continue sequentially toward G1
+notes: PR2 merged ecf7d33107f00328ddafb94054caa24debab5164. PR3 migration CI https://github.com/OnlyXianzo/Vittaz/actions/runs/41838467754 passed quality/privacy/test/security/build. Async core ports, complete four-table Drizzle query mapping and private serialized Node store now implemented with 35 tests green and 100% implemented-core/storage coverage. Awaited transactions rollback correctly; read capabilities omit writes, handles expire, reentrancy rejected; no Python native build. Baseline migrations and SQL sums ported; S5-S10 not implemented. Full outbound privacy is still pending; bootstrap privacy is not G2. No frontend/reference changes, no 50% claim. External credential location only in session handoff.

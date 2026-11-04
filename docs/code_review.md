@@ -46,3 +46,27 @@ the two status-1 cases could falsely pass on missing CLI. Tightened the harness
 to require `SCAN FINISHED` and empty stderr for every completed scan. Final suite
 has 22 passing tests, including seven real scanner integration tests. Publishing
 and independent remote review remain blocked by unavailable GitHub authentication.
+
+## S4 bounded self-review — 2026-11-04
+
+No new independent agent review claimed. Migration head f3bf728 passed all five
+required jobs in run 41838467754. Async adapter uses private connection ownership,
+serialized reads/writes, explicit awaited transactions, rollback after rejected
+work, and expiring callback capabilities. AsyncLocalStorage rejects reentrant
+root-store access instead of deadlocking. Read callbacks receive no write methods.
+No raw SQL is exposed by core ports. Drizzle query mappings preserve every field
+of the four current ledger row types; migration SQL owns constraints/indexes.
+
+Tests cover all CRUD paths, missing rows, strict money and FK errors, duplicate
+IDs, concurrent ordering, rollback after await and SQLite automatic rollback,
+queue recovery, expired methods, idempotent close, file reopen and future-schema
+open failure. 35 local tests and 100% implemented core/storage coverage. Remaining
+limits: no Expo device proof before Phase I; caller must await callback work and
+must not perform network work during a transaction. AI receives use-case-only
+capabilities later, never the store or write repositories.
+
+CI correction: final repository head aa31d16 failed privacy bootstrap import on a
+clean checkout because @vittaz/core resolved to absent dist. Reproduced locally
+by removing core/storage dist directories. Added a test-only source alias per
+Vitest docs; no build prerequisite and no privacy job bypass. All subsequent
+checks must start without dist to avoid masking package-resolution regressions.

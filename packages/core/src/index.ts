@@ -13,3 +13,19 @@ export {
   parseRupeesToPaise,
   sumPaise,
 } from "./ledger/money.js";
+
+export type {
+  TransactionDirection,
+  TransactionEventType,
+  TransactionStatus,
+  ProposalStatus,
+  ProposalRow,
+  TransactionRow,
+  AuditLogRow,
+  WalletRow,
+  ReadRepository,
+  WriteRepository,
+  ReadLedgerRepositories,
+  LedgerRepositories,
+  LedgerStore,
+} from "./ledger/repositories.js";

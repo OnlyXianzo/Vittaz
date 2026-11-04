@@ -60,3 +60,26 @@ Checked on 2026-11-04. Exact direct dependency versions are pinned in package.js
 - Node **24.22.2**, https://nodejs.org/docs/latest-v24.x/api/child_process.html : shell-free spawnSync argument lists, maxBuffer and failure status.
 - Git CLI (environment version recorded by `git --version`), https://git-scm.com/docs/git-ls-files : cached/others/exclude-standard and NUL-delimited paths.
 - Existing independent review 5768766230 and scanner source cross-check redaction and detector parity; no new library installed.
+
+### S4 SQLite storage — 2026-11-04
+
+- https://orm.drizzle.team/docs/get-started-sqlite and https://orm.drizzle.team/docs/transactions — current website advertises RC; use pinned stable drizzle-orm **0.45.4** only after checking installed source.
+- https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md — **13.0.3**: synchronous transaction callbacks cannot await; manual transactions allowed, do not mix with wrapper.
+- https://www.sqlite.org/lang_transaction.html — explicit transaction lifecycle; failed COMMIT may remain active; rollback required on error.
+- https://www.sqlite.org/stricttables.html — STRICT >=3.37, still allows lossless coercion; explicit range constraints required.
+- **@types/better-sqlite3 9.6.0**; installed package declarations verify prepared statements and pragma signatures. Reference b21801c migrations/tests cross-check preservation requirements.
+
+Pinned-source cross-check: installed `drizzle-orm/better-sqlite3/driver.d.ts`
+accepts a native client; session.js delegates transaction callbacks directly to
+better-sqlite3. Installed better-sqlite3 **13.0.3** ships N-API prebuilds inside
+the npm package (`gypfile: false`, no install script); no separate prebuild-install
+command exists or is needed. Native in-memory smoke query succeeded without any
+Python/build step. This supersedes older-driver installation assumptions.
+
+### S4 async repository adapter — 2026-11-04
+
+- Node **24.22.2**, https://nodejs.org/docs/latest-v24.x/api/async_context.html — AsyncLocalStorage.run/getStore for per-store reentrancy detection, isolated to Node adapter.
+- Drizzle **0.45.4**, https://orm.drizzle.team/docs/insert and https://orm.drizzle.team/docs/select — parameterized values and eq selectors; installed stable driver/session source cross-checked.
+- https://orm.drizzle.team/docs/sql-schema-declaration — explicit SQLite table mappings; existing SQL migrations remain authoritative for constraints (no Drizzle-Kit generation used).
+
+- Vitest **5.1.0**, https://vitest.dev/config/alias (2026-11-04): test aliases resolve source imports without requiring compiled workspace outputs. Clean CI caught core package resolution masked by local dist files; reproduced after deleting dist, fixed with an explicit core-source alias, no early build or privacy-job bypass.
