@@ -44,7 +44,7 @@ Task progress:
 
 ```bash
 git rev-parse --short HEAD; git status --porcelain | head; git log -1 --format='%s'
-python3 --version; node --version; go version; java -version; rustc --version
+node --version; npm --version; git --version
 ```
 
 Record which toolchain exists, because it decides what you can execute. A missing compiler does not stop the audit; it changes the evidence you are allowed to claim.
@@ -57,7 +57,7 @@ Carry forward prior findings explicitly. Re-test them; do not re-report them as 
 
 Enumerate **entry points** (routes, IPC channels, deep links, broadcast receivers, file parsers, CLI args, env, queues) and **sinks** (queries, shells, filesystem, deserialisation, HTTP clients, templates, crypto, logging). A vuln is a path between them.
 
-`scripts/surface_scan.py <repo>` prints a categorised inventory of high-signal sink lines. It is a *starting index*, not a finding list — every line it prints still needs a data-flow read. Run it, then read the code it points at.
+Use scoped Git searches over packages, apps and scripts for execution, SQL, filesystem, HTTP and crypto sinks. Read every call site and trace inputs: matches are not findings. The unused Python surface-index helper was removed; Git search plus manual analysis replaces it.
 
 Bound the work: list what you are *not* covering (vendored code, generated code, third-party assets) and name it as a blind spot rather than silently skipping it.
 

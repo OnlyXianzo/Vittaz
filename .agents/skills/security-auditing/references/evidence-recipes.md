@@ -32,15 +32,15 @@ int code = c.getResponseCode();
 System.out.println("code=" + code + " hits=" + hits.get());
 ```
 
-`hits=1` with the default and `hits=0` with the flag off is the whole proof. The same shape works in Python (`allow_redirects=False`), Dart (`followRedirects=false`), and Go (`CheckRedirect`). **Proves:** the client's behaviour. **Does not prove:** that the application set the flag — check the call site.
+`hits=1` with the default and `hits=0` with the flag off is the whole proof. The same shape works in Node (`redirect: "manual"`), Dart (`followRedirects=false`), and Go (`CheckRedirect`). **Proves:** the client's behaviour. **Does not prove:** that the application set the flag — check the call site.
 
 ## Timeout vs slow drip
 
 `readTimeout` bounds one read, not the transfer. A byte every 300 ms keeps a socket open forever.
 
-```python
-srv = socket.socket(); srv.bind(("127.0.0.1", 9102)); srv.listen(1)
-# accept, send headers, then one byte per 300ms; measure how long the client stays open
+```text
+Use a Node loopback test server: send headers, then one byte every 300ms.
+Measure client elapsed time, clear intervals and close all sockets afterward.
 ```
 
 Compare the observed open time against the timeout you think is configured. **Proves:** the resource bound is missing. **Does not prove:** exhaustion — multiply by connections and say so.
@@ -64,9 +64,10 @@ Build real files and real symlinks in a temp dir; do not simulate them. `Files.c
 
 Time the pathological input rather than reasoning about it. Generate 40 000 separators and 20 000 nested segments, and assert the run is linear:
 
-```python
-t = time.perf_counter(); pattern.sub("x", "/" + "a/" * 20000 + "b")
-assert time.perf_counter() - t < 0.5
+```js
+const start = performance.now();
+("/" + "a/".repeat(20000) + "b").replace(pattern, "x");
+if (performance.now() - start >= 500) throw new Error("regex_time_budget");
 ```
 
 Disjoint repeats (a segment that cannot contain the separator) are linear; nested quantifiers (`(a+)+`) are not. **Proves:** this pattern on this input. **Does not prove:** every input — say which shapes you tried.
