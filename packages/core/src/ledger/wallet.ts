@@ -46,7 +46,7 @@ export async function setWalletOpeningBalance(
   });
 }
 export function getWalletSummary(
-  store: LedgerStore,
+  store: Pick<LedgerStore, "read">,
   id = "cash",
 ): Promise<WalletSummary> {
   return store.read(async (r) => {

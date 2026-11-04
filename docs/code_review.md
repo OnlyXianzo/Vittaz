@@ -357,3 +357,16 @@ overflow fail statically rather than leak or invent totals. Full local quality,
 privacy/build/CLI/audit0/scan0 pass. S23 actual read-only loop/PRAGMA and S27d/e full
 assistant integration remain unproved; not all31/G3/backend readiness. No independent
 review claim. Owner UI PR13 changes preserved and not part of backend review.
+
+## S23 bounded self-review — 2026-11-04
+
+177tests29files100% implemented-source metrics.13 new tests exercise baseline4.4
+step/reported-token/timeout, baseline4.5 forbidden action registry and actual
+native readonly connection (SQL write/DDL fails even query_only OFF), schema
+compatibility/no migration, escaped read scopes and recovery, invalid/sensitive
+zero provider/query calls. Actual fake HTTP/S21/readonly storage roundtrip,
+private data omission/no DB mutation, local-only names, no private error echo,
+abort before/during provider/query, non-cooperating async timeout, malformed or
+unknown usage, overflow, duplicate IDs and history bounds. Correct elapsed-time
+regression red before fix; not just timer-event timeout proof. No independent
+review, exact billing ceiling or whole assistant/device readiness claim.

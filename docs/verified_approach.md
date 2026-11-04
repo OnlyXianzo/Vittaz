@@ -527,3 +527,27 @@ replaced by catalog get_month_summary breakdown/query_transactions (same read
 behaviors, not extra advertised tools). Full physical-readonly/QA loop proof S23,
 not preclaimed here. Balance uses existing wallet cash-movement semantics, not a
 new debt/repayment accounting engine. O(n) list query cost remains unmeasured.
+
+## S23 research/verification gate — 2026-11-04
+
+Scope: agent/qa_loop plus existing storage connection factory and wallet-summary
+read-only port narrowing; no UI/.agents or policy/history/analytics integration.
+Sequential three-angle review (no subagent tool available): official SQLite and
+Node lifecycle semantics, reference real loop, failure modes (reversible PRAGMA,
+non-cooperative provider/query, unknown usage, write tool injection). Sources in
+references.md agree: readonly constructor plus query_only and no SQL handle;
+migrations exclusively writer-side. Current-schema existing files only. Tests
+inspect actual factory-owned connection and attempt SQL writes, not only types.
+
+Agent builds its own QA-only registry from query ports (cannot inject draft tool
+registry). Bounded steps/completion cap/deadline/inputs; no raw errors. Race async
+provider and query execution against combined caller/deadline cancellation. No
+network under a storage read transaction. Strict validated options; sensitive
+question dropped before redactor/provider/query effects; local name redaction and
+minimal tool projections. Reported usage exhausted/unknown stops before tools or
+answer. One call can incur input tokens beyond remaining budget; do not claim an
+exact tokenizer/billing cap. Hostile synchronous callbacks cannot be preempted in
+Node; supplied trusted adapters must yield. Actual full pipeline S27d/e remains.
+TDD first missing-module/readonly export failure; then adversarial fixtures/full
+quality and exact-head CI protected merge. G3 owner approval recorded, technical
+criteria still required before G3 completion.
