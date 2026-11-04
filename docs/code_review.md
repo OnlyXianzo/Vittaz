@@ -70,3 +70,79 @@ clean checkout because @vittaz/core resolved to absent dist. Reproduced locally
 by removing core/storage dist directories. Added a test-only source alias per
 Vitest docs; no build prerequisite and no privacy job bypass. All subsequent
 checks must start without dist to avoid masking package-resolution regressions.
+
+## S5 bounded self-review — 2026-11-04
+
+Preserved manual/captured creation and forward-only transitions via async store.
+No database, framework or Node API import in core. Runtime ID/clock injectable;
+global Web Crypto default exercised in Node, mobile implementation deferred.
+Audit snapshots created atomically now to preserve reference result shape; edit
+and undo remain S7. All legacy and numeric benefit/tag columns round-trip, import
+source retained. Invalid amounts/direction/event/FK or duplicate dedup key leave
+no partial write. 38 tests, 100% implemented core/storage coverage locally.
+
+## S6 bounded self-review — 2026-11-04
+
+S5 head 3b8da49 passed five jobs in CI 41839861735. Approval uses one awaited
+unit for transaction/proposal/audit, returns original transaction on repeated
+approval, and rejects corrupt approved links. Batch helper shares one capability
+rather than nesting root transactions; a later invalid proposal rolls back the
+whole batch. Synthetic injected audit failure leaves proposal pending and ledger
+empty. Concurrent same-store double approval writes once. No provider/tool gets
+the store. 42 tests, implemented core/storage coverage 100% locally; no new
+independent review claimed.
+
+## S7 bounded self-review — 2026-11-04
+
+S6 head 4ca95ba passed all five jobs in CI 41840252895. Edits preserve status and
+all untouched fields, validate money and create an atomic audit snapshot. Undo
+restores exact row timestamps/fields and proposal state, retains audit rows,
+rejects repeat/stale/unsupported/corrupt-shape events and rolls back on audit
+failure. Deletion-snapshot restoration is preserved although no delete use case
+is introduced. Stale-undo extension is recorded in DECISIONS. 48 tests and 100%
+implemented core/storage coverage locally. Wallet-summary equivalence follows S8.
+Audit snapshots are local trusted records, not an authenticated external format;
+backup parsing/validation remains S9. No new independent review claimed.
+
+S7 publication correction: inventory prose omitted both expected `ported` and
+`pending` labels, causing the inventory test to fail after the code suite was
+green. The shell incorrectly continued to commit/push after that failed command.
+Corrected prose in 00ea599 and switched all subsequent command batches to
+`set -e`; reran full checks before pushing the correction. No failing head is to
+be merged, and the gate remains pending until exact-head remote CI passes.
+
+## S8 bounded self-review — 2026-11-04
+
+S7 corrected head 00ea599 passed CI 41840867890 all five jobs. Wallet summaries
+preserve reference treatment of refunds/reversals, exclude pending proposals and
+other accounts, and use checked BigInt-backed sums/balances. Cash/bank/UPI account
+creation and safe opening-balance update tested; no transfer or lending use case
+added. Baseline_1_5 now verifies wallet summary equivalence after edit/approval
+undo. 51 tests and 100% implemented core/storage coverage. Large unsafe totals
+fail rather than silently round. Opening balance config follows reference API,
+not a proposal/AI mutation. No new independent review claimed.
+
+## PR5 owner review/rebase resolution — 2026-11-04
+
+Read actual owner-authored comments:
+
+- https://github.com/OnlyXianzo/Vittaz/pull/5#issuecomment-6632302029
+- https://github.com/OnlyXianzo/Vittaz/pull/5#issuecomment-6632410929
+
+Both request a rebase onto main after PR4. Rebased S5-S8 onto main 231d95d,
+retained both DECISIONS entries at the one conflict, and preserved Rule 15 plus
+the owner's restored agent tooling unchanged. Verified no AGENTS.md or .agents/
+difference from main. No implementation change was requested in those comments.
+Their module names/test counts are descriptive review text, not exact execution
+proof; actual modules are ledger.ts, approval.ts, audit.ts and wallet.ts.
+
+Fresh install and clean-dist validation after rebase: **47 tests pass**, 100%
+implemented core/storage coverage, lint/typecheck/build/CLI/privacy bootstrap,
+audit zero and full-history/working-tree scan zero. Count changed from 51 because
+PR4 restored the original three scanner regressions instead of seven Node scanner
+regressions; ledger coverage remains unchanged. Owner comments are recorded as
+owner review, not newly asserted independent-agent execution. CodeRabbit optional.
+
+Unfinished S9 backup work is excluded from this PR and preserved separately; it
+has a known TypeScript audit-row narrowing error to fix before any later commit.
+Required exact-head CI and normal branch protections remain prerequisites to merge.

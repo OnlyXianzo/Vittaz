@@ -29,3 +29,37 @@ export type {
   LedgerRepositories,
   LedgerStore,
 } from "./ledger/repositories.js";
+export {
+  LedgerError,
+  InvalidStatusTransitionError,
+  defaultLedgerRuntime,
+  createManualTransaction,
+  insertAutoCapturedTransaction,
+  getTransaction,
+  transitionTransactionStatus,
+} from "./ledger/ledger.js";
+export type {
+  LedgerRuntime,
+  CreateManualTransactionInput,
+  AutoCapturedTransactionInput,
+  TransactionWriteResult,
+} from "./ledger/ledger.js";
+export {
+  createProposal,
+  getProposal,
+  approveProposal,
+  batchApproveProposals,
+  rejectProposal,
+} from "./ledger/approval.js";
+export type {
+  CreateProposalInput,
+  ApproveProposalResult,
+} from "./ledger/approval.js";
+export { updateTransaction, undoAuditEntry } from "./ledger/audit.js";
+export type { UpdateTransactionPatch } from "./ledger/audit.js";
+export {
+  createWallet,
+  setWalletOpeningBalance,
+  getWalletSummary,
+} from "./ledger/wallet.js";
+export type { WalletSummary } from "./ledger/wallet.js";

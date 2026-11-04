@@ -98,3 +98,27 @@ on migration-only proof. Native prebuilt installation avoids Python build tools.
 ## Reversal of tooling rewrite and agent tooling protection — 2026-11-04
 
 Per owner directive, `.agents/` is developer tooling and agent configuration, not application codebase. Reverted the unnecessary Python-to-TypeScript tooling conversion back to normal. Codified Rule 15 in `AGENTS.md` explicitly prohibiting agents from refactoring or porting `.agents/` skills and scripts.
+
+## 2026-11-04 — Approval corruption fails closed
+
+Async approval preserves reference idempotency but rejects an approved proposal
+whose committed transaction is missing/null with COMMITTED_TRANSACTION_MISSING,
+instead of relying on a non-null assertion that returns null as a transaction.
+Synthetic corruption regressions cover both cases. No repair or AI write path is
+introduced. Batch approval runs within one repository unit, not reentrant calls.
+
+## 2026-11-04 — Undo must not overwrite newer state
+
+Reference undo blindly restores old snapshots. Vittaz will reject stale undo if
+the current transaction differs from the recorded after-state (or a deleted row
+has since reappeared), and verify approved proposal linkage before restoring it.
+Unsupported entity types or empty snapshots fail instead of falsely marking an
+event undone. Normal create/edit/approval/deletion snapshot results remain exact;
+audit rows are retained with undone=1. Tests document these safety extensions.
+
+## 2026-11-04 — Rebase follows owner's agent-tooling decision
+
+PR4 and Rule 15 supersede the earlier Python-free developer-tooling decision.
+Preserve restored .agents tooling in its original language; application/core
+remain TypeScript. PR5 rebase retains both this owner policy and the ledger
+corruption/stale-undo decisions. Do not reapply the earlier tooling conversion.

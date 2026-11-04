@@ -96,11 +96,11 @@ Confirm each against current docs before first use (rule 6).
 For each step: write the failing test from the inventory, implement, pass, refactor, push.
 
 - [x] **S3. Money.** Integer paise only. Reject floats, `NaN` and `-0`. String rupee parser without float drift.
-- [ ] **S4. Repository ports, storage and migrations.** Async repository interfaces in core. SQLite schema and Drizzle repositories in `packages/storage`. Migrations from empty and from the previous version, safe to run twice. The reference engine is synchronous, so adapt its tests to the async interface instead of copying its database code.
-- [ ] **S5. Transactions and status.** `unverified`, `ai_checked`, `user_confirmed`, forward only. Manual entries start as `user_confirmed`. Columns include `benefit_paise`, `tag` and `source` (with `import`).
-- [ ] **S6. Approval queue.** A proposal writes no transaction. Approve commits one. Reject commits none. Approving twice commits once.
-- [ ] **S7. Audit log and undo.** One audit row per approved write. Undo restores the previous state exactly.
-- [ ] **S8. Accounts and wallet.** Cash and UPI or bank accounts. Cash in hand equals opening balance plus cash in minus cash out.
+- [x] **S4. Repository ports, storage and migrations.** Async repository interfaces in core. SQLite schema and Drizzle repositories in `packages/storage`. Migrations from empty and from the previous version, safe to run twice. The reference engine is synchronous, so adapt its tests to the async interface instead of copying its database code.
+- [x] **S5. Transactions and status.** `unverified`, `ai_checked`, `user_confirmed`, forward only. Manual entries start as `user_confirmed`. Columns include `benefit_paise`, `tag` and `source` (with `import`).
+- [x] **S6. Approval queue.** A proposal writes no transaction. Approve commits one. Reject commits none. Approving twice commits once.
+- [x] **S7. Audit log and undo.** One audit row per approved write. Undo restores the previous state exactly.
+- [x] **S8. Accounts and wallet.** Cash and UPI or bank accounts. Cash in hand equals opening balance plus cash in minus cash out.
 - [ ] **S9. Backup and restore.** Checksummed backup. Restore reproduces the ledger exactly. Add a backup-encryption decision to `DECISIONS.md`.
 - [ ] **S10. Allowance math.** Budget minus spent minus bills due, divided by days left. Test month ends, leap year and overspending. Use an injectable clock and Indian time zone.
 

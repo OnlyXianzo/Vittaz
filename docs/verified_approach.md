@@ -127,3 +127,56 @@ schemas/invalid targets. Tests cover interrupted migration rollback and rerun.
 Blast radius: new storage workspace and build reference; core untouched in first
 migration module. Existing coverage includes storage, so exercise every control
 branch. Native dependency affects npm ci/lock/CI only. Reference files read-only.
+
+## S5 ledger transactions/status (2026-11-04)
+
+Scope: reference manual/captured creation, lookup and strict forward-only status
+transitions, adapted to async repositories. Preserve result shape including audit
+ID: create the atomic audit snapshot now, while S7 will add edit/undo. Sources:
+reference ledger.ts and baseline_1_4; Plan S5; SQLite transaction docs; S4 verified
+unit of work. High confidence: manual starts confirmed, captured unverified;
+only adjacent forward transitions allowed, same-status/backward/skips rejected.
+MDN Crypto.randomUUID documents secure UUIDs; runtime clock/ID port is injectable
+so core imports no Node API and mobile can supply its platform implementation.
+No new dependency. Blast radius: new ledger module, type-only ports and barrel,
+new integration tests invoking real storage. Existing domains unaffected.
+S4 head ebf425f passed CI 41839309320 before this work. No UI/gate progression.
+
+## S6 approval queue (2026-11-04)
+
+Port reference create/get/approve/reject/batch semantics with the S4 awaited
+transaction capability, not nested root transactions. Proposal creation writes
+only pending proposals; approve writes transaction, proposal status and audit
+in one unit. Duplicate approval returns original transaction and null audit ID;
+reject never writes transactions. Batch uses one unit so a later rejection
+rolls back earlier items. Sources: baseline_1_3 and reference ledger.ts, Plan S6,
+SQLite atomic transaction docs and S4 rollback tests; confidence high. Corrupt
+approved links fail closed rather than reference's unsafe non-null assertion.
+No new APIs/dependencies. Blast radius: new approval module; audit helper gains
+optional proposal-before snapshot; ledger barrel exposes preserved public names.
+AI-facing tool restrictions remain S22, never pass full store to providers.
+
+## S7 edit/audit/undo (2026-11-04)
+
+Port baseline_1_5/reference update and undo using awaited repositories. Audit
+snapshots already exist for every approved transaction write; edits add one
+snapshot in the same unit. Undo retains the original row, marks it undone and
+restores exact transaction/proposal data. Compare current state against audited
+after-state before restoring, so undo cannot silently overwrite later changes.
+This safety extension follows DATA_MODEL integrity/undo questions and SQLite
+atomicity, rather than copying the reference's unchecked restore. Explicit
+unsupported/corrupt/stale errors and rollback tests hedge against damaged local
+state. Confidence high for normal paths; imported external snapshots still
+require later backup validation. No new library. Blast radius: new audit module,
+ledger/barrel re-exports and integration tests; no schema or provider change.
+
+## S8 wallets/accounts (2026-11-04)
+
+Use reference wallet summary rules: all credits in, normal debits out; debit
+refund/reversal events do not count as cash out. Only committed transactions in
+the requested wallet participate; proposals do not. Preserve default cash wallet
+and opening-balance APIs; add account creation for planned cash/bank/UPI types.
+Reuse existing safe BigInt-backed money aggregation and reject unsafe totals.
+Sources: reference wallet.ts/baseline_1_6, Plan S8, DATA_MODEL accounts, existing
+money guards; high confidence. No libraries/APIs added. Blast radius: new pure
+wallet use cases, real-storage tests, full wallet-equivalence audit regression.
