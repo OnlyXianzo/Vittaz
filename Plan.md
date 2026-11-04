@@ -129,7 +129,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 - [x] **S21. Provider adapter and key fallback.** 400 never falls back. 401 disables the key. 429 skips it for a while. A broken stream restarts on the next key. All keys failing gives one clear error.
 - [x] **S22. Tool registry.** snake_case tools (section 7) with Zod validation. Malformed calls never reach the database.
 - [x] **S23. Read-only Q&A loop.** Step limit, token budget and timeout. Read-only tools. Database in read-only mode.
-- [ ] **S24. Analytics log.** Provider, model, key nickname, tokens, latency and cost estimate. Never prompt or reply text.
+- [x] **S24. Analytics log.** Provider, model, key nickname, tokens, latency and cost estimate. Never prompt or reply text.
 - [ ] **S25. LangChain adapter.** Implement the agent interface with LangChain. Read the current docs first. Core must not import it.
 - [ ] **S26. Local-model interfaces.** `parse_entry` and `improve_note` behind interfaces, with fakes. Real local models come in phase I.
 - [ ] **S27. Live smoke tests.** Tagged `@live`, Kilo keyless routes only (section 9).
