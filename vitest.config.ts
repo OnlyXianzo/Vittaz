@@ -18,6 +18,7 @@ export default defineConfig({
       "**/dist/**",
       "reference/**",
       "canvas/**",
+      "apps/mobile/ui/**",
       "**/*.live.test.ts",
     ],
     testNamePattern: /^(?!.*@live)/,

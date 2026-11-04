@@ -10,6 +10,7 @@ export default defineConfig(
       "reference/**",
       "canvas/**",
       ".agents/**",
+      "apps/mobile/ui/**",
     ],
   },
   {
