@@ -214,3 +214,17 @@ handles. Read-only storage/PRAGMA unit proof remains separate S23 integration.
 - https://zod.dev/api — existing pinned4.6.7 strict objects, safe integer validation and cloned parsed outputs; cross-checked existing S22 schemas/core money contract.
 - https://nodejs.org/docs/latest-v24.x/api/globals.html#static-method-abortsignalanysignals — existing24.22.2 cancellation composition/cooperative signal; reuse S23 findings, bounded async race plus monotonic elapsed check (no CPU preemption claim).
 - Plan S26/section7, docs/ASSISTANT.md workflows and reference manualFlows.headless note suggestion: tasks are not AI tools, local names allowed, no direct ledger writes. Reference cloud note improvement is not this local port; full service/consent integration remains S27d, actual local runtime/model/device selection remains phase I. No new model/SDK/heuristic parser/dependency.
+
+## S27 research only (2026-11-04) — not implemented/run yet
+
+- https://kilo.ai/docs/gateway/authentication — official anonymous access for :free models, no Authorization required;200 requests/hour/IP. Do not use keys or third-party proxy routes.
+- https://kilo.ai/docs/gateway/api-reference — current official base https://ai-gateway.kilo.ai/api/v1, chat and models endpoints. S21 constructor appends /v1/chat/completions, so its base must be https://ai-gateway.kilo.ai/api (not doubled /v1). Native API supports tool JSON/SSE; doc request examples show max_tokens, actual max_completion_tokens compatibility not yet verified.
+- https://kilo.ai/docs/gateway/usage-and-billing — :free pricing zero,429 throttling and provider token usage; public/free data-collection policies mean synthetic prompts only.
+- Research GET https://ai-gateway.kilo.ai/api/v1/models returned200 unauthenticated. Six routes ending :free had explicit zero prompt/completion string prices and supported_parameters including tools. This proves catalog discovery only, NOT a live inference/tool/stream test. Catalog rotates; discover again at run time, no hardcoded paid/default route. S27 still unchecked.
+
+Planned safety: separate @live config/manual allowed-failure workflow, excluded from
+normal CI; hardcoded official origin/path, redirect:error/no credentials, tiny
+request budget and bounded body/time; current :free plus explicit zero pricing and
+tool capability; stop immediately on429, never fallback to another/paid route.
+Deterministic fake-fetch tests before actual synthetic shape-only smoke. No code
+or workflow added by this research checkpoint.
