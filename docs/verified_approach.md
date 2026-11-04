@@ -598,3 +598,23 @@ callback non-observation. TDD missing-module red before implementation; full sui
 audit/scan/type/lint/format/privacy/build and exact-SHA CI/protected merge required.
 This is a controlled LangChain model adapter, not unbounded createAgent, full
 AssistantService, native streaming or verified device bundling.
+
+## S26 verification gate — 2026-11-04
+
+Scope: core type-only LocalModelTasks/runner ports plus agent validating task
+adapter, scripted fake in tests only. Separate parse_entry/improve_note local task
+interfaces, not tool-catalog expansion. Three sequential angles: Zod official
+strict validation and existing money constraints, Node cancellation failure modes,
+reference note suggestion/Plan local-only architecture. No subagent tool available.
+
+Runner sees only task, bounded text copy, combined abort signal; no DB, logger,
+provider or cloud fallback capability supplied. Sensitive input drops before runner
+calls, raw local names permitted; malformed/sensitive model output rejected and
+static codes only. Parse returns draft values only, improve_note returns suggestion
+only, null means not understood. No persistent effect or approval capability.
+Bounded options/deadline/cancellation; non-cooperating async drivers cannot hold
+request open indefinitely; synchronous work cannot be preempted, late results are
+not accepted after elapsed deadline. UI/model catalog/native runtime not selected.
+Tests first missing-module red, fake raw local names/no network/no writes, strict
+invalid money/split/field/output, unknown/null, cancellation/timeout/getter/failure
+privacy; full suite and protected per-step CI before progression.

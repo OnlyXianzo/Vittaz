@@ -447,3 +447,39 @@ Correct missing-module red and deprecated native tool-warning red before fixes.
 fake HTTP/read-only SQLite projections/no mutations, forbidden/malformed tool
 rejection, limits/timeout, fallback/400/all-keys/no extra retry, original protocol,
 no cache, static unknown/abort errors. No independent-review or full service proof.
+
+## 2026-11-04 — S26 local task ports, no inference engine selected
+
+S25 exact5392074 CI41874462072 five SUCCESS. First normal merge refused while PR
+build remained pending; waited for BOTH push and PR required checks, then normal
+SHA-pinned protected PR24 mergeddbb90e6126a1936028d8624d181cfbe28e41a61e. No bypass.
+
+Core LocalModelTasks/LocalModelRunner are pure type-only interfaces. Validated
+agent task adapter exposes parse_entry/improve_note, NOT catalog tools. Driver
+receives task/text/signal only; no DB/logger/cloud fallback capabilities. Local
+names intentionally retained. Draft output is minimum amount/direction/category/
+local name/note/split data, not a proposal row or transaction, no source/wallet/
+status/ID authority. App use case must map it to pending proposal at S27d; unknown
+notification routing itself still remains queued, not falsely integrated here.
+Improve note is returned suggestion only; no updateTransaction action performed.
+Null explicitly not_understood; sensitive inputs drop before runner; strict
+malformed/sensitive outputs rejected. Exact safe positive integer paise and split
+bounds, bounded labels/text and unknown fields rejected. Model output remains data.
+
+No real local model/SDK/download/catalog or heuristic Hinglish parser introduced.
+Scripted fake runners are test-only; arbitrary trusted driver implementations
+could have their own side effects, and Node tests do not certify future on-device
+inference/offline status. No implicit cloud fallback. Bound deadline/cancellation
+for async adapters, elapsed checks before AND after output validation (correct
+late-output getter regression red first). JS cannot preempt synchronous inference,
+but late values cannot be accepted. Static error codes, no native error text.
+
+205tests32files100% implemented-source metrics. Tests actual unchanged ledger and
+clone boundary, valid raw names, defaults/no guessed money, null/invalid/sensitive,
+zero runner calls, driver errors, abort/non-cooperative timeout/late inference and
+late validation. No independent-review or device-readiness claim.
+
+S26 publish reconciliation: required CI41875662202 succeeded on91ebb3d, but normal
+merge was refused because owner main advanced with UI PR25/04a59f1. Merge owner
+main into this step without editing its UI; re-run full local checks and exact-head
+CI before retrying protected merge. No force push or branch-protection bypass.

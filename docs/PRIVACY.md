@@ -163,3 +163,9 @@ Malformed/sensitive/pre-aborted requests never invoke LangChain. No process-glob
 telemetry switches changed. Native message/result objects are transient, no cache;
 original validated wire retained for controlled provider calls. This proves the
 pinned Node adapter boundary, not future device/library-version behavior.
+
+S26 local task port retains raw local names (no cloud callback accepted), drops
+sensitive input before fake/driver invocation, rejects malformed or sensitive
+output, exposes static error codes only. Suggestions do not persist or mutate a
+ledger. Future platform runner must actually be local; no Node interface can
+certify arbitrary trusted callback side effects or real on-device offline status.

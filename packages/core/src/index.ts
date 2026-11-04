@@ -108,3 +108,12 @@ export type {
   AiAnalyticsRow,
   AppendAnalytics,
 } from "./privacy/analytics.js";
+export type {
+  LocalModelTaskName,
+  LocalTaskInput,
+  LocalTaskOptions,
+  LocalEntryDraft,
+  LocalTaskResult,
+  LocalModelTasks,
+  LocalModelRunner,
+} from "./local_model.js";
