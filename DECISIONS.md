@@ -280,3 +280,13 @@ preflight addresses compression expansion before SheetJS. Not CRC authentication
 not XLS/ZIP64/encryption or comprehensive hostile-file certification. Node-only
 preflight intentionally not claimed as a mobile implementation. No cloud/model/
 logger capability, UI, migration, backup change or native build. G3 still pending.
+
+## 2026-11-04 — S20 test-only protocol harness
+
+After S19 exact green/protected merge, introduce only tests/helpers fake server,
+not a production service. Keep synthetic request captures in memory for privacy
+assertions. Script JSON/tool/usage, HTTP status/retry header, fragmented raw SSE,
+missing DONE, socket interruption and delay. Responders' exceptions are static500,
+not echoed. Bound64KiB request body, strict POST route/JSON, loopback ephemeral
+port. Close then force-close connections per Node24 docs, idempotent teardown.
+No live provider, runtime package/dependency, DB, UI or tooling changes.

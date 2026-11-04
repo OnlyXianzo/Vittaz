@@ -318,3 +318,13 @@ forged expansion bombs tested before library parsing. First-sheet and format
 limits documented, not universal parser security/device proof. Full local
 lint/types/format/privacy/build/CLI/audit0/secret scan0 pass; dependency official
 0.20.3 URL/SRI tested. No independent reviewer claim.
+
+## S20 bounded self-review — 2026-11-04
+
+Correct missing-helper red, five real ephemeral loopback tests now green for
+JSON/tool usage/capture-reset, scripted401/429/400/500 and headers, malformed/
+oversized/route failures, SSE fragments/DONE/truncation/socket break, cancelled
+delay and active-socket cleanup.131tests24files full suite; production-source
+coverage100%, test helper outside existing production denominator by design.
+All local checks pass. No real API compatibility, credential handling or assistant
+security claim; those belong to subsequent steps. No independent reviewer claim.

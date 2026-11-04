@@ -464,3 +464,16 @@ orphan/overlapping local records. PKWARE spec and installed SheetJS reader agree
 on field offsets/descriptor usage; bounded inflater not custom compression code.
 Test failed zip expansion/header preflight first, including forged sizes and CRC.
 This is a bounded decoder check, not comprehensive parser-security certification.
+
+## S20 fake OpenAI-compatible provider — 2026-11-04
+
+S19 exact3b01eb5 CI41857459215 fivegreen and protected PR15 merge6e44d40.
+Scope tests/helpers only, deliberately no production agent/DB/credentials. Red
+missing helper first; then real loopback HTTP tests of JSON/tools/usage, status
+401/429/400/500, route/malformed/oversized input, streamed fragmented SSE/DONE,
+truncation/socket abort/delay/cancellation and forced cleanup. Scripted responder
+receives only synthetic in-memory request captures; these are test assertions,
+NOT production logging APIs. Bound body64KiB; responder failure static500 without
+exception payload. Node official lifecycle/MDN frames and reference agree; no
+claim real API interoperability until S21/S27. New helper is test infrastructure,
+not excluded production code or an application server/preview.
