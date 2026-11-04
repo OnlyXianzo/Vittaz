@@ -1,0 +1,11 @@
+{
+  "name": "@vittaz/agent",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "dependencies": {
+    "@vittaz/core": "0.0.1",
+    "zod": "4.6.7"
+  }
+}

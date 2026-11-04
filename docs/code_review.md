@@ -328,3 +328,16 @@ delay and active-socket cleanup.131tests24files full suite; production-source
 coverage100%, test helper outside existing production denominator by design.
 All local checks pass. No real API compatibility, credential handling or assistant
 security claim; those belong to subsequent steps. No independent reviewer claim.
+
+## S21 bounded self-review — 2026-11-04
+
+Pool/client missing-module reds followed by real HTTP fallback/stream fixtures.
+151tests26files100% implemented agent/core/storage coverage, full local quality,
+privacy/build/audit0/scan0; compiled @vittaz/agent import/response smoke passed.
+Additional red regressions for sensitive tool-history transport, callback-triggered
+abort wrongly succeeding, null usage per current OpenAI spec, invalid request meta.
+Fixed before publishing. Snapshot states, cooldown boundary, parallel fragmented
+tools, missing usage0/unknown, corrupted JSON/UTF8, input/output budgets, private
+provider exception payloads and redirect policy checked. No write or log capability,
+no model calls outside fakes, no independent reviewer/Expo/real-provider claim.
+Concurrent owner UI-only PR13/main a4a1987 preserved by clean rebase; repeated151tests100% and all quality/privacy/build/security checks pass. Exact-head CI next.

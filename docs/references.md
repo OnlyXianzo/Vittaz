@@ -173,3 +173,9 @@ race); MDN https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/U
 (SSE text/event-stream, data frames separated by blank lines). Read-only reference
 b21801c tests/helpers/fakeOpenAIServer.ts cross-checked for scripted status,
 stream/truncation/delay and in-memory captures. No new dependencies, no live API.
+
+### S21 provider protocol/fallback — 2026-11-04
+
+- Current OpenAI Chat Completions spec https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create — POST chat/completions, messages/model, JSON or SSE chunks. Use compatible Chat endpoint, not new Responses API, per reference/Plan; no model-availability assertion or live call.
+- Zod **4.6.7** https://zod.dev/api — schemas without coercion, bounded strings/arrays/integers. Reuse installed pinned version in agent only, no core dependency.
+- MDN https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After — seconds or HTTP date; https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/any_static — combine caller/deadline; abort does not cancel source timeouts. Node24.22.2 fetch/Web Streams, MDN SSE framing above. Cross-check reference b21801c keyPool/client/layer4.1/4.2, but do NOT port its raw provider error propagation, unbounded buffers, invented usage or DB/logging coupling.

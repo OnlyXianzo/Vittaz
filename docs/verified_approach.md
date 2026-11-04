@@ -477,3 +477,28 @@ NOT production logging APIs. Bound body64KiB; responder failure static500 withou
 exception payload. Node official lifecycle/MDN frames and reference agree; no
 claim real API interoperability until S21/S27. New helper is test infrastructure,
 not excluded production code or an application server/preview.
+
+## S21 provider adapter/key fallback — 2026-11-04
+
+Scope new packages/agent: credential pool + bounded OpenAI-compatible JSON/SSE
+adapter, schema validation with pinned Zod4.6.7, package/project wiring. No model
+framework, tools, DB/audits, telemetry storage or real endpoint calls (S22+ later).
+Missing module reds before each module, reference4.1/4.2 equivalents via real fake
+HTTP. Verify400 no fallback,401 permanent disable,429 bounded cooldown incl
+Retry-After seconds/date, others per-key fallback, no candidates one static error,
+truncated stream reset before next attempt (also clear on final failure/abort),
+fragmented UTF8/CRLF/multiline/comment/usage/tool deltas. Strict subset text-only
+single choice, bounded8keys/64messages/16tools/64KiB request/1MiB response, no n>1.
+
+Research agrees on protocol and HTTP semantics; model-specific availability and
+Expo Web Streams remain unverified (real device later). Inject transport/clock;
+use fetch redirect:error (never forward credential to redirect), HTTPS except
+exact loopback HTTP for fake tests, URL without userinfo/query/fragment. Keyless
+empty config omits Authorization. No raw provider body/exception/cause in failures,
+private credential fields and static safe failure enums; validate before network.
+Known-sensitive messages rejected at adapter boundary (not universal name/notes
+redaction: AssistantService must gate/redact future outbound context). Callbacks
+are application failures, not a reason to retry/bill again. Overall deadline and
+caller abort never try another key. Complete tool-call JSON returned only, never
+executed. Keep unknown usage zeros, don't invent billable tokens. Analytics S24
+must explicitly validate metadata without financial write capabilities.

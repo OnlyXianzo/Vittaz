@@ -290,3 +290,30 @@ missing DONE, socket interruption and delay. Responders' exceptions are static50
 not echoed. Bound64KiB request body, strict POST route/JSON, loopback ephemeral
 port. Close then force-close connections per Node24 docs, idempotent teardown.
 No live provider, runtime package/dependency, DB, UI or tooling changes.
+
+## 2026-11-04 — S21 isolated bounded provider protocol
+
+After protected green S20 PR16, create packages/agent for provider-only functions,
+with exact existing Zod4.6.7. No core AI framework import or provider DB/logger
+capability; reference analytics coupling belongs to S24, never raw DB in client.
+Preserve4.1/4.2 behaviors while replacing raw errors with static400/abort/callback/
+all-key statuses and safe reason enums. Private pool fields, snapshot credentials,
+unique safe nicknames, max8keys, bounded metadata/header values and cooldown.
+Keep legacy default model string for API compatibility, NOT an availability/live
+service claim. No actual credentials or live calls; keyless empty config omits auth.
+HTTPS required except loopback fake HTTP; reject URL userinfo/query/fragment and
+redirect:error prevents forwarding auth to redirects.
+
+Real fake-server and injected byte-stream tests cover400/401/429 fallback, cooldown
+seconds/date/default/clamp, truncated/error streams/reset even final failure,
+UTF8 fragments/CRLF/multiline/comments/tool accumulation, malformed/oversized/
+missing bodies, cancellation mid-delta and deadlines. Correct failing regressions
+caught raw sensitive tool-history bypass, abort-after-last-delta returning success,
+standard nullable stream usage, and invalid stream/signal inputs. Guard entire
+validated outbound wire before network. Request reserve1KiB for bounded model/
+wire metadata; cap responses1MiB and text-only single-choice subset. Ask for stream
+usage; missing/null counts remain zeros (UNKNOWN, NOT proof of free/zero billing),
+not reference invented token counts. Fatal UTF8 flush validates truncation without
+unreachable replacement-text branch. Application callbacks fail statically and do
+not trigger paid retries. Service-level name/history/privacy gating and actual
+Kilo/Expo interoperability remain separate unproved steps.
