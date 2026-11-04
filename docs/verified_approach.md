@@ -252,3 +252,121 @@ prove the real entry points separately. Exact keywords are not universal secret
 or adversarial-language detection; homoglyphs, arbitrary paraphrases, secrets
 without contextual labels and runtime memory erasure remain unproved. No claim
 that zero trace across all app entry points or G2 is complete. No new dependency.
+
+## S12 pure name replacement (2026-11-04)
+
+S11 exact head 21a2bc8 passed CI41849250052 all five jobs. Next implement only
+name replacement, not scrubber, inline-name discovery or provider integration.
+Sources: read-only reference redactor.ts/layer2.privacy 2.1/2.3, MDN Unicode
+properties, normalize and String.replace, docs/PRIVACY. MDN confirms callback
+replacement avoids `$&` interpretation on reversal; Unicode letters/marks/digits
+prevent substring or Devanagari matra splits. Confidence high for known-name
+replacement, not general anonymization (reference/docs agree).
+
+Use a pure in-memory PrivacyRedactor seeded with ordered canonical names;
+registerCounterparty returns stable Person_N within that mapping, case-insensitive
+duplicate reuse, longest-first exact Unicode-token replacement and reversible
+reply placeholders. Reserve Person_N in registered names to prevent cascading or
+ambiguous token mappings. Keep copy-on-read mappings. No core DB/Node import and
+no synchronous persistence port: later AssistantService must seed mappings from
+async persisted counterparties, retain canonical order and keep them local. A
+restart without the same seed is NOT persistent identity proof. This deliberate
+split replaces the reference's synchronous DB constructor. Unknown names/aliases,
+misspellings and raw notes remain unsafe and must not be sent by default.
+
+Blast radius: additive core privacy/redactor.ts, its tests and barrel only.
+No existing agent/parser/provider callers. Future S13 composes scrubbing; S15
+adversarial cases and S27d real outbound integrations remain separate steps.
+
+## S13 identifier scrubber (2026-11-04)
+
+S12 head70641dd CI41849814147 all five green. Research: reference redactor.ts
+scrubbing sequence and layer2.privacy 2.2, MDN replace/normalize, OWASP Logging
+Cheat Sheet data-to-exclude (bank/card/phone identifiers). High confidence in
+explicit pattern removal; no source supports universal unstructured-data secrecy.
+Use pure scrubOutboundText; NFKC + existing Devanagari digit normalization and
+format-control removal, then whole UPI URI, labelled references, VPA/email-like
+handles, IFSC, labelled/masked accounts, Indian phone and >=9-digit standalone
+sequences (including grouping). Replace whole identifiers, not truncation. Broad
+VPA/long-number matches intentionally over-redact; amounts/date text unchanged in
+ordinary cases. Do not silently claim support for arbitrary percent-encoded URIs,
+all numeral scripts or indirect identifiers. Notes remain local by default.
+
+Blast radius: new scrubber module/tests + barrel; PrivacyRedactor.redactText calls
+scrubber before names, as in reference. Existing name tests/full suite rerun.
+No actual provider boundary yet; structured context/notes allowlists belong to
+S27d and cannot be inferred from string scrubbing. No new dependency.
+
+## S14 diagnostics minimization (2026-11-04)
+
+S13 headf688e75 CI41850324160 all five green. Research angles: OWASP Logging
+Cheat Sheet data exclusions/verification (retrieved chunk2), reference
+safeTelemetry.ts/layer2.privacy 2.5, docs/PRIVACY. Reference structural secret
+patterns do not remove arbitrary names/notes, and recursive serialization reads
+getters, error properties and causes. A regex denylist alone cannot satisfy S14.
+Use stricter codebook-only diagnostics: five fixed event codes; all other message
+text replaced, ALL arbitrary metadata/error/stack/context omitted before traversal.
+SecretSanitizer retains public methods but registerSecret need not retain keys
+because all free text is discarded; document deliberate behavior deviation.
+No generic raw payload serializer is provided. High confidence in exclusion by
+construction; diagnostic usefulness is reduced intentionally, not a silent claim
+of equivalent free-text logs. Operational errors must still propagate to callers.
+
+Blast radius: additive core/privacy/safeTelemetry.ts, barrel/tests only. Preserve
+SafeLogger info/warn/error/log/dumpText and CrashReporter capture/get/dump entry
+points. Inject clock (default Date), return copies rather than internal mutable
+records, bounded last100 records with monotonically increasing crash IDs. No
+console, disk, network or SDK sink; app/platform crash handlers are later wiring,
+not device proof. Do not feed dropped sensitive messages to diagnostics at all.
+Provider keys/Telegram tokens/unknown names, cycles/getters/proxies tested as
+omitted values. Backup settings exclusion remains separately tested in storage.
+
+## S15 adversarial names and honest limits (2026-11-04)
+
+S14 head0cb6be5 CI41850901501 all five green. Read reference extra.nameLeak and
+extra.hinglish cases plus Unicode UTS39 rev34 (18.0.0, 2026-08-27), MDN normalize/
+Unicode boundaries and docs/PRIVACY. Sources distinguish normalization from
+confusable detection; do not claim Unicode security conformance or general NER.
+Reproduce known-name fullwidth/format-control normalization mismatch and raw
+Person_N token collision before fixing. Expand tests to known lowercase,
+Hinglish/postpositions, Devanagari matras, literal names in notes, aliases/typos,
+and basic cold-start payment constructions from the reference.
+
+Approach: normalize registered-name matching consistently with outbound copies;
+mask pre-existing Person_N tokens before replacement; sensitive text returns empty
+before name discovery; add bounded-pattern, stopword-filtered inline discovery
+for clear English payments/owes, Hinglish and Devanagari postpositions. Discovery
+only changes local in-memory mapping, not DB. Exact known-name registry remains
+primary. Heuristics intentionally may over-redact and do NOT cover all names,
+misspellings, nicknames, scripts, paraphrases or malicious homographs. Unknown
+free text and notes stay local; later provider boundary must enforce policy.
+No new model, parser package, dependency or real financial data.
+
+Blast radius: redactor only, new adversarial tests and documented limitations.
+No provider/persistence exists to wire now. Full extra multi-turn/device/zero-trace
+reference tests remain pending S27d/S35; pure tests cannot count those as ported.
+
+## S16 fail-closed privacy CI (2026-11-04)
+
+S15 headb9253c5 CI41851645643 all five green. Official Vitest5.1.0 reporter docs
+and an installed-version probe show JSON now writes a file by default; do NOT
+assume JSON stdout or an undocumented numRuntimeErrorTestSuites field. Node24
+child_process docs support argument-array spawnSync with timeout/maxBuffer.
+Cross-check installed JSON evidence, current workflow and Plan S16.
+
+Replace permissive bootstrap command with a Node-native TypeScript runner. It
+runs the pinned Vitest CLI with the existing non-live privacy-name selector,
+reads a JSON report from a fresh OS temporary directory and deletes it in finally.
+Require successful process/report, nonzero passing tests, no failures and actual
+passed assertions from ALL five privacy primitive suites (sensitive, names,
+scrubber, telemetry, adversarial). Thus metadata selector/self-tests or empty/
+skipped suites cannot constitute privacy evidence. Fail closed on child errors,
+malformed/missing reports. Print only a static status, never raw failed payloads;
+full local Vitest reruns provide developer details using synthetic fixtures.
+High confidence for CI enforcement, NOT zero-trace application integration.
+
+Blast radius: development script, package test:privacy command, selector meta-test,
+new CI-contract tests and bootstrap workflow description. Existing job graph
+already gates test/security on privacy and build transitively; assert it rather
+than weakening it. Keep immutable actions and protections. No dependencies,
+agent-tooling rewrite, application logic, migration or UI changes in this step.

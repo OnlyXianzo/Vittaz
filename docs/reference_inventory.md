@@ -58,3 +58,15 @@ The ordered reference runner groups 4 environment + 8 core + 6 privacy + 6 parse
 ## Inventory regression test
 
 `packages/core/src/reference_inventory.test.ts` verifies that each of the 31 stable snake_case baseline IDs appears exactly once and has a target test file. It imports no reference code and does not imply those target files or implementations already exist.
+
+## Phase D primitive progress (2026-11-04)
+
+S11-S16 now have local primitive/CI equivalents: sensitiveFilter.test.ts,
+redactor.test.ts, scrubber.test.ts, safeTelemetry.test.ts,
+adversarial_names.test.ts and tests/privacy/ci_gate.test.ts. This does NOT mark
+all six layer2 baseline integration families ported: 2.1/2.2/2.4/2.6 need actual
+agent/provider/entry-point integration at S27d; 2.3 exact replacement primitives
+are proved but original AgentService path remains pending; 2.5 diagnostic and
+backup-setting exclusion primitives exist but real credential/service/device
+boundaries remain later evidence. Extra cold-start/name/Unicode unit cases are
+not all ten extras or Expo multi-turn parity. No all31 claim.

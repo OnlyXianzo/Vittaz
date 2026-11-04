@@ -201,3 +201,75 @@ be caught by safe ingress error handling (S14/S27d), never log raw errors.
 format/build/CLI/privacy/audit/scan pass. No new independent review claimed.
 Limit: actual notification/assistant channels do not yet exist; unit callback
 sinks are not app-wide zero-trace proof. S12-S16 and G2 remain pending.
+
+## S12 bounded self-review — 2026-11-04
+
+S11 CI41849250052 all five green. S12 missing-module red, then68 total tests with
+100% implemented-source coverage. Inspected escaping, copy-on-read mappings,
+case-insensitive deduplication, Unicode mark/digit/underscore boundaries,
+longest-first overlap handling and exact Person_1/Person_10 reversal. Reserved
+placeholder-containing names rejected; callback substitutions preserve literal
+`$&`. No Node/DB imports. Stable mapping seeded in memory; persistence/provider
+integration deliberately not claimed. No independent external review claimed.
+
+## S13 bounded self-review — 2026-11-04
+
+S12 CI41849814147 all five green. S13 red missing module before implementation;
+75 tests/100% implemented-source coverage green. Reviewed full URI before handles,
+labelled references before numeric removal, grouped/fullwidth/Devanagari accounts,
+mask suffixes and 30-digit nontruncation. Existing redactor composes scrubber;
+known name reversals do not restore removed identifiers. Invalid values are not
+coerced. Broad email-like handles/long numbers intentionally over-redact. No
+provider/structured transaction payload boundary exists yet; raw notes remain
+local by policy, not proven by this string-only module. Encoded unknown formats
+and other scripts remain documented limitations. No independent review claimed.
+
+## S14 bounded self-review — 2026-11-04
+
+S13 CI41850324160 all five green. Missing-module red, then81 tests/100% implemented
+source coverage. Checked that diagnostic inputs never reach String/JSON coercion,
+getters, Proxy traps, error.stack, error.cause or key iteration; only primitives
+from the codebook and generated clock/id are retained. Tested unknown/registered
+synthetic credentials, names, notes, circular payloads, malicious accessors,
+returned-copy mutation and retention bounds. Lower diagnostic detail is an
+explicit policy tradeoff, not false regex-anonymization confidence. No SDK/sink
+integration or independent external review claimed. Backup remains sensitive.
+
+## S15 bounded self-review — 2026-11-04
+
+S14 CI41850901501 five green. Adversarial red reproduced four failures before
+changes; after initial implementation Hindi शर्मा जी still leaked because the
+stopword check rejected trailing जी. Corrected honorific handling and reran ALL
+tests, not just that case. 89 tests and100% implemented-source coverage, lint and
+types green. Checked normalized registration, raw token masking before discovery,
+no registration of dropped sensitive text, regex literal escaping, matra-safe
+boundaries, cold-start examples and rejection of pronouns/digit-only candidates.
+Explicit limitation assertions are NOT cloud-safety assertions: unknown aliases,
+typos/homographs and arbitrary prose remain local-only requirements for S27d.
+No independent external review or full reference extra parity claimed.
+
+## S16 bounded CI self-review — 2026-11-04
+
+S15 CI41851645643 all five green. Missing runner module first failed, then CI
+contract tests assert required five primitive suites and reject missing, empty,
+skipped, failed, live-only or selector-only evidence. Installed JSON reporter probe
+caught stdout assumption; use fresh temp file instead, no undocumented field.
+Actual copied runner + synthetic fake child tests verify success/nonzero child/
+missing report/malformed JSON/zero tests exit codes, cleanup, and no raw child
+payload echo. Lint caught regex-space style; fixed and reran full suite.
+93 tests across19files, clean-dist100% implemented core/storage source coverage;
+runner/agent tooling/mobile are NOT included in that coverage percentage. Actual
+npm run test:privacy passes38 selected tests (34 core primitives +4 CI-contract
+checks); meta selector no longer counts as a privacy test. Real CLI smoke remains
+version only, not full CLI journeys. No new independent review claimed.
+
+## Publication rebase and G2 pause — 2026-11-04
+
+Read actual PR9 owner comment6633473106: S11 approval, not S12-S16 independent
+review or G2 sign-off. PR9 was already owner-merged as f7f3561, so later commits
+were not assumed to be included in that closed PR. Main also contains owner's
+separate UI PR10. Rebased five remaining commits onto main3db9401 without opening
+or editing UI; preserved new root UI exclusions. Repeated clean-dist93tests100%
+and every local check. New PR11 head26ffd20 CI41852883630 all five green.
+G2 report accurately distinguishes Phase D primitives from later integration,
+unknown-name, persistence and device proof. Stop before S17 for owner decision.

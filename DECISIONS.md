@@ -162,3 +162,55 @@ use the filter before any logging/storage/provider activity and prove integratio
 The restored sandbox had stale Git metadata, missing review instructions and old
 CI/scanner files. Archived it externally, fetched main, verified all application
 files match main, and restored exact upstream tooling/workflow (no rewrite).
+
+## 2026-11-04 — S12 name mapping separation
+
+PrivacyRedactor is pure and in-memory; seed it with ordered canonical names from
+async storage at the future application boundary, not the reference's synchronous
+DatabaseAdapter. Placeholder identity is stable for that mapping and reproducible
+from the same ordered seed, NOT yet proved across device restarts. Reserved
+Person_N names are rejected to prevent token/name cascades. Reverse substitutions
+are callbacks, so literal `$&` in a name cannot expand into the original token.
+Only known exact names (case-insensitive, canonical Unicode) are covered; aliases,
+unknown names and spelling variants are not anonymity guarantees. Raw notes stay
+local by default. Real outbound entry points remain S27d.
+
+## 2026-11-04 — S14 safe diagnostics use a codebook, not raw text
+
+Reference regex sanitization preserves arbitrary free text and may leak names,
+unknown key formats, notes or error paths. To satisfy S14, diagnostics retain only
+five static operational event codes and omit ALL arbitrary metadata/error/context,
+without traversing properties/getters/causes or coercing objects. No secret registry
+stores keys: registerSecret remains a compatibility method but need not retain
+anything. This intentionally sacrifices raw messages/stacks for privacy. Existing
+logger/reporter method names remain; crash captured_at uses snake_case. No raw
+caller-supplied id/path/name/key is allowed. Last100 records bounded in memory,
+returned copies cannot poison retained records, crash IDs monotonic. Diagnostic
+codebook/clock/sanitizer dependencies are trusted application composition, not AI
+inputs. Actual device crash SDK/ingress error wiring remains later work; don't
+log dropped messages, even through the sanitizer. Application errors still need
+explicit caller handling, not swallowed failures or a claim of device proof.
+
+## 2026-11-04 — S15 adversarial name fixes and remaining limits
+
+Adversarial red tests reproduced known-name NFKC/format-control mismatch, literal
+Person_N impersonation, absent cold-start discovery, and a Hindi honorific
+stopword bug during implementation. Fixed by consistent matching normalization,
+masking incoming placeholder-like tokens, and in-memory discovery for explicit
+English/Hinglish/Devanagari payment constructions. Discovery rejects pronouns,
+common expense words and numeric candidates; trailing Hindi जी is an honorific,
+not a reason to reject a whole name. Sensitive text is dropped before discovery.
+Redaction is ONE PASS on raw input: an already-redacted Person_N payload must not
+be redacted again or it becomes [PERSON_TOKEN]. Reply reversal is local only.
+
+Limits (not tests silently pretending to establish anonymity): unknown nicknames,
+typos, transliteration, arbitrary names in prose/notes, indirect identifiers,
+encoded strings and mixed-script confusables may remain. Tests explicitly show
+`amann`, `munna`, and Cyrillic-А `Аman` are not recognized without local mapping.
+A locally validated alias can be registered; no fuzzy identity guesses. Inline
+heuristics can over-redact common words and are not general name recognition.
+Normalize known names to NFKC for matching; stylized forms may become canonical
+ASCII in a returned mapping. Unknown/uncertain free text and raw notes must stay
+local, and real outbound contexts require allowlists and validation at S27d.
+Full provider/Expo/multi-turn extra checks remain pending. No zero-trace, memory
+erasure or device parity guarantee follows from these pure unit tests.

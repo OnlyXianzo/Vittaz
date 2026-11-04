@@ -76,3 +76,12 @@ export type {
   SensitiveReason,
   SensitiveCheckResult,
 } from "./privacy/sensitiveFilter.js";
+export { PrivacyRedactor } from "./privacy/redactor.js";
+export type { NameMapping } from "./privacy/redactor.js";
+export { scrubOutboundText } from "./privacy/scrubber.js";
+export {
+  SecretSanitizer,
+  SafeLogger,
+  CrashReporter,
+} from "./privacy/safeTelemetry.js";
+export type { LogEntry, CrashReport } from "./privacy/safeTelemetry.js";
