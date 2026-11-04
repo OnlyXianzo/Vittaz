@@ -89,7 +89,7 @@ Confirm each against current docs before first use (rule 6).
 ### Phase B: foundation (E2B agent)
 
 - [x] **S1. Workspace and CI.** Set up npm workspaces, TypeScript, Vitest, ESLint and Prettier. Add one trivial test (red, then green). Add `.github/workflows/ci.yml` (section 10). CI must be green on push.
-- [ ] **S2. Reference inventory.** Read `reference/` without importing anything. Write `docs/reference_inventory.md` mapping each of the 31 checks to a target test file in this repo.
+- [x] **S2. Reference inventory.** Read `reference/` without importing anything. Write `docs/reference_inventory.md` mapping each of the 31 checks to a target test file in this repo.
 
 ### Phase C: core logic, ported by TDD
 
