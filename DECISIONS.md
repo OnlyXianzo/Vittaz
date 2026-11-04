@@ -115,3 +115,10 @@ has since reappeared), and verify approved proposal linkage before restoring it.
 Unsupported entity types or empty snapshots fail instead of falsely marking an
 event undone. Normal create/edit/approval/deletion snapshot results remain exact;
 audit rows are retained with undone=1. Tests document these safety extensions.
+
+## 2026-11-04 — Rebase follows owner's agent-tooling decision
+
+PR4 and Rule 15 supersede the earlier Python-free developer-tooling decision.
+Preserve restored .agents tooling in its original language; application/core
+remain TypeScript. PR5 rebase retains both this owner policy and the ledger
+corruption/stale-undo decisions. Do not reapply the earlier tooling conversion.

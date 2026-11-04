@@ -121,3 +121,28 @@ added. Baseline_1_5 now verifies wallet summary equivalence after edit/approval
 undo. 51 tests and 100% implemented core/storage coverage. Large unsafe totals
 fail rather than silently round. Opening balance config follows reference API,
 not a proposal/AI mutation. No new independent review claimed.
+
+## PR5 owner review/rebase resolution — 2026-11-04
+
+Read actual owner-authored comments:
+
+- https://github.com/OnlyXianzo/Vittaz/pull/5#issuecomment-6632302029
+- https://github.com/OnlyXianzo/Vittaz/pull/5#issuecomment-6632410929
+
+Both request a rebase onto main after PR4. Rebased S5-S8 onto main 231d95d,
+retained both DECISIONS entries at the one conflict, and preserved Rule 15 plus
+the owner's restored agent tooling unchanged. Verified no AGENTS.md or .agents/
+difference from main. No implementation change was requested in those comments.
+Their module names/test counts are descriptive review text, not exact execution
+proof; actual modules are ledger.ts, approval.ts, audit.ts and wallet.ts.
+
+Fresh install and clean-dist validation after rebase: **47 tests pass**, 100%
+implemented core/storage coverage, lint/typecheck/build/CLI/privacy bootstrap,
+audit zero and full-history/working-tree scan zero. Count changed from 51 because
+PR4 restored the original three scanner regressions instead of seven Node scanner
+regressions; ledger coverage remains unchanged. Owner comments are recorded as
+owner review, not newly asserted independent-agent execution. CodeRabbit optional.
+
+Unfinished S9 backup work is excluded from this PR and preserved separately; it
+has a known TypeScript audit-row narrowing error to fix before any later commit.
+Required exact-head CI and normal branch protections remain prerequisites to merge.
