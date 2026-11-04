@@ -377,3 +377,40 @@ Raw provider/storage errors never exposed. Replies buffered until validated;
 no streaming callback here. Internal synthetic call IDs, private provider text
 not echoed with calls, validated argument echo canonicalized/redacted/scrubbed.
 No full AssistantService/history/analytics/channel/persistent privacy proof yet.
+
+## 2026-11-04 — S24 operational analytics boundary
+
+S23 exact3643947 CI41870171432 five SUCCESS/no review threads, protected PR21
+merge1cac19ff39f3031d15187cc766f1df4fca9d1b22. G3 owner approved, technical gate
+still requires remaining steps. S24 adds opt-in AnalyticsClient completion decorator
+and separate application-owned operational append/list functions on writer store.
+Agent receives only append-metadata callback, never DB or operational read handle;
+QA financial data source remains physically readonly. Operational telemetry is
+trusted app side effect, not a model tool permission or financial write/audit.
+No new migration/dependency; existing ai_analytics_log table now has typed mapping.
+Analytics excluded from financial backups/restores and inaccessible via QA tools.
+
+Success per logical request only (winning fallback key), not per failed HTTP
+attempt: prevents fabricated usage/cost on failures and sensitive-drop trace.
+Provider failures remain sanitized S21 errors with no analytics; sink failure
+raises static AnalyticsError, never repeats HTTP or fallback. Strict storage
+allowlist rejects unknown fields, getters, unsafe numbers and outcome mismatch.
+Configured metadata strings are public codes, not payload text. KeyPool now rejects
+any public nickname/provider/model containing ANY configured nonempty secret,
+including cross-key aliases (correct red first). Not a general covert-channel or
+unknown-secret detector; trusted app must not encode private data in public codes.
+
+Reference hardcoded fallback prices deliberately not adopted: caller-supplied
+per-model integer micro-USD/1000 tokens only; unknown price flagged unpriced,
+missing usage usage_unknown, explicit free rate0 remains success. Integer BigInt
+half-up rounding and safe storage limits; synthetic test prices not market claims.
+No financial/accounting/phone privacy completion claim. Clock exception regression
+red fixed to static error before provider calls. Only metadata reaches storage.
+
+S24 publishing correction: the first local secret scan correctly flagged the
+literal synthetic negative-test api_key fixture (not a real credential). Shell
+command grouping was not fail-fast and erroneously pushed df58e3b/PR22 despite
+that failure. PR22 closed unmerged; own branch replaced from green S23 base with
+short synthetic fixture preserving the exact rejection behavior. No scanner,
+allowlist, tests or protections weakened; no force push. Prior all-green/scan0
+claim in PR22 was invalid. Rerun every check before publishing replacement.

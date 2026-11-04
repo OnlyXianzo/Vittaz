@@ -17,3 +17,5 @@ export type {
   KhataclawBackup,
 } from "./backup.js";
 export { importExcelBuffer } from "./excel.js";
+
+export type { OperationalStore } from "./repositories.js";

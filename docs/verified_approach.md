@@ -551,3 +551,20 @@ Node; supplied trusted adapters must yield. Actual full pipeline S27d/e remains.
 TDD first missing-module/readonly export failure; then adversarial fixtures/full
 quality and exact-head CI protected merge. G3 owner approval recorded, technical
 criteria still required before G3 completion.
+
+## S24 verification gate — 2026-11-04
+
+Scope: metadata-only analytics decorator around S21 client, core row/port types,
+storage mapping/append+list methods using existing operational table. No financial
+repo/schema migration/UI/agent SQL handle. Three sequential angles: OWASP official
+allowlisting, Drizzle installed0.45.4 and official parameterization docs, reference
+layer4.6 success log and failure risks. Preserve success fields, no payload input to
+sink; enforce strict storage schema and static error. Configured public metadata
+must not alias any configured secret (including cross-key aliases). Add red-first
+regression, do not assume bounded strings anonymous. Application explicitly opts
+into decorator. Logical completed requests only; invalid/sensitive/provider-failed
+requests produce no analytics, failures use existing codebook diagnostics instead.
+Usage unknown/unpriced outcomes explicit; no made-up pricing or retries on
+persistence failure. BigInt rounded integer cost with overflow rejection. Operational
+analytics excluded from financial backups, not accessible to QA registry. Actual
+S20/S21 HTTP and storage tests required. No raw errors or independent-review claim.

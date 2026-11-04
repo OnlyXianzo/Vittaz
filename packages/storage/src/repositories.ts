@@ -1,3 +1,6 @@
+import { randomUUID } from "node:crypto";
+import { parseAnalyticsMetadata } from "./analytics.js";
+import type { AiAnalyticsMetadata, AiAnalyticsRow } from "@vittaz/core";
 import type { SnapshotStore } from "./backup.js";
 import Database from "better-sqlite3";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -20,8 +23,12 @@ import {
   LATEST_SCHEMA_VERSION,
 } from "./migrations.js";
 
+export interface OperationalStore extends SnapshotStore {
+  appendAnalytics(metadata: AiAnalyticsMetadata): Promise<void>;
+  listAnalytics(): Promise<AiAnalyticsRow[]>;
+}
 /** Owns its private native connection. Every callback is serialized, including reads. */
-export function openLedgerStore(filename: string): SnapshotStore {
+export function openLedgerStore(filename: string): OperationalStore {
   return connect(filename, false);
 }
 /** Existing current-schema file only. No migrations, SQL or write handle exposed. */
@@ -33,7 +40,7 @@ export function openReadOnlyLedgerStore(
   const store = connect(filename, true);
   return { read: store.read, close: store.close };
 }
-function connect(filename: string, readonly: boolean): SnapshotStore {
+function connect(filename: string, readonly: boolean): OperationalStore {
   const native = new Database(filename, { readonly });
   try {
     native.pragma("foreign_keys = ON");
@@ -340,6 +347,33 @@ function connect(filename: string, readonly: boolean): SnapshotStore {
   return {
     read: (work) => enqueue(() => unit(false, (_repos, read) => work(read))),
     transaction: (work) => enqueue(() => unit(true, (repos) => work(repos))),
+    appendAnalytics: async (input) => {
+      const value = parseAnalyticsMetadata(input);
+      return enqueue(() =>
+        unit(true, async () => {
+          db.insert(schema.ai_analytics_log)
+            .values({
+              ...value,
+              id: `anl_${randomUUID()}`,
+              created_at: new Date().toISOString(),
+            })
+            .run();
+        }),
+      );
+    },
+    listAnalytics: () =>
+      enqueue(() =>
+        unit(false, async () =>
+          db
+            .select()
+            .from(schema.ai_analytics_log)
+            .orderBy(
+              schema.ai_analytics_log.created_at,
+              schema.ai_analytics_log.id,
+            )
+            .all(),
+        ),
+      ),
     exportSnapshot: () =>
       enqueue(() =>
         unit(false, async (repos) => ({

@@ -127,3 +127,19 @@ export const unparsed_messages = sqliteTable("unparsed_messages", {
     .notNull(),
   created_at: text("created_at").notNull(),
 });
+
+export const ai_analytics_log = sqliteTable("ai_analytics_log", {
+  id: text("id").notNull().primaryKey(),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  key_nickname: text("key_nickname").notNull(),
+  prompt_tokens: integer("prompt_tokens").notNull(),
+  completion_tokens: integer("completion_tokens").notNull(),
+  total_tokens: integer("total_tokens").notNull(),
+  latency_ms: integer("latency_ms").notNull(),
+  cost_estimate_micros: integer("cost_estimate_micros").notNull(),
+  outcome: text("outcome")
+    .$type<import("@vittaz/core").AiAnalyticsMetadata["outcome"]>()
+    .notNull(),
+  created_at: text("created_at").notNull(),
+});

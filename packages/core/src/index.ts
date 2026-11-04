@@ -103,3 +103,8 @@ export type {
   ExcelGrid,
   ExcelImportOptions,
 } from "./importers/excelImporter.js";
+export type {
+  AiAnalyticsMetadata,
+  AiAnalyticsRow,
+  AppendAnalytics,
+} from "./privacy/analytics.js";
