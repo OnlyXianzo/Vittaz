@@ -1,11 +1,11 @@
 # State
 
-current_step: S21 provider adapter/fallback implemented; rebased owner main; exact-head CI before S22
-last_green_commit: 9bc8a9a20496b42998cf11154aac3c8a0b0b5e03
+current_step: S22 validated restricted tool registry implemented; verify exact-head CI before next step
+last_green_commit: 1607336419dc2443dce4081585c0a488729e5da5
 gate_status: G1 and G2 owner accepted; future backend checkpoints may advance autonomously only after technical checks pass; G3 not yet technically satisfied
 blocked_on: nothing; preserve step-by-step green CI and protected merges
-next_actions: publish S21 green after preserving concurrent owner main, then S22 validated tool registry
-owner_authorization: checked autonomous backend progression, no UI/protection/evidence bypass
-ci_proof: PR16 exact9bc8a9a CI41858117990 five SUCCESS; protected merge95fdaffc47dd438edcbada75943cd6bfcfc2bcf8. Main merges aa8a26a/18dcfc9/6e44d40/95fdaff CI41855470216/41855970692/41857825986/41858746138 SUCCESS. Concurrent owner UI-only PR13 main a4a1987750e6499b984292e9e4ee98eec86c6db6 preserved by clean rebase, unchanged UI/.agents.
-local_proof: S21 pool/client missing-module reds, sensitive history/abort/null usage/request-meta regressions;151tests26files100% implemented agent/core/storage metrics; full lint/types/format/privacy/build/compiled adapter smoke/CLI/audit0/scan0 green again after owner-main rebase.
-notes: No DB/logger capability or tool execution in adapter. Bounded JSON/SSE fallback and static errors, keyless omission, deadlines and caller abort supported under Node24 fakes, not real Kilo/Expo. Sensitive full wire guard is not universal name/secret detection; future service redaction required. S22+ full assistant/Telegram/CLI/mutation/device proofs pending. G3 not ready; UI/.agents unchanged.
+next_actions: S22 exact-head protected publish/merge; next S23 bounded read-only Q&A loop and actual physical-readonly integration evidence
+owner_authorization: checked autonomous backend progression remains granted; no UI/protection/evidence bypass
+ci_proof: PR17 exact1607336 CI41860787302 five SUCCESS; protected merge3ab6e63a6bb4535a394501d776c6b446512775fd. Owner UI PR13 main a4a1987 CI41860153121 SUCCESS preserved. Main3ab6e63 CI41861820650 still queued when last inspected; do not call it green yet. S22 push CI next.
+local_proof: S22 correct missing-module red, name-bound/year-zero regressions;164tests27files100% implemented agent/core/storage coverage. Full lint/types/format/privacy/build/CLI/audit0/scan0 passed.
+notes: Exactly six catalog tools, QA has no write/DB/SQL handle; draft creates pending proposal only via core application capability. Strict runtime input/output schemas; bad/unknown/sensitive calls never touch ports. Minimal cloud projections omit names/notes/accounts/refs/IDs, coalesce custom categories into other. Tests actual core proposals/store.read/balance, not full assistant context/privacy/device proof. No extra reference tool aliases; monthly breakdown/query replaces them per catalog. S23+ AI loops/history/policy/analytics/Telegram/CLI journeys/mutation proofs pending; G3 NOT ready. UI/.agents preserved.

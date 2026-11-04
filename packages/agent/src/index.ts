@@ -17,3 +17,14 @@ export type {
   ChatCompletionResult,
   ChatCompletionParams,
 } from "./provider_client.js";
+export {
+  createQaToolExecutor,
+  createDraftToolExecutor,
+  validateAndCreateProposalFromToolCall,
+  ToolValidationError,
+  ToolExecutionError,
+  ReadOnlyViolationError,
+  QA_READ_ONLY_TOOL_SPECS,
+  PROPOSE_TRANSACTION_TOOL_SPEC,
+} from "./tools.js";
+export type { ToolRegistry, QaDataSource, ProposePending } from "./tools.js";

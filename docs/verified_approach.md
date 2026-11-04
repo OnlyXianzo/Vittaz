@@ -502,3 +502,28 @@ are application failures, not a reason to retry/bill again. Overall deadline and
 caller abort never try another key. Complete tool-call JSON returned only, never
 executed. Keep unknown usage zeros, don't invent billable tokens. Analytics S24
 must explicitly validate metadata without financial write capabilities.
+
+## S22 validated six-tool catalog — 2026-11-04
+
+S21 exact1607336 CI41860787302 fivegreen; protected PR17 merge precedes this step.
+Scope agent tools only: one draft capability and five read-only tools using two application query ports with Zod strict input/output schemas and snake_case names. Schema to
+JSON Schema from current official docs, runtime refinements guard integer paise,
+negativezero, split<=amount, calendar/month ranges and bounded limits. Malformed,
+sensitive, unknown or user-only calls rejected BEFORE any application port call.
+Draft accepts stable Person_N only, resolves locally, createProposal pending only;
+local helper can return full ProposalRow to app, tool result is minimal projection.
+
+Read-only registry receives listTransactions/getWalletSummary query functions,
+never raw DB or repositories. Tests wire those to actual core/store.read use cases.
+Project names as placeholders; omit notes/accounts/reference/raw IDs entirely.
+Freeform category labels are NOT privacy-safe: return only built-in category
+vocabulary, coalesce unknown labels into other, never infer anonymity. Find-person
+accepts placeholder not raw names. No arbitrarySQL/dynamic property dispatch or
+write capability in QA object; unauthorized calls fail with static errors. Strict
+projections validate every output and hide storage failures; no provider calls.
+
+Reference helper aliases get_category_breakdown/list_recent_transactions are
+replaced by catalog get_month_summary breakdown/query_transactions (same read
+behaviors, not extra advertised tools). Full physical-readonly/QA loop proof S23,
+not preclaimed here. Balance uses existing wallet cash-movement semantics, not a
+new debt/repayment accounting engine. O(n) list query cost remains unmeasured.
