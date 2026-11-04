@@ -109,3 +109,8 @@ Python/build step. This supersedes older-driver installation assumptions.
 - MDN Unicode property escapes: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Unicode_character_class_escape — use `u`, letters/marks/numbers rather than ASCII-only word boundaries; native ECMAScript on Node **24.22.2**.
 - OWASP Logging Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html — treat input as untrusted; exclude authentication secrets and private payloads from diagnostics. Rolling guidance retrieved 2026-11-04.
 - Read-only reference b21801c `privacy/sensitiveFilter.ts`, `tests/layer2.privacy.test.ts:205-251`, plus Plan S11 and docs/PRIVACY: future actual entry-point zero-trace remains an integration requirement, not inferred from unit tests.
+
+### S12 replacement — 2026-11-04
+
+- MDN String.replace https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace — global regex and callback return literal values (no replacement-token expansion). Native ECMAScript, Node24.22.2; no package.
+- MDN normalize/Unicode property escapes (S11 URLs above), reference b21801c privacy/redactor.ts and layer2.privacy.test.ts:173-203 — longest-first exact matching, stable canonical mappings and Person_10 versus Person_1. Persistence/provider proof is not included in this pure step.
