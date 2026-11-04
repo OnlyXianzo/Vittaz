@@ -172,3 +172,52 @@ describe("App preview", () => {
     }
   });
 });
+
+describe("preview accessibility", () => {
+  it("exposes a level-one heading for the current screen", async () => {
+    const user = userEvent.setup();
+    const { main, nav } = renderApp();
+    expect(
+      main.getByRole("heading", { name: "Vittaz", level: 1 }),
+    ).toBeInTheDocument();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    expect(
+      main.getByRole("heading", { name: "Ledger", level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it("moves focus to the screen heading after navigation", async () => {
+    const user = userEvent.setup();
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    expect(
+      main.getByRole("heading", { name: "Ledger", level: 1 }),
+    ).toHaveFocus();
+  });
+
+  it("returns to the previous screen with Escape", async () => {
+    const user = userEvent.setup();
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    await user.keyboard("{Escape}");
+    expect(
+      main.getByRole("heading", { name: "Vittaz", level: 1 }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("preview accessibility edge cases", () => {
+  it("does not navigate away when Escape is pressed inside a form field", async () => {
+    const user = userEvent.setup();
+    const { main, nav } = renderApp();
+    await user.click(nav.getByRole("button", { name: "Ledger" }));
+    await user.click(main.getByRole("button", { name: "Add transaction" }));
+    const amount = main.getByLabelText(/Amount/);
+    await user.click(amount);
+    await user.keyboard("{Escape}");
+    expect(
+      main.getByRole("heading", { name: "Add transaction", level: 1 }),
+    ).toBeInTheDocument();
+    expect(amount).toHaveFocus();
+  });
+});

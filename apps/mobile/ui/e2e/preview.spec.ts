@@ -44,6 +44,24 @@ test("quick ingestion creates an approval card", async ({ page }) => {
   await expect(device.getByText(/Approved\. The preview ledger/)).toBeVisible();
 });
 
+test("keyboard access focuses screen headings and Escape returns", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const device = page.getByRole("main");
+  await page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("button", { name: "Ledger" })
+    .click();
+  await expect(
+    device.getByRole("heading", { name: "Ledger", level: 1 }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(
+    device.getByRole("heading", { name: "Vittaz", level: 1 }),
+  ).toBeFocused();
+});
+
 test("onboarding completes from settings", async ({ page }) => {
   await page.goto("/");
   const device = page.getByRole("main");
