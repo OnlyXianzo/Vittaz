@@ -234,3 +234,16 @@ synthetic credentials, names, notes, circular payloads, malicious accessors,
 returned-copy mutation and retention bounds. Lower diagnostic detail is an
 explicit policy tradeoff, not false regex-anonymization confidence. No SDK/sink
 integration or independent external review claimed. Backup remains sensitive.
+
+## S15 bounded self-review — 2026-11-04
+
+S14 CI41850901501 five green. Adversarial red reproduced four failures before
+changes; after initial implementation Hindi शर्मा जी still leaked because the
+stopword check rejected trailing जी. Corrected honorific handling and reran ALL
+tests, not just that case. 89 tests and100% implemented-source coverage, lint and
+types green. Checked normalized registration, raw token masking before discovery,
+no registration of dropped sensitive text, regex literal escaping, matra-safe
+boundaries, cold-start examples and rejection of pronouns/digit-only candidates.
+Explicit limitation assertions are NOT cloud-safety assertions: unknown aliases,
+typos/homographs and arbitrary prose remain local-only requirements for S27d.
+No independent external review or full reference extra parity claimed.

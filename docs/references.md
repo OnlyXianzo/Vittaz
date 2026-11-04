@@ -125,3 +125,8 @@ Python/build step. This supersedes older-driver installation assumptions.
 
 - OWASP Logging Cheat Sheet https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html — data exclusions, validation of untrusted event data and resource bounds. Retrieved data-to-exclude/verification sections; rolling guidance.
 - Reference b21801c privacy/safeTelemetry.ts + layer2.privacy.test.ts:253-307 compared with docs/PRIVACY: structural regex sanitization does not cover unknown names; use a fixed diagnostic codebook and omit arbitrary data instead. Native TypeScript5.9.3 / Node24.22.2; no library or remote crash reporter added.
+
+### S15 adversarial Unicode — 2026-11-04
+
+- Unicode UTS39 **revision34, Unicode18.0.0**, published2026-08-27: https://www.unicode.org/reports/tr39/ — normalization is not general confusable/name detection. No conformance claim or Unicode data dependency added.
+- MDN normalize/Unicode property escapes (above) and read-only reference b21801c extra.nameLeak.test.ts / extra.hinglish.test.ts: known casing/possessives, cold-start clear payment constructions and matra safety. Node24.22.2 native APIs; future provider/Expo parity remains unproved.

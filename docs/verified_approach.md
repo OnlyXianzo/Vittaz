@@ -320,3 +320,28 @@ console, disk, network or SDK sink; app/platform crash handlers are later wiring
 not device proof. Do not feed dropped sensitive messages to diagnostics at all.
 Provider keys/Telegram tokens/unknown names, cycles/getters/proxies tested as
 omitted values. Backup settings exclusion remains separately tested in storage.
+
+## S15 adversarial names and honest limits (2026-11-04)
+
+S14 head0cb6be5 CI41850901501 all five green. Read reference extra.nameLeak and
+extra.hinglish cases plus Unicode UTS39 rev34 (18.0.0, 2026-08-27), MDN normalize/
+Unicode boundaries and docs/PRIVACY. Sources distinguish normalization from
+confusable detection; do not claim Unicode security conformance or general NER.
+Reproduce known-name fullwidth/format-control normalization mismatch and raw
+Person_N token collision before fixing. Expand tests to known lowercase,
+Hinglish/postpositions, Devanagari matras, literal names in notes, aliases/typos,
+and basic cold-start payment constructions from the reference.
+
+Approach: normalize registered-name matching consistently with outbound copies;
+mask pre-existing Person_N tokens before replacement; sensitive text returns empty
+before name discovery; add bounded-pattern, stopword-filtered inline discovery
+for clear English payments/owes, Hinglish and Devanagari postpositions. Discovery
+only changes local in-memory mapping, not DB. Exact known-name registry remains
+primary. Heuristics intentionally may over-redact and do NOT cover all names,
+misspellings, nicknames, scripts, paraphrases or malicious homographs. Unknown
+free text and notes stay local; later provider boundary must enforce policy.
+No new model, parser package, dependency or real financial data.
+
+Blast radius: redactor only, new adversarial tests and documented limitations.
+No provider/persistence exists to wire now. Full extra multi-turn/device/zero-trace
+reference tests remain pending S27d/S35; pure tests cannot count those as ported.
