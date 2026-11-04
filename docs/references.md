@@ -120,3 +120,8 @@ Python/build step. This supersedes older-driver installation assumptions.
 - OWASP Logging Cheat Sheet, Data to exclude: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html — account/payment-card/telephone identifiers must not be raw diagnostics/outbound context. Rolling guidance fetched 2026-11-04.
 - MDN String.normalize / String.replace / Unicode property escapes (S11-S12 URLs): compatibility normalization is appropriate for detection but may alter display; sanitize outbound copies only. Native Node24.22.2.
 - Read-only reference b21801c privacy/redactor.ts:224-275 + layer2.privacy.test.ts:107-171: identifier patterns and ordering; longer/grouped numeric identifiers are conservatively removed rather than leaked or truncated. No package added.
+
+### S14 diagnostics — 2026-11-04
+
+- OWASP Logging Cheat Sheet https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html — data exclusions, validation of untrusted event data and resource bounds. Retrieved data-to-exclude/verification sections; rolling guidance.
+- Reference b21801c privacy/safeTelemetry.ts + layer2.privacy.test.ts:253-307 compared with docs/PRIVACY: structural regex sanitization does not cover unknown names; use a fixed diagnostic codebook and omit arbitrary data instead. Native TypeScript5.9.3 / Node24.22.2; no library or remote crash reporter added.
