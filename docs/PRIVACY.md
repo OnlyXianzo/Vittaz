@@ -141,3 +141,10 @@ actual unit/adapter fixtures, not proof of full AssistantService/provider/Telegr
 zero-trace, persistent redactor mappings, real listener or Expo/device behavior.
 Those gates remain incomplete; primitive-report caveats above describe the earlier
 foundation snapshot and must not be read as proof of application-wide privacy.
+
+S23 adds bounded read-only Q&A with actual Node HTTP and readonly SQLite fixtures.
+Sensitive questions drop before redactor/provider/query calls, replies buffered,
+tool data projected; raw errors and free text with tool calls never re-enter wire.
+Internal generated call IDs prevent model-returned identifiers being echoed;
+validated argument echo is canonicalized then redacted/scrubbed. Full channel,
+persistent context and outbound policy acceptance still S27d/e, not claimed here.

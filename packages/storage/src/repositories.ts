@@ -14,14 +14,36 @@ import type {
   WriteRepository,
 } from "@vittaz/core";
 import * as schema from "./schema.js";
-import { migrate } from "./migrations.js";
+import {
+  migrate,
+  getCurrentSchemaVersion,
+  LATEST_SCHEMA_VERSION,
+} from "./migrations.js";
 
 /** Owns its private native connection. Every callback is serialized, including reads. */
 export function openLedgerStore(filename: string): SnapshotStore {
-  const native = new Database(filename);
+  return connect(filename, false);
+}
+/** Existing current-schema file only. No migrations, SQL or write handle exposed. */
+export function openReadOnlyLedgerStore(
+  filename: string,
+): Pick<SnapshotStore, "read" | "close"> {
+  if (!filename || filename === ":memory:")
+    throw new Error("readonly_requires_existing_file");
+  const store = connect(filename, true);
+  return { read: store.read, close: store.close };
+}
+function connect(filename: string, readonly: boolean): SnapshotStore {
+  const native = new Database(filename, { readonly });
   try {
     native.pragma("foreign_keys = ON");
-    migrate(native);
+    if (readonly) {
+      native.pragma("query_only = ON");
+      if (getCurrentSchemaVersion(native) !== LATEST_SCHEMA_VERSION)
+        throw new Error("readonly_requires_current_schema");
+    } else {
+      migrate(native);
+    }
   } catch (error) {
     native.close();
     throw error;
