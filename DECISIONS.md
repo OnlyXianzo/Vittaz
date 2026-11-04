@@ -190,3 +190,27 @@ codebook/clock/sanitizer dependencies are trusted application composition, not A
 inputs. Actual device crash SDK/ingress error wiring remains later work; don't
 log dropped messages, even through the sanitizer. Application errors still need
 explicit caller handling, not swallowed failures or a claim of device proof.
+
+## 2026-11-04 — S15 adversarial name fixes and remaining limits
+
+Adversarial red tests reproduced known-name NFKC/format-control mismatch, literal
+Person_N impersonation, absent cold-start discovery, and a Hindi honorific
+stopword bug during implementation. Fixed by consistent matching normalization,
+masking incoming placeholder-like tokens, and in-memory discovery for explicit
+English/Hinglish/Devanagari payment constructions. Discovery rejects pronouns,
+common expense words and numeric candidates; trailing Hindi जी is an honorific,
+not a reason to reject a whole name. Sensitive text is dropped before discovery.
+Redaction is ONE PASS on raw input: an already-redacted Person_N payload must not
+be redacted again or it becomes [PERSON_TOKEN]. Reply reversal is local only.
+
+Limits (not tests silently pretending to establish anonymity): unknown nicknames,
+typos, transliteration, arbitrary names in prose/notes, indirect identifiers,
+encoded strings and mixed-script confusables may remain. Tests explicitly show
+`amann`, `munna`, and Cyrillic-А `Аman` are not recognized without local mapping.
+A locally validated alias can be registered; no fuzzy identity guesses. Inline
+heuristics can over-redact common words and are not general name recognition.
+Normalize known names to NFKC for matching; stylized forms may become canonical
+ASCII in a returned mapping. Unknown/uncertain free text and raw notes must stay
+local, and real outbound contexts require allowlists and validation at S27d.
+Full provider/Expo/multi-turn extra checks remain pending. No zero-trace, memory
+erasure or device parity guarantee follows from these pure unit tests.
