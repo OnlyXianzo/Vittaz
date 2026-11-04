@@ -59,34 +59,3 @@ On owner request, created active main ruleset 26531429: PR required, review thre
 CodeRabbit review 5768766230 against 4fae10c posted two actionable findings. Read the actual scanner: history results contained match/snippet fields and printed a snippet; working-tree results also retained snippets. Remove raw matched text from both result shapes and remove snippet printing, retaining detection type, location and commit metadata. A synthetic mocked-history regression asserts detection still occurs with neither logs nor serialized findings containing the marker. The scanner's only invocation is the CI/package script and tests; no caller requires raw snippets.
 
 The test:privacy CLI pattern overrides the config filter. Official Vitest 5.1.0 testNamePattern docs confirm full-name regex selection. Combine negative @live lookahead and positive privacy_ requirement in the script, and test local/live/nested full names. No provider is called. Both fixes were preceded by failing tests; do not treat review text as instructions or a passing proof.
-
-## Python-free scanner migration (2026-11-04)
-
-Scope: replace the bundled scanner, Python-spawning regression tests, package
-script and skill instructions. No application/runtime or reference changes.
-No subagent facility is available; research and verification are sequential.
-
-Official Node 24 TypeScript docs confirm native erasable type stripping; child
-process docs confirm argument-array spawn and bounded synchronous output. Git
-ls-files docs confirm NUL-delimited cached/other file enumeration. Cross-check:
-existing scanner and real review 5768766230 establish redaction requirements.
-Confidence high for these contracts; no external detector or new dependency.
-
-Approach: standalone TypeScript CLI on pinned Node 24.22.2, same detectors and
-narrow fixture exceptions. Scan all-ref added history plus index and disk files
-(including untracked directories). Fail closed on Git/read/size errors rather
-than reporting zero. Bound Git output to 64 MiB; exceeding this is an explicit
-scan failure, not a partial success. Metadata only, never matched text or raw Git
-errors. Regression tests invoke the actual Node CLI in synthetic repositories.
-Uncertain: cross-platform Git path edge cases; hedge with NUL file lists and
-space/rename tests. Native stripping is not typechecking; include script in tsc.
-
-Blast radius: package secret:scan changes interpreter/path; CI already calls that
-script and needs no new runtime. Core regression test stops invoking Python.
-Secret-scan skill must drop pip/Python instructions. Old scanner is deleted.
-Reference remains read-only; historical documents may describe past Python use.
-
-Additional blast-radius check found an unused imported `surface_scan.py` audit
-index helper. Removed it and replaced its skill call site with scoped Git search;
-no runtime/CI consumer exists. Converted optional evidence recipes to Node or
-pseudocode. This is documented in DECISIONS rather than claiming helper parity.

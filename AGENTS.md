@@ -16,5 +16,6 @@ Read in this order: `AGENTS.md`, `Plan.md`, `STATE.md`, `DECISIONS.md`, then `do
 12. Commit and push after every green step. Sandboxes are temporary.
 13. Do not build anything not in `Plan.md`. Write a proposal in `DECISIONS.md` instead.
 14. Never put secrets in files. Read tokens from environment variables.
+15. `.agents/` is developer and agent tooling, NOT application codebase. Do not rewrite, refactor, or convert scripts or skills inside `.agents/` (such as converting Python tooling to TypeScript). Leave agent skills and tooling in their original form and language.
 
 Stop and report at every gate.
