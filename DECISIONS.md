@@ -214,3 +214,27 @@ ASCII in a returned mapping. Unknown/uncertain free text and raw notes must stay
 local, and real outbound contexts require allowlists and validation at S27d.
 Full provider/Expo/multi-turn extra checks remain pending. No zero-trace, memory
 erasure or device parity guarantee follows from these pure unit tests.
+
+## 2026-11-04 — Owner authorizes autonomous checkpoint progression
+
+Latest owner instruction: "Approved all next check point continue without any
+user input do it in autonomous". This explicitly supersedes routine owner-wait
+pauses for remaining backend checkpoints and accepts the documented G2 foundation
+limitations. Advance only after each gate's documented technical checks pass;
+never pre-mark future work/gates complete or bypass privacy/CI/protected merges.
+Continue backend/CLI scope, not frontend/device implementation. Physical Android
+proof and release encryption/model decisions cannot be invented by advance consent.
+PR11 exact2803c63 CI41853443703 five green merged normally as d2b80c4.
+
+## 2026-11-04 — S17 bounded and fail-closed notification ingress
+
+Preserve reference baseline3.1-3.4 asynchronously. Notification input is capped at
+16000 characters and never coerced. Snapshot app package once (a regression first
+reproduced two getter reads), catch unreadable metadata without echoing errors;
+nonallowed/sensitive input never reads later fields or writes anything. Accept
+safe epoch or strict ISO-Z postTime only, rejecting nonstandard/rolled calendar
+strings rather than reference raw-input error messages. Unknown sanitized text
+uses the existing v2 local-only queue; no cloud/log capabilities. Numeric UTR
+matching/standard fixtures are bounded format support, not all-bank parsing.
+New unparsed async repository capabilities remain app-only, never AI tools.
+Same-payment deduplication deliberately belongs to the next separate S18 step.

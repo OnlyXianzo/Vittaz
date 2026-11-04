@@ -294,3 +294,43 @@ test("repository_open_rejects_future_schema_and_automatic_rollback_recovers", as
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("repository_local_unparsed_queue_crud_rollback_and_scope", async () => {
+  const store = open();
+  const row = {
+    id: "synthetic_unparsed",
+    app_package: "synthetic.app",
+    sanitized_text: "statement ready",
+    post_time: "2026-11-04T00:00:00.000Z",
+    reason: "unknown_format",
+    routed_to: "unparsed_list" as const,
+    created_at: "2026-11-04T00:00:00.000Z",
+  };
+  expect(
+    await store.read((r) => r.unparsed_messages.get("missing")),
+  ).toBeNull();
+  await store.transaction(async (r) => {
+    await r.unparsed_messages.insert(row);
+    expect(await r.unparsed_messages.get(row.id)).toEqual(row);
+    await r.unparsed_messages.replace({ ...row, reason: "reviewed" });
+    expect((await r.unparsed_messages.list())[0]!.reason).toBe("reviewed");
+    await r.unparsed_messages.remove(row.id);
+  });
+  await expect(
+    store.transaction((r) => r.unparsed_messages.replace(row)),
+  ).rejects.toThrow("repository_row_missing");
+  await expect(
+    store.transaction(async (r) => {
+      await r.unparsed_messages.insert(row);
+      throw new Error("synthetic_rollback");
+    }),
+  ).rejects.toThrow("synthetic_rollback");
+  expect(await store.read((r) => r.unparsed_messages.list())).toEqual([]);
+  let leaked!: LedgerRepositories;
+  await store.transaction(async (r) => {
+    leaked = r;
+  });
+  await expect(leaked.unparsed_messages.insert(row)).rejects.toThrow(
+    "repository_scope_expired",
+  );
+});

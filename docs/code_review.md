@@ -273,3 +273,17 @@ or editing UI; preserved new root UI exclusions. Repeated clean-dist93tests100%
 and every local check. New PR11 head26ffd20 CI41852883630 all five green.
 G2 report accurately distinguishes Phase D primitives from later integration,
 unknown-name, persistence and device proof. Stop before S17 for owner decision.
+
+## S17 bounded self-review — 2026-11-04
+
+Owner accepted G2 foundation and authorized autonomous future backend checkpoints
+subject to actual checks. PR11 merged normally after exact-head fivegreen.
+S17 missing module red, then102 tests20files100% implemented-source coverage.
+Additional failing regression proved appPackage getter read twice; snapshot once,
+catch unreadable package/text/time and test grouped/fullwidth unmasked accounts.
+Validated real SQLite zero transaction/audit/queue rows after sensitive/promotional
+rejects, posting timestamps, positive exact paise, refunds/reversals credited not
+normal spending, and sanitized local unknown queues. Async queue CRUD/missing/
+rollback/expired scope covered; migration/backup format unchanged. Standard Node
+fixtures do not prove a real Android listener or all bank formats. S18 dedup still
+pending. No independent reviewer/external execution claim for this step.

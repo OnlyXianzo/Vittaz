@@ -23,6 +23,7 @@ export type {
   TransactionRow,
   AuditLogRow,
   WalletRow,
+  UnparsedMessageRow,
   ReadRepository,
   WriteRepository,
   ReadLedgerRepositories,
@@ -85,3 +86,13 @@ export {
   CrashReporter,
 } from "./privacy/safeTelemetry.js";
 export type { LogEntry, CrashReport } from "./privacy/safeTelemetry.js";
+
+export {
+  processNotification,
+  DEFAULT_ALLOWED_PACKAGES,
+} from "./parsers/notificationParser.js";
+export type {
+  IncomingNotification,
+  ProcessNotificationOptions,
+  ProcessNotificationResult,
+} from "./parsers/notificationParser.js";

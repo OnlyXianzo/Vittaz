@@ -370,3 +370,31 @@ new CI-contract tests and bootstrap workflow description. Existing job graph
 already gates test/security on privacy and build transitively; assert it rather
 than weakening it. Keep immutable actions and protections. No dependencies,
 agent-tooling rewrite, application logic, migration or UI changes in this step.
+
+## S17 notification ingress (2026-11-04)
+
+Owner authorized autonomous backend progression through checkpoints; G2 foundation
+limitations remain explicit. Research performed sequentially (no subagent tool):
+Android StatusBarNotification.getPostTime API18 documents system posting epoch
+milliseconds (NOT Notification.when); MDN Date.parse warns nonstandard formats are
+runtime-dependent; Drizzle schema docs plus installed0.45.4 mappings confirm typed
+mapping of the existing v2 unparsed_messages table; read-only reference parser and
+baseline3.1-3.4 confirm ordering and behaviors. Cross-check docs/PRIVACY/FEATURES.
+High confidence in deterministic parser and awaited Node storage behavior, not
+Android permission/device integration or all possible bank message formats.
+
+Approach: nonallowed apps dropped before any text/postTime getter; sensitive text
+fails closed before all writes, clocks/log/network; reject oversize/unreadable
+input, full unmasked accounts and promo-only messages. Normalize temporary text
+NFKC/Indic digits/format controls. Strict ISO-Z or safe epoch postTime, no inferred
+processing timestamp. Exact positive integer paise; failed transactions create
+nothing; refunds/reversals credit special events; regular entries unverified.
+Unknown/ambiguous formats enqueue sanitized local text only, no cloud capability.
+S18 adds reference/time-window dedup in its own next green step (not claimed here).
+
+Blast radius: new core parsers/notificationParser.ts/tests, additive async unparsed
+row port, Node Drizzle query mapping/CRUD of existing v2 table and core barrel.
+No migration change. Queue is excluded from backups as before. Test every added
+repository method, expired handles, rollback and zero rows for rejected inputs.
+Existing ledger/store, backup, audit and privacy callers rerun. No Node imports
+in parser, no raw payload error logging, no notification listener or UI code.

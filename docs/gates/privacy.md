@@ -1,6 +1,6 @@
 # G2 — Privacy foundation checkpoint
 
-Date: 2026-11-04. **Phase D implemented; owner review pending. G2 is NOT approved.**
+Date: 2026-11-04. **Phase D implemented; G2 subsequently accepted by owner (decision below).**
 
 ## In plain language
 
@@ -117,3 +117,13 @@ After explicit G2 acceptance: S17 notification parser, then S18 deduplication an
 S19 importer, with synthetic fixtures and privacy blockers. Each later ingress
 must enforce the existing guard before persistence/log/network. No ingestion,
 provider, Telegram, device or frontend implementation was started at this pause.
+
+## Owner decision — 2026-11-04
+
+Owner explicitly instructed: **"Approved all next check point continue without
+any user input do it in autonomous"**. G2 foundation checkpoint is accepted with
+its documented limitations. Proceed with planned backend work without routine
+approval questions; later technical gate criteria still must actually pass.
+This does not create missing zero-trace/device proof, pre-complete G3, or broaden
+this backend task to frontend work. PR11 exact2803c63 passed CI41853443703 all
+five required jobs and merged normally as d2b80c4, no protections bypassed.
