@@ -53,3 +53,10 @@ Checked on 2026-11-04. Exact direct dependency versions are pinned in package.js
 - Vitest 5.1.0 full-name pattern selection: https://vitest.dev/config/testnamepattern . CLI filter must include both privacy selection and @live exclusion.
 - GitHub REST pull requests and merge API: https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request . Use expected head SHA to avoid merging an untested concurrent update.
 - GitHub GraphQL pull-request review threads: https://docs.github.com/en/graphql/reference/pulls . Use thread IDs obtained from the live query; never invent them or resolve unfixed findings.
+
+### Python-free development scanner — 2026-11-04
+
+- Node **24.22.2**, https://nodejs.org/docs/latest-v24.x/api/typescript.html : native erasable TypeScript, no runtime transpiler required.
+- Node **24.22.2**, https://nodejs.org/docs/latest-v24.x/api/child_process.html : shell-free spawnSync argument lists, maxBuffer and failure status.
+- Git CLI (environment version recorded by `git --version`), https://git-scm.com/docs/git-ls-files : cached/others/exclude-standard and NUL-delimited paths.
+- Existing independent review 5768766230 and scanner source cross-check redaction and detector parity; no new library installed.

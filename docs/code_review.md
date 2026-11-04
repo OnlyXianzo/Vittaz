@@ -28,3 +28,21 @@ Owner clarified CodeRabbit is optional. Main ruleset 26531429 still requires qua
 ## Remote verification and thread resolution
 
 Implementation head `04d0ecfff487dc649eee05f96ae73af299f7a9f3` passed all required CI jobs in https://github.com/OnlyXianzo/Vittaz/actions/runs/41835469588 . Posted detailed replies to both external findings and added the review-results summary at https://github.com/OnlyXianzo/Vittaz/pull/1#issuecomment-6631472878 . Queried actual review thread IDs; only fixed findings were resolved, leaving zero unresolved threads at verification time. Requested an incremental CodeRabbit review of later changes without making its availability mandatory. The existing owner-account approval comment is not represented as an independently launched local agent.
+
+## Python-free tooling change — 2026-11-04
+
+Bounded self-review only; no new independent review claimed. Checked consumers:
+CI invokes package script and therefore now uses Node; script is linted and
+typechecked; tests execute the actual CLI with synthetic repositories. Preserved
+all ten detector families and exact fixture exception, with redaction assertions.
+Added staged-only, deleted historical, untracked-directory and renamed-file cases.
+Git/read errors fail closed. Remaining limits: regex-based detection, ignored
+untracked files, submodules and 64 MiB bounds (explicit failure); core coverage
+excludes developer scripts. Removed unused optional Python audit helper and
+replaced its instructions with scoped Git searches, not an equivalent scanner.
+
+Initial migration red run: missing TypeScript CLI produced 3 failures / 2 passes;
+the two status-1 cases could falsely pass on missing CLI. Tightened the harness
+to require `SCAN FINISHED` and empty stderr for every completed scan. Final suite
+has 22 passing tests, including seven real scanner integration tests. Publishing
+and independent remote review remain blocked by unavailable GitHub authentication.
