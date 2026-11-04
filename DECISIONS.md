@@ -86,4 +86,3 @@ CodeRabbit returned review 5768766230 with two valid foundation findings: raw sc
 ## Reversal of tooling rewrite and agent tooling protection — 2026-11-04
 
 Per owner directive, `.agents/` is developer tooling and agent configuration, not application codebase. Reverted the unnecessary Python-to-TypeScript tooling conversion back to normal. Codified Rule 15 in `AGENTS.md` explicitly prohibiting agents from refactoring or porting `.agents/` skills and scripts.
-
