@@ -139,3 +139,11 @@ Keep reference format identifier/envelope for behavior preservation, but only
 current schema-v2 backup rows validate; automatic conversion of external older
 backups requires explicit migration tests later. Restoring raw notifications,
 analytics or non-allowlisted settings is intentionally excluded as in reference.
+
+## 2026-11-04 — Exact allowance calendar and integer outputs
+
+Preserve reference allowance result fields/truncation. Use Gregorian leap math
+for years 1-9999 to avoid Date.UTC's special remapping of years 0-99; reject year 0000. BigInt subtraction/division rejects unsafe returned values and yields
+canonical 0 for negative fractions rather than the forbidden monetary -0.
+Omitted date uses an injectable clock and Asia/Kolkata; explicit dates never
+consult the clock. This is pure domain code, with no UI or Node import.

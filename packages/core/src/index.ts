@@ -63,3 +63,8 @@ export {
   getWalletSummary,
 } from "./ledger/wallet.js";
 export type { WalletSummary } from "./ledger/wallet.js";
+export { calculateDailyAllowance, getDaysInMonth } from "./ledger/allowance.js";
+export type {
+  DailyAllowanceInput,
+  DailyAllowanceResult,
+} from "./ledger/allowance.js";
