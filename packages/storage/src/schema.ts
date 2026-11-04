@@ -4,6 +4,7 @@ import type {
   TransactionRow,
   ProposalRow,
   AuditLogRow,
+  UnparsedMessageRow,
 } from "@vittaz/core";
 
 // Query mappings only. Versioned SQL migrations own all constraints and indexes.
@@ -113,4 +114,16 @@ export const counterparties = sqliteTable("counterparties", {
 export const app_settings = sqliteTable("app_settings", {
   key: text("key").notNull().primaryKey(),
   value_json: text("value_json").notNull(),
+});
+
+export const unparsed_messages = sqliteTable("unparsed_messages", {
+  id: text("id").$type<UnparsedMessageRow["id"]>().notNull().primaryKey(),
+  app_package: text("app_package").notNull(),
+  sanitized_text: text("sanitized_text").notNull(),
+  post_time: text("post_time").notNull(),
+  reason: text("reason").notNull(),
+  routed_to: text("routed_to")
+    .$type<UnparsedMessageRow["routed_to"]>()
+    .notNull(),
+  created_at: text("created_at").notNull(),
 });

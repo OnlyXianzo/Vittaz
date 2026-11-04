@@ -194,6 +194,45 @@ export function openLedgerStore(filename: string): SnapshotStore {
           assertNonNegativePaise(row.split_owed_paise);
         },
       ),
+      unparsed_messages: wrap(
+        {
+          async get(id) {
+            return (
+              db
+                .select()
+                .from(schema.unparsed_messages)
+                .where(eq(schema.unparsed_messages.id, id))
+                .get() ?? null
+            );
+          },
+          async list() {
+            return db
+              .select()
+              .from(schema.unparsed_messages)
+              .orderBy(schema.unparsed_messages.id)
+              .all();
+          },
+          async insert(row) {
+            db.insert(schema.unparsed_messages).values(row).run();
+          },
+          async replace(row) {
+            const result = db
+              .update(schema.unparsed_messages)
+              .set(row)
+              .where(eq(schema.unparsed_messages.id, row.id))
+              .run();
+            if (result.changes !== 1) throw new Error("repository_row_missing");
+          },
+          async remove(id) {
+            db.delete(schema.unparsed_messages)
+              .where(eq(schema.unparsed_messages.id, id))
+              .run();
+          },
+        },
+        (row) => {
+          void row;
+        },
+      ),
       audit: wrap(
         {
           async get(id) {
@@ -242,6 +281,10 @@ export function openLedgerStore(filename: string): SnapshotStore {
       },
       proposals: { get: repos.proposals.get, list: repos.proposals.list },
       audit: { get: repos.audit.get, list: repos.audit.list },
+      unparsed_messages: {
+        get: repos.unparsed_messages.get,
+        list: repos.unparsed_messages.list,
+      },
     };
     return {
       repos,

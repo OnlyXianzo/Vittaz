@@ -135,3 +135,10 @@ Python/build step. This supersedes older-driver installation assumptions.
 
 - Vitest **5.1.0** https://vitest.dev/guide/reporters.html — JSON reporter defaults to file output; outputFile CLI option documented. Installed probe confirms passed/failed totals, success, testResults/assertionResults and no numRuntimeErrorTestSuites field.
 - Node **24.22.2** https://nodejs.org/docs/latest-v24.x/api/child_process.html — spawnSync argument array, status, timeout/maxBuffer; existing Node fs/os APIs provide fresh temporary report directory with guaranteed cleanup. Native erasable TypeScript runner, no dependency.
+
+### S17 notifications — 2026-11-04
+
+- Android StatusBarNotification **API18+**, https://developer.android.com/reference/android/service/notification/StatusBarNotification#getPostTime() — posting time is System.currentTimeMillis time and may differ from Notification.when; docs updated2026-08-03. No Android library/device implementation added.
+- MDN Date.parse https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse — nonstandard formats implementation-dependent; accept explicit ISO-Z or safe epoch only. Native Node24.22.2; device parity unproved.
+- Drizzle **0.45.4** https://orm.drizzle.team/docs/sql-schema-declaration — typed mapping for existing SQLite table, snake_case SQL keys; current docs cross-checked installed stable source and existing adapters. No new dependency/migration.
+- Read-only reference b21801c notificationParser.ts and layer3.parsers.test.ts baselines3.1-3.4; OWASP Logging/privacy references above: ingress rejects before side effects, unknown formats local only.

@@ -69,6 +69,15 @@ export interface WalletRow {
   opening_balance_paise: number;
   created_at: string;
 }
+export interface UnparsedMessageRow {
+  id: string;
+  app_package: string;
+  sanitized_text: string;
+  post_time: string;
+  reason: string;
+  routed_to: "local_parser" | "unparsed_list";
+  created_at: string;
+}
 /** Persisted row ports only. Never expose these write capabilities to AI tools. */
 export interface ReadRepository<Row> {
   get(id: string): Promise<Row | null>;
@@ -84,12 +93,14 @@ export interface ReadLedgerRepositories {
   transactions: ReadRepository<TransactionRow>;
   proposals: ReadRepository<ProposalRow>;
   audit: ReadRepository<AuditLogRow>;
+  unparsed_messages: ReadRepository<UnparsedMessageRow>;
 }
 export interface LedgerRepositories {
   wallets: WriteRepository<WalletRow>;
   transactions: WriteRepository<TransactionRow>;
   proposals: WriteRepository<ProposalRow>;
   audit: WriteRepository<AuditLogRow>;
+  unparsed_messages: WriteRepository<UnparsedMessageRow>;
 }
 /** Await all work; no network calls in a unit. Handles expire after callback. */
 export interface LedgerStore {
