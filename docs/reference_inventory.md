@@ -1,0 +1,60 @@
+# Reference inventory
+
+Inspected 2026-11-04. Source: https://github.com/OnlyXianzo/khataclaw-typescript at `b21801c3755f4da4ba4075782c45621d42a3c34c`. All source locations below are relative to its `tests/` directory. The checkout is read-only and excluded from workspaces and CI.
+
+## Baseline checks: 31
+
+The ordered reference runner groups 4 environment + 8 core + 6 privacy + 6 parser + 6 agent + 1 headless test as `baseline_31`. The headless test contains eight journeys, not eight additional baseline tests. Every row is pending implementation. This inventory is not a claim of test parity or current execution success.
+
+| check_id                  | Reference location                | Required behavior                                                                                          | Target test file                                        | Planned step | Port status |
+| ------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------ | ----------- |
+| `baseline_0_1`            | `layer0.env.test.ts:9`            | Runtime version                                                                                            | `tests/environment/runtime.test.ts`                     | S1           | pending     |
+| `baseline_0_2`            | `layer0.env.test.ts:16`           | SQLite STRICT and transactions                                                                             | `packages/storage/src/migrations.test.ts`               | S4           | pending     |
+| `baseline_0_3`            | `layer0.env.test.ts:25`           | Loopback fake HTTP and synthetic XLSX fixture                                                              | `tests/environment/fixtures.test.ts`                    | S19, S20     | pending     |
+| `baseline_0_4`            | `layer0.env.test.ts:47`           | Host classification and ADB capability                                                                     | `tests/environment/device_capabilities.test.ts`         | S33          | pending     |
+| `baseline_1_1`            | `layer1.core.test.ts:37`          | Integer paise guards, exact decimal parsing, 1000-entry sums; SQL sum additionally at S4                   | `packages/core/src/ledger/money.test.ts`                | S3, S4       | pending     |
+| `baseline_1_2`            | `layer1.core.test.ts:83`          | Empty migrations, v1 to v2 preserves rows, rerun does nothing                                              | `packages/storage/src/migrations.test.ts`               | S4           | pending     |
+| `baseline_1_3`            | `layer1.core.test.ts:119`         | Proposal writes no transaction, approve once, reject none, duplicate approval idempotent                   | `packages/core/src/ledger/approval.test.ts`             | S6           | pending     |
+| `baseline_1_4`            | `layer1.core.test.ts:158`         | Manual confirmed, captured unverified, forward-only transitions                                            | `packages/core/src/ledger/status.test.ts`               | S5           | pending     |
+| `baseline_1_5`            | `layer1.core.test.ts:206`         | Create/edit/approve audit and exact undo of row, proposal and wallet                                       | `packages/core/src/ledger/audit.test.ts`                | S7           | pending     |
+| `baseline_1_6`            | `layer1.core.test.ts:260`         | Cash opening balance plus credits minus debits                                                             | `packages/core/src/ledger/wallet.test.ts`               | S8           | pending     |
+| `baseline_1_7`            | `layer1.core.test.ts:281`         | Backup privacy warning, checksum rejection and exact table restoration                                     | `packages/storage/src/backup.test.ts`                   | S9           | pending     |
+| `baseline_1_8`            | `layer1.core.test.ts:330`         | Daily allowance, month ends, leap day, invalid date and overspending                                       | `packages/core/src/ledger/allowance.test.ts`            | S10          | pending     |
+| `baseline_2_1`            | `layer2.privacy.test.ts:59`       | Names replaced outbound, stable Person_N, locally reversed proposal                                        | `packages/agent/src/privacy_boundary.test.ts`           | S12, S27d    | pending     |
+| `baseline_2_2`            | `layer2.privacy.test.ts:107`      | No notes, UPI references or account digits in outbound tool context                                        | `packages/agent/src/privacy_boundary.test.ts`           | S13, S27d    | pending     |
+| `baseline_2_3`            | `layer2.privacy.test.ts:173`      | Exact name boundaries and Person_10 versus Person_1 reversal                                               | `packages/core/src/privacy/redactor.test.ts`            | S12          | pending     |
+| `baseline_2_4`            | `layer2.privacy.test.ts:205`      | Sensitive input leaves zero DB, log and network trace across entry points                                  | `tests/privacy/zero_trace.test.ts`                      | S11, S27d    | pending     |
+| `baseline_2_5`            | `layer2.privacy.test.ts:253`      | Keys/tokens absent from logs, crash reports and exports                                                    | `tests/privacy/secret_boundaries.test.ts`               | S9, S14      | pending     |
+| `baseline_2_6`            | `layer2.privacy.test.ts:309`      | Notes stay local by default, explicit cloud opt-in remains filtered                                        | `packages/agent/src/local_model_boundary.test.ts`       | S26, S27d    | pending     |
+| `baseline_3_1`            | `layer3.parsers.test.ts:14`       | Non-allowlisted notifications dropped before text getter is read                                           | `packages/core/src/parsers/notification_parser.test.ts` | S17          | pending     |
+| `baseline_3_2`            | `layer3.parsers.test.ts:34`       | Sensitive and promo messages leave no stored transaction/raw message                                       | `packages/core/src/parsers/notification_parser.test.ts` | S17          | pending     |
+| `baseline_3_3`            | `layer3.parsers.test.ts:70`       | Debit/credit amount, masked account handling, post timestamp, unmasked drop                                | `packages/core/src/parsers/notification_parser.test.ts` | S17          | pending     |
+| `baseline_3_4`            | `layer3.parsers.test.ts:108`      | Failed payments, refunds and reversals never counted as spending                                           | `packages/core/src/parsers/notification_parser.test.ts` | S17          | pending     |
+| `baseline_3_5`            | `layer3.parsers.test.ts:139`      | SMS plus app dedupe, account enrichment, unknown text local only                                           | `packages/core/src/parsers/deduplication.test.ts`       | S18          | pending     |
+| `baseline_3_6`            | `layer3.parsers.test.ts:190`      | XLSX dry-run, duplicate-safe re-import, benefit/tag mapping, row errors                                    | `packages/storage/src/excel_importer.test.ts`           | S19          | pending     |
+| `baseline_4_1`            | `layer4.agent.test.ts:21`         | 400 stops, 401 disables, 429 cools down, all failures give safe error                                      | `packages/agent/src/key_pool.test.ts`                   | S21          | pending     |
+| `baseline_4_2`            | `layer4.agent.test.ts:118`        | Mid-stream failure resets partial reply then restarts next key                                             | `packages/agent/src/client.test.ts`                     | S21          | pending     |
+| `baseline_4_3`            | `layer4.agent.test.ts:168`        | Validated call creates pending proposal only, malformed input no DB access                                 | `packages/agent/src/tools.test.ts`                      | S22          | pending     |
+| `baseline_4_4`            | `layer4.agent.test.ts:237`        | Q&A step limit, token budget, timeout and honest inability to answer                                       | `packages/agent/src/question_loop.test.ts`              | S23          | pending     |
+| `baseline_4_5`            | `layer4.agent.test.ts:309`        | Registry denies writes and SQLite query_only rejects raw mutation                                          | `tests/integration/read_only_question.test.ts`          | S23          | pending     |
+| `baseline_4_6`            | `layer4.agent.test.ts:348`        | Metadata-only analytics; no prompt/reply/key leakage                                                       | `packages/agent/src/analytics.test.ts`                  | S24          | pending     |
+| `baseline_headless_flows` | `manualFlows.headless.test.ts:24` | All eight journeys: manual, split draft, approve, improve note, reject, undo, batch approve, export/import | `tests/integration/headless_flows.test.ts`              | S30          | pending     |
+
+## Ten extra checks (outside the baseline count)
+
+- Five `extra.nameLeak.test.ts` checks: case and possessives, cold-start names, QR/phone/IFSC scrubbing, Devanagari matra boundaries, Expo-adapter multi-turn privacy parity. Target `packages/core/src/privacy/adversarial_names.test.ts` and `tests/privacy/assistant_payloads.test.ts` at S15/S27d; device adapter parity at S35.
+- Five `extra.hinglish.test.ts` checks: postpositions and pronouns, Indic digits/names, local colloquial amount parsing, zero-trace multilingual sensitive messages, Hinglish notification formats. Privacy/notification equivalents belong at S15/S17; local parser behavior is reviewed at S26 and real model work remains Phase I. Do not add a separate unplanned parser module without a scope decision.
+
+## Adaptation requirements and unresolved mismatches
+
+1. Port synchronous SQL calls to async core repository ports; migrations and raw SQLite enforcement belong in storage, not core. Await each financial use case and preserve atomic audit writes and idempotency.
+2. Keep the reference's pure public names and `ledger/`, `privacy/`, `parsers/` organization where applicable. Agent modules move to packages/agent and database adapters to packages/storage as required by Plan.md, not the reference barrel.
+3. Reference schema/import assertions use text `benefit` and `tags_json`. Plan.md requires numeric `benefit_paise` and `tag`. These are not interchangeable: do not silently drop the reference semantics or pretend schema parity. Record a decision proposal before S4/S19 and keep the discrepancy visible.
+4. The reference improves notes via optional cloud opt-in. Plan.md makes improve_note a local-model task. Preserve no-cloud-by-default and privacy boundaries; decide explicitly before any cloud opt-in behavior is added.
+5. Runtime >=18 and Linux-only host assertions describe the reference sandbox, not Vittaz's supported Node 24 baseline or Android device. Test capabilities rather than assuming one operating system, and leave device proof for Phase I.
+6. Full outbound privacy integration needs the later fake provider and AssistantService. Pure filter tests at S11-S15 do not alone prove zero-trace end-to-end boundaries.
+7. No reference dependencies have been installed or executed. Upstream's 41/41 report remains historical evidence. Its standard runner writes test-results.json and benchmarks, so run in a disposable copy when baseline execution is needed, never mutate reference/.
+
+## Inventory regression test
+
+`packages/core/src/reference_inventory.test.ts` verifies that each of the 31 stable snake_case baseline IDs appears exactly once and has a target test file. It imports no reference code and does not imply those target files or implementations already exist.

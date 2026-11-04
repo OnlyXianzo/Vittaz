@@ -53,3 +53,12 @@ S1 is still local work in progress: the interrupted response did not leave the r
 - Preserve existing apps/cli and the inert mobile scaffold; do not write UI, relocate packages or choose a license during S1. Record the CLI-location proposal for later resolution. The reference is external and reproducible from its pinned public revision.
 - The privacy CI job is explicitly a bootstrap placeholder until S11-S16; it is not a G2 sign-off. Live-provider tests and release CD are deferred until their actual CLI/provider steps, not fabricated now.
 - Latest owner instruction authorizes autonomous continuation. Nevertheless do not merge the PR or open canvas before the required sign-off.
+
+## Reference inventory discrepancies — 2026-11-04
+
+S2 identifies two behavior/schema differences needing resolution before their affected steps:
+
+- The reference stores text benefit and tags_json; Plan.md specifies benefit_paise and tag. Proposal: retain legacy textual classification under a distinct field if needed while introducing the planned monetary benefit field; never reinterpret text as paise. Defer final schema choice until S4 failing migration tests expose the needed contract.
+- The reference supports opt-in cloud note improvement; Plan.md specifies local improve_note. Proposal: retain local-only default and implement the planned local-model port, without adding cloud opt-in scope in S26.
+
+These are proposals, not implemented deviations. All 31 baseline checks are mapped with pending status; no fresh reference pass or implemented parity is claimed. Ten extra checks are tracked separately. No reference files were modified or imported.
