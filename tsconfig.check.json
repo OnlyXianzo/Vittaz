@@ -3,16 +3,13 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
-    "paths": {
-      "@vittaz/core": ["./packages/core/src/index.ts"]
-    }
+    "paths": { "@vittaz/core": ["./packages/core/src/index.ts"] }
   },
   "include": [
     "packages/**/*.ts",
     "apps/**/*.ts",
     "tests/**/*.ts",
-    "vitest.config.ts",
-    "scripts/**/*.ts"
+    "vitest.config.ts"
   ],
   "exclude": ["**/dist/**", "node_modules", "reference", "canvas"]
 }

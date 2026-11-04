@@ -83,21 +83,7 @@ Supersedes the mandatory CodeRabbit requirement above. The owner clarified that 
 
 CodeRabbit returned review 5768766230 with two valid foundation findings: raw scanner snippets in logs/results, and privacy CLI overriding @live exclusion. Reproduced both through failing tests and applied minimal fixes. Record actual independent findings and bounded implementation-agent review in docs/code_review.md, without misrepresenting the external foundation review as coverage of S3. CodeRabbit remains optional per owner's clarification; required CI and resolved threads still govern merge.
 
-## 2026-11-04 — No Python development dependency
-
-User correction takes priority before S4. The required secret scanner and its
-regressions now run with existing pinned Node 24.22.2 and TypeScript; no package
-added. The unused imported Python surface-index helper is removed, not ported:
-security-auditing instructions use scoped Git searches and manual data-flow reads
-instead. It was not an application feature or CI consumer. Python examples in
-that skill are replaced; reference material outside this project's toolchain is
-not modified. Future GitHub automation must use Node, not Python.
-
-Scanner intentionally adds index inspection and fail-closed errors. A staged
-secret must not escape detection because its disk version is clean. Output is
-strictly detector/source metadata; 64 MiB limits fail rather than silently
-truncate. Regex detection and inherited fixture exceptions remain a limited
-baseline, not a guarantee against all secret formats.
+## Reversal of tooling rewrite and agent tooling protection — 2026-11-04
 
 ## 2026-11-04 — Storage compatibility and money columns
 
@@ -108,3 +94,7 @@ Later import tests must explicitly map both forms. Use safe-integer SQL bounds
 and core guards at repository entry. Node-native code lives only in storage.
 S4 will be delivered as migrations then async repositories, not marked complete
 on migration-only proof. Native prebuilt installation avoids Python build tools.
+
+## Reversal of tooling rewrite and agent tooling protection — 2026-11-04
+
+Per owner directive, `.agents/` is developer tooling and agent configuration, not application codebase. Reverted the unnecessary Python-to-TypeScript tooling conversion back to normal. Codified Rule 15 in `AGENTS.md` explicitly prohibiting agents from refactoring or porting `.agents/` skills and scripts.
