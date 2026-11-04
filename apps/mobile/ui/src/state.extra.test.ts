@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { createInitialState, reducer } from "./state";
 
 describe("UI preview reducer edge cases", () => {
-  it("back closes the panel and returns to the chat window", () => {
+  it("back returns to previous screen", () => {
     let state = createInitialState();
     state = reducer(state, { type: "navigate", screen: "ledger" });
     state = reducer(state, { type: "back" });
-    expect(state.screen).toBe("chat");
+    expect(state.screen).toBe("home");
   });
 
   it("toggle search opens and clears on close", () => {
@@ -36,12 +36,12 @@ describe("UI preview reducer edge cases", () => {
 
   it("chat empty input shows a toast", () => {
     const next = reducer(createInitialState(), { type: "send_chat" });
-    expect(next.toast).toMatch(/Type or paste a message/);
+    expect(next.toast).toMatch(/Type a message/);
   });
 
   it("quick analyze without amount shows a toast", () => {
     const next = reducer(createInitialState(), { type: "analyze_quick" });
-    expect(next.toast).toMatch(/Paste or type a message/);
+    expect(next.toast).toMatch(/Include an amount/);
   });
 
   it("quick analyze detects received, recharge and fuel categories", () => {
@@ -101,65 +101,6 @@ describe("UI preview reducer edge cases", () => {
       key: "replaceNames",
     });
     expect(next.settings.replaceNames).toBe(false);
-  });
-
-  it("reads a grouped bank-alert amount instead of the first digit", () => {
-    let state = reducer(createInitialState(), {
-      type: "attach_mock",
-      kind: "sms",
-    });
-    state = reducer(state, { type: "finish_chat_thinking" });
-    const proposal = state.transactions.find(
-      (t) => t.id === state.chatProposalId,
-    );
-    expect(proposal?.amountPaise).toBe(250000);
-    expect(proposal?.title).toBe("HDFC Bank");
-    expect(proposal?.note).not.toContain("50100234567890");
-  });
-
-  it("advance_chat is a no-op when the assistant is idle", () => {
-    const state = createInitialState();
-    expect(reducer(state, { type: "advance_chat" })).toBe(state);
-  });
-
-  it("walks the tool run one call at a time", () => {
-    let state = reducer(createInitialState(), {
-      type: "send_chat_text",
-      text: "Send my summary to Telegram",
-    });
-    expect(state.chatSteps[0].state).toBe("done");
-    expect(state.chatSteps[1].state).toBe("running");
-    expect(state.chatSteps[2].state).toBe("queued");
-    state = reducer(state, { type: "advance_chat" });
-    expect(state.chatSteps[1].state).toBe("done");
-    expect(state.chatSteps[2].state).toBe("running");
-    state = reducer(state, { type: "advance_chat" });
-    expect(state.chatMode).toBe("idle");
-    expect(state.chatTelegramPreview).toContain("Vittaz daily summary");
-    expect(state.chatMessages.at(-1)?.variant).toBe("telegram");
-  });
-
-  it("clear_chat empties the conversation without touching the ledger", () => {
-    let state = reducer(createInitialState(), {
-      type: "send_chat_text",
-      text: "I spent 299 on Zomato",
-    });
-    state = reducer(state, { type: "finish_chat_thinking" });
-    const count = state.transactions.length;
-    state = reducer(state, { type: "clear_chat" });
-    expect(state.chatMessages).toHaveLength(0);
-    expect(state.chatSteps).toHaveLength(0);
-    expect(state.chatMode).toBe("idle");
-    expect(state.transactions).toHaveLength(count);
-  });
-
-  it("a message without an amount falls back to help instead of drafting", () => {
-    const state = reducer(createInitialState(), {
-      type: "send_chat_text",
-      text: "I paid for lunch",
-    });
-    expect(state.chatIntent).toBe("help");
-    expect(state.chatProposalId).toBeNull();
   });
 
   it("finish_chat_thinking is a no-op when not thinking", () => {

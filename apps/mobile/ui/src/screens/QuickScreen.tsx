@@ -16,13 +16,13 @@ export function QuickScreen({
   return (
     <div className="s">
       <PageHeader
-        title="Paste a message"
+        title="Quick ingestion"
         onBack={() => dispatch({ type: "back" })}
       />
       <div className="c" style={{ marginTop: 14 }}>
         <textarea
           className="quick-input"
-          aria-label="Message text"
+          aria-label="Transaction text"
           placeholder="Paste a bank SMS or UPI alert, or type it as you would say it."
           value={state.quickInput}
           onChange={(e) =>
@@ -34,7 +34,7 @@ export function QuickScreen({
         For example: I spent 299 on Zomato
       </div>
       <div className="row" style={{ margin: "20px 0 4px" }}>
-        <span className="b">Recent messages</span>
+        <span className="b">Recent inputs</span>
         <button
           className="link"
           onClick={() => dispatch({ type: "navigate", screen: "inbox" })}
@@ -64,15 +64,14 @@ export function QuickScreen({
         ))}
       </div>
       <div className="m" style={{ margin: "14px 4px" }}>
-        Sensitive details are hidden on this phone before the assistant reads
-        the message. Nothing leaves this preview.
+        Demo parser only. No message leaves this preview.
       </div>
       <button
         className="lime sticky-action"
         onClick={() => dispatch({ type: "analyze_quick" })}
         type="button"
       >
-        Send to assistant
+        Analyze
       </button>
     </div>
   );

@@ -15,60 +15,23 @@ backend integration.
 - AI actions are deterministic local demo parsing. The preview never claims that
   a model wrote to the ledger: entries remain unverified until the user approves
   them.
-- Sensitive-value detection in the chat is a local mock of the backend privacy
-  gate, not a security control.
 - `askBeforeSaving` cannot be disabled in the preview.
 - This package does not modify `packages/core`, `packages/storage`, the existing
   `apps/mobile` Expo stub, or the active ledger PR.
 
-## Chat-first window
+## Screens
 
-The assistant is the only main window. Everything else opens as a panel over the
-chat and closes with `Back`, the backdrop or `Escape`.
+The preview shell exposes all 13 mock screens:
 
-- Type a message, paste anything, or attach a sample from the paperclip menu —
-  all three send straight to the assistant.
-- A small toolbar above the conversation opens Overview, Ledger, Inbox, People
-  and Settings as panels. There is no bottom tab bar.
-- The conversation is a live region (`role="log"`) and focus moves to the panel
-  heading when one opens.
-
-### Privacy guard (mock)
-
-`src/privacy.ts` runs before the assistant reads anything. It replaces account
-numbers, card numbers (Luhn-checked), IFSC, UPI IDs, phone numbers, emails,
-Aadhaar/PAN shapes, OTP/PIN/CVV/password values and API or bot tokens with
-placeholders such as `[account hidden]`, and the bubble shows what was hidden.
-Amounts, dates and merchant names are preserved so the demo parser still works.
-
-This is a **UI-side mock**. Real enforcement belongs to the backend privacy
-layer in `packages/core`; nothing here writes to or duplicates it.
-
-### Tool calling (mock)
-
-`src/assistant.ts` plans a deterministic tool run for each message and the chat
-renders each call with its arguments, status and result:
-
-- `privacy_scan` always runs first, on the device
-- `parse_entry` → `propose_transaction` for payments (never auto-saved)
-- `query_transactions` → `sum_by_category` for questions
-- `people_balances`, `check_unverified`, `app_help`
-- `build_summary` → `telegram_send_message` for Telegram requests
-
-`telegram_send_message` is a mock transport: it renders the exact message it
-would send to `@vittaz_demo_bot` and states that nothing was sent. No network
-request, model call or bot pairing happens in this package.
-
-## Panels
-
-- Overview
+- Home
 - Pending inbox
 - Review transaction
 - Ledger
 - People
 - Settings
 - Add transaction
-- Paste a message
+- Quick ingestion
+- Chat approval / Chat thinking / Assistant
 - Choose model
 - Onboarding: welcome, how-it-works, pick-your-AI
 

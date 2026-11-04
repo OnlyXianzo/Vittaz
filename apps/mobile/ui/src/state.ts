@@ -4,31 +4,7 @@ import {
   SYNTHETIC_TRANSACTIONS,
 } from "./data";
 import { formatPaise, parseAmountToPaise } from "./money";
-import { scanAndRedact, sensitiveLabels } from "./privacy";
-import {
-  assistantReply,
-  detectIntent,
-  planToolCalls,
-  telegramPreview,
-  toolResult,
-} from "./assistant";
-import type { AssistantContext, AssistantIntent } from "./assistant";
-import type {
-  Action,
-  AppState,
-  ChatMessage,
-  ChatStep,
-  Screen,
-  Transaction,
-} from "./types";
-
-/** Sample messages used by the composer's "add" menu. Deliberately seeded with
- *  an account number and a phone number so the privacy guard is visible. */
-export const MOCK_ATTACHMENTS: Record<"sms" | "screenshot", string> = {
-  sms: "HDFC Bank: Rs 2,500.00 debited from a/c 50100234567890 on 27-10-2025. Not you? Call 9876543210.",
-  screenshot:
-    "Screenshot text: Paid Rs 299 to Zomato from aman@okhdfcbank. Receipt sent to aman.k@example.com. Card 4111 1111 1111 1111.",
-};
+import type { Action, AppState, Screen, Transaction } from "./types";
 
 const ONBOARDING_SCREENS: Record<0 | 1 | 2, Screen> = {
   0: "onboarding-welcome",
@@ -41,8 +17,8 @@ export function createInitialState(): AppState {
     (t) => t.status === "unverified",
   ).map((t) => t.id);
   return {
-    screen: "chat",
-    previousScreen: "chat",
+    screen: "home",
+    previousScreen: "home",
     transactions: SYNTHETIC_TRANSACTIONS,
     people: SYNTHETIC_PEOPLE,
     ledgerFilter: "all",
@@ -63,9 +39,6 @@ export function createInitialState(): AppState {
     chatMessages: [],
     chatSteps: [],
     chatProposalId: null,
-    chatIntent: null,
-    chatRemoved: [],
-    chatTelegramPreview: null,
     quickInput: "",
     quickRecentIds: ["txn_zomato", "txn_hdfc"],
     addDraft: {
@@ -93,23 +66,13 @@ function makeProposal(
   input: string,
   idPrefix: string,
 ): Transaction | null {
-  // Prefer an explicit currency amount so Indian grouping ("Rs 2,500.00") and
-  // dates in bank alerts are not mistaken for the value.
-  const amountMatch =
-    input.match(
-      /(?:₹|rs\.?|inr)\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/i,
-    ) ?? input.match(/(\d{1,3}(?:,\d{2,3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/);
-  const amountPaise = amountMatch
-    ? parseAmountToPaise(amountMatch[1].replace(/,/g, ""))
-    : null;
+  const amountMatch = input.match(/(?:₹\s*)?(\d+(?:\.\d{1,2})?)/);
+  const amountPaise = amountMatch ? parseAmountToPaise(amountMatch[1]) : null;
   if (!amountPaise) return null;
   const merchantMatch = input.match(
     /\b(?:on|to|at)\s+([A-Za-z][A-Za-z .&'-]*)/i,
   );
-  const senderMatch = input.match(/^\s*([A-Za-z][A-Za-z .&'-]{2,28}):/);
-  const title = (merchantMatch?.[1] ?? senderMatch?.[1] ?? "Draft entry")
-    .trim()
-    .slice(0, 40);
+  const title = merchantMatch ? merchantMatch[1].trim() : "Draft entry";
   const lower = input.toLowerCase();
   const category = /lunch|food|zomato|tea|dinner/.test(lower)
     ? "Food"
@@ -148,7 +111,7 @@ function approve(state: AppState, id: string): AppState {
   };
   if (state.reviewId === id) {
     next.reviewId = null;
-    next.screen = "chat";
+    next.screen = "inbox";
   }
   if (state.chatProposalId === id) {
     next.chatProposalId = null;
@@ -177,7 +140,7 @@ function reject(state: AppState, id: string): AppState {
   };
   if (state.reviewId === id) {
     next.reviewId = null;
-    next.screen = "chat";
+    next.screen = "inbox";
   }
   if (state.chatProposalId === id) {
     next.chatProposalId = null;
@@ -225,177 +188,150 @@ function addTransaction(state: AppState): AppState {
   };
 }
 
-function chatContext(state: AppState): AssistantContext {
-  const confirmed = state.transactions.filter(
-    (t) => t.status === "user_confirmed",
-  );
-  const sum = (rows: Transaction[]) =>
-    rows.reduce((total, t) => total + t.amountPaise, 0);
-  const owesYou = [...state.people]
-    .filter((p) => p.balancePaise > 0)
-    .sort((a, b) => b.balancePaise - a.balancePaise)[0];
-  const proposal = state.transactions.find(
-    (t) => t.id === state.chatProposalId,
-  );
-  return {
-    spentPaise: sum(confirmed.filter((t) => t.direction === "spent")),
-    receivedPaise: sum(confirmed.filter((t) => t.direction === "received")),
-    foodPaise: sum(
-      confirmed.filter((t) => t.direction === "spent" && t.category === "Food"),
-    ),
-    pendingCount: state.transactions.filter(
-      (t) => t.status !== "user_confirmed",
-    ).length,
-    owesYouName: owesYou?.name ?? null,
-    owesYouPaise: owesYou?.balancePaise ?? 0,
-    entryTitle: proposal?.title ?? null,
-    entryAmountPaise: proposal?.amountPaise ?? null,
-    removedLabels: state.chatRemoved,
-  };
-}
-
-/**
- * Every message, paste and attachment goes through the same path: the privacy
- * guard runs first, then the mock assistant plans tool calls.
- */
-function startChat(state: AppState, rawText: string): AppState {
-  const text = rawText.trim();
-  if (!text) return { ...state, toast: "Type or paste a message first." };
-
-  const scan = scanAndRedact(text);
-  const removed = sensitiveLabels(scan);
-  let intent: AssistantIntent = detectIntent(scan.safeText);
-  const proposal =
-    intent === "entry" ? makeProposal(state, scan.safeText, "chat") : null;
-  if (intent === "entry" && !proposal) intent = "help";
-
-  const plan = planToolCalls(intent);
-  const baseState: AppState = {
-    ...state,
-    chatRemoved: removed,
-    chatIntent: intent,
-    chatProposalId: proposal?.id ?? null,
-  };
-  const ctx = chatContext(baseState);
-  const steps: ChatStep[] = plan.map((item, index) => ({
-    id: `step_${state.sequence}_${index}`,
-    tool: item.tool,
-    label: item.label,
-    args: item.args,
-    detail: index === 0 ? "On this device" : index === 1 ? "Running" : "Queued",
-    result: index === 0 ? toolResult(item.tool, ctx) : undefined,
-    state: index === 0 ? "done" : index === 1 ? "running" : "queued",
-  }));
-
-  const userMessage: ChatMessage = {
+function sendChat(state: AppState): AppState {
+  const text = state.chatInput.trim();
+  if (!text) return { ...state, toast: "Type a message first." };
+  const userMessage = {
     id: `msg_${state.sequence}`,
-    role: "user",
-    text: scan.safeText,
-    redacted: removed,
+    role: "user" as const,
+    text,
   };
-
+  const proposal = makeProposal(state, text, "chat");
+  if (proposal) {
+    return {
+      ...state,
+      transactions: [proposal, ...state.transactions],
+      sequence: state.sequence + 2,
+      chatInput: "",
+      chatMode: "approval",
+      chatProposalId: proposal.id,
+      chatMessages: [
+        ...state.chatMessages,
+        userMessage,
+        {
+          id: `msg_${state.sequence + 1}`,
+          role: "assistant",
+          text: "I drafted this entry. Nothing is saved until you approve it.",
+        },
+      ],
+      chatSteps: [
+        {
+          label: "Read your message",
+          tool: "parse_entry",
+          detail: "Demo parser",
+          state: "done",
+        },
+        {
+          label: "Drafted an entry",
+          tool: "propose_transaction",
+          detail: "Waiting for your approval",
+          state: "waiting",
+        },
+      ],
+    };
+  }
   return {
-    ...baseState,
-    transactions: proposal
-      ? [proposal, ...state.transactions]
-      : state.transactions,
+    ...state,
     sequence: state.sequence + 1,
-    screen: "chat",
     chatInput: "",
     chatMode: "thinking",
-    chatTelegramPreview: null,
     chatMessages: [...state.chatMessages, userMessage],
-    chatSteps: steps,
+    chatSteps: [
+      {
+        label: "Searched the preview ledger",
+        tool: "query_transactions",
+        detail: "Synthetic rows",
+        state: "done",
+      },
+      {
+        label: "Added them up",
+        tool: "sum_by_category",
+        detail: "Deterministic demo sum",
+        state: "done",
+      },
+      {
+        label: "Checking unverified entries",
+        tool: "check_unverified",
+        detail: "Running",
+        state: "running",
+      },
+    ],
   };
 }
 
-function finalizeChat(state: AppState): AppState {
-  const ctx = chatContext(state);
-  const intent = state.chatIntent ?? "help";
-  const steps: ChatStep[] = state.chatSteps.map((step) =>
-    step.tool === "propose_transaction"
-      ? {
-          ...step,
-          state: "waiting",
-          detail: "Waiting for your approval",
-          result: toolResult(step.tool, ctx),
-        }
-      : step.state === "done"
-        ? step
-        : {
-            ...step,
-            state: "done",
-            detail: "Done",
-            result: toolResult(step.tool, ctx),
-          },
-  );
+function finishChatThinking(state: AppState): AppState {
+  if (state.chatMode !== "thinking") return state;
+  const foodPaise = state.transactions
+    .filter(
+      (t) =>
+        t.status === "user_confirmed" &&
+        t.direction === "spent" &&
+        t.category === "Food",
+    )
+    .reduce((sum, t) => sum + t.amountPaise, 0);
+  const pending = state.transactions.filter(
+    (t) => t.status !== "user_confirmed",
+  ).length;
   return {
     ...state,
-    chatMode: state.chatProposalId ? "approval" : "idle",
-    chatSteps: steps,
-    chatTelegramPreview: intent === "telegram" ? telegramPreview(ctx) : null,
+    chatMode: "idle",
+    chatSteps: state.chatSteps.map((s) => ({
+      ...s,
+      state: "done",
+      detail: s.state === "running" ? `${pending} pending` : s.detail,
+    })),
     chatMessages: [
       ...state.chatMessages,
       {
         id: `msg_${state.sequence}`,
         role: "assistant",
-        text: assistantReply(intent, ctx),
-        variant: intent === "telegram" ? "telegram" : "text",
+        text: `In this synthetic preview, confirmed food entries total ${formatPaise(foodPaise)}. ${pending} entries still need review.`,
       },
     ],
     sequence: state.sequence + 1,
   };
 }
 
-/** Moves the mock tool run forward by one call so the UI can animate it. */
-function advanceChat(state: AppState): AppState {
-  if (state.chatMode !== "thinking") return state;
-  const runningIndex = state.chatSteps.findIndex((s) => s.state === "running");
-  if (runningIndex === -1) return finalizeChat(state);
-  const ctx = chatContext(state);
-  const steps: ChatStep[] = state.chatSteps.map((step, index) =>
-    index === runningIndex
-      ? {
-          ...step,
-          state: "done" as const,
-          detail: "Done",
-          result: toolResult(step.tool, ctx),
-        }
-      : step,
-  );
-  const queuedIndex = steps.findIndex((s) => s.state === "queued");
-  if (queuedIndex === -1) return finalizeChat({ ...state, chatSteps: steps });
-  steps[queuedIndex] = {
-    ...steps[queuedIndex],
-    state: "running",
-    detail: "Running",
-  };
-  return { ...state, chatSteps: steps };
-}
-
-function finishChatThinking(state: AppState): AppState {
-  let next = state;
-  for (let i = 0; i < 12 && next.chatMode === "thinking"; i += 1) {
-    next = advanceChat(next);
-  }
-  return next;
-}
-
 function analyzeQuick(state: AppState): AppState {
   const text = state.quickInput.trim();
-  if (!text)
+  const proposal = makeProposal(state, text, "quick");
+  if (!proposal)
     return {
       ...state,
-      toast: "Paste or type a message, for example: I spent 299 on Zomato.",
+      toast: "Include an amount, for example: I spent 299 on Zomato.",
     };
-  const next = startChat(state, text);
-  const proposalId = next.chatProposalId;
   return {
-    ...next,
+    ...state,
+    transactions: [proposal, ...state.transactions],
+    sequence: state.sequence + 2,
     quickInput: "",
-    quickRecentIds: proposalId
-      ? [proposalId, ...state.quickRecentIds].slice(0, 5)
-      : state.quickRecentIds,
+    quickRecentIds: [proposal.id, ...state.quickRecentIds].slice(0, 5),
+    screen: "chat",
+    previousScreen: "quick",
+    chatMode: "approval",
+    chatProposalId: proposal.id,
+    chatMessages: [
+      { id: `msg_${state.sequence}`, role: "user", text },
+      {
+        id: `msg_${state.sequence + 1}`,
+        role: "assistant",
+        text: "I drafted this entry. Nothing is saved until you approve it.",
+      },
+    ],
+    chatSteps: [
+      {
+        label: "Read your message",
+        tool: "parse_entry",
+        detail: "Demo parser",
+        state: "done",
+      },
+      {
+        label: "Drafted an entry",
+        tool: "propose_transaction",
+        detail: "Waiting for your approval",
+        state: "waiting",
+      },
+    ],
   };
 }
 
@@ -419,7 +355,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case "navigate":
       return navigate(state, action.screen);
     case "back":
-      return { ...state, screen: "chat", previousScreen: "chat" };
+      return { ...state, screen: state.previousScreen, previousScreen: "home" };
     case "approve":
       return approve(state, action.id);
     case "reject":
@@ -496,24 +432,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case "set_chat_input":
       return { ...state, chatInput: action.value };
     case "send_chat":
-      return startChat(state, state.chatInput);
-    case "send_chat_text":
-      return startChat(state, action.text);
-    case "attach_mock":
-      return startChat(state, MOCK_ATTACHMENTS[action.kind]);
-    case "advance_chat":
-      return advanceChat(state);
-    case "clear_chat":
-      return {
-        ...state,
-        chatMessages: [],
-        chatSteps: [],
-        chatMode: "idle",
-        chatProposalId: null,
-        chatIntent: null,
-        chatRemoved: [],
-        chatTelegramPreview: null,
-      };
+      return sendChat(state);
     case "finish_chat_thinking":
       return finishChatThinking(state);
     case "set_quick_input":
@@ -539,7 +458,7 @@ export function reducer(state: AppState, action: Action): AppState {
         screen: ONBOARDING_SCREENS[action.step],
       };
     case "finish_onboarding":
-      return { ...state, screen: "chat", previousScreen: "chat" };
+      return { ...state, screen: "home", previousScreen: "onboarding-ai" };
     case "show_toast":
       return { ...state, toast: action.message };
     case "clear_toast":
