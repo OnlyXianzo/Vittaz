@@ -55,3 +55,17 @@ test("glob_tooling_uses_security_patched_minimatch", () => {
     expect((value as { version: string }).version).toBe("11.0.1");
   }
 });
+
+test("privacy_selector_excludes_live_names", () => {
+  const command = manifest.scripts["test:privacy"] as string;
+  const match = command.match(
+    /--testNamePattern=(?:'([^']+)'|"([^"]+)"|(\S+))/,
+  );
+  expect(match).not.toBeNull();
+  const pattern = new RegExp(match![1] ?? match![2] ?? match![3]);
+  expect(pattern.test("privacy_zero_trace")).toBe(true);
+  expect(pattern.test("suite > privacy_zero_trace")).toBe(true);
+  expect(pattern.test("privacy_zero_trace @live")).toBe(false);
+  expect(pattern.test("@live suite > privacy_zero_trace")).toBe(false);
+  expect(pattern.test("core_money")).toBe(false);
+});
