@@ -22,7 +22,9 @@ export function HomeScreen({
       <div className="row" style={{ height: 44 }}>
         <div className="row" style={{ gap: 10, justifyContent: "flex-start" }}>
           <span className="k">V</span>
-          <span className="h">Vittaz</span>
+          <h1 className="h" style={{ margin: 0 }} tabIndex={-1}>
+            Vittaz
+          </h1>
         </div>
         <div className="row" style={{ gap: 0 }}>
           <IconButton

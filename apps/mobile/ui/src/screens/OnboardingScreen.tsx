@@ -22,13 +22,15 @@ export function OnboardingScreen({
   const step = state.onboardingStep;
   return (
     <div className="s onboarding">
-      <span className="bl b1" />
-      <span className="bl b2" />
-      <span className="bl b3" />
+      <span className="bl b1" aria-hidden="true" />
+      <span className="bl b2" aria-hidden="true" />
+      <span className="bl b3" aria-hidden="true" />
       {step === 0 && (
         <>
           <span className="k welcome-logo">V</span>
-          <h1 className="welcome-title">Hey mate, welcome to Vittaz</h1>
+          <h1 className="welcome-title" tabIndex={-1}>
+            Hey mate, welcome to Vittaz
+          </h1>
           <div className="welcome-copy">
             Track what you spend, lend and owe. Add entries by tapping or by
             messaging, and an AI helps keep them straight.
@@ -74,7 +76,9 @@ export function OnboardingScreen({
       )}
       {step === 1 && (
         <>
-          <h1 className="how-title">How entries get in</h1>
+          <h1 className="how-title" tabIndex={-1}>
+            How entries get in
+          </h1>
           <div className="m" style={{ fontSize: 15 }}>
             Everything lands in one ledger.
           </div>
@@ -136,7 +140,9 @@ export function OnboardingScreen({
       )}
       {step === 2 && (
         <>
-          <h1 className="ai-title">Pick how the AI runs</h1>
+          <h1 className="ai-title" tabIndex={-1}>
+            Pick how the AI runs
+          </h1>
           <div className="m" style={{ fontSize: 15, lineHeight: 1.4 }}>
             Use one or both. Auto picks the right one for each job.
           </div>

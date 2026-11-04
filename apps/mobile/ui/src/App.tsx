@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import type { Dispatch } from "react";
 import { BottomNav, Toast } from "./components";
 import { createInitialState, reducer } from "./state";
@@ -75,6 +75,31 @@ function ScreenView({
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
   const pendingCount = selectPending(state).length;
+  const deviceRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const heading = deviceRef.current?.querySelector<HTMLElement>("h1");
+    heading?.focus({ preventScroll: true });
+  }, [state.screen]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT")
+      )
+        return;
+      if (state.screen === "home" || state.screen.startsWith("onboarding"))
+        return;
+      dispatch({ type: "back" });
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [state.screen]);
 
   useEffect(() => {
     if (!state.toast) return;
@@ -154,7 +179,7 @@ export default function App() {
         </div>
       </aside>
       <main className="device-wrap">
-        <div className="device" data-screen={state.screen}>
+        <div className="device" data-screen={state.screen} ref={deviceRef}>
           <div className={`screen-scroll ${showNav ? "with-nav" : ""}`}>
             <ScreenView state={state} dispatch={dispatch} />
           </div>

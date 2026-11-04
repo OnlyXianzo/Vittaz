@@ -117,7 +117,13 @@ export function PageHeader({
             <ChevronLeft size={22} />
           </button>
         )}
-        <span className={large ? "page-title" : "h"}>{title}</span>
+        <h1
+          className={large ? "page-title" : "h"}
+          style={{ margin: 0 }}
+          tabIndex={-1}
+        >
+          {title}
+        </h1>
       </div>
       {right}
     </div>
