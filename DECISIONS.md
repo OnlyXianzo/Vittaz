@@ -238,3 +238,19 @@ uses the existing v2 local-only queue; no cloud/log capabilities. Numeric UTR
 matching/standard fixtures are bounded format support, not all-bank parsing.
 New unparsed async repository capabilities remain app-only, never AI tools.
 Same-payment deduplication deliberately belongs to the next separate S18 step.
+
+## 2026-11-04 — S18 atomic replay and audited enrichment
+
+Verified S17 exactcadaed3 CI41854664678 five success; normal SHA-pinned PR12
+merge aa8a26a84465d747f82a289dffd7ffd8e583cdfc, zero unresolved threads.
+Proceed under existing autonomous backend authorization. Keep reference matching
+order while avoiding financial suppression of manual/import rows, conflicting
+known accounts/references or multiple ambiguous candidates. Exact stored-key
+identity conflicts error statically instead of claiming a match. Within a single
+existing async write unit, enrich missing fields only and audit that mutation;
+unchanged replay writes nothing. Internal (non-barrel) captured unit helper avoids
+nested transactions and preserves root input validation/public ledger behavior.
+Refund/reversal no-reference fallback remains unsupported as reference; identical
+UTR/event replays are supported. Amount/time-only matching can still false-merge
+legitimate equal-value payments and remains unverified/reviewable, not a claim of
+universal identity. Future indexed query optimization requires measured evidence.

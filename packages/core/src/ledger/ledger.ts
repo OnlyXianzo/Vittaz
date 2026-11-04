@@ -95,8 +95,8 @@ export function validateInput(input: CreateManualTransactionInput) {
   )
     throw new LedgerError("Invalid eventType", "INVALID_EVENT_TYPE");
 }
-async function createTransaction(
-  store: LedgerStore,
+async function createTransactionInUnit(
+  repos: LedgerRepositories,
   input: CreateManualTransactionInput & Partial<AutoCapturedTransactionInput>,
   captured: boolean,
   runtime: LedgerRuntime,
@@ -128,17 +128,34 @@ async function createTransaction(
     created_at: now,
     updated_at: now,
   };
-  return store.transaction(async (repos) => {
-    await repos.transactions.insert(row);
-    const auditId = await writeTransactionAudit(
-      repos,
-      runtime,
-      captured ? `capture_${source}` : "create_manual",
-      null,
-      row,
-    );
-    return { transaction: row, auditId };
-  });
+  await repos.transactions.insert(row);
+  const auditId = await writeTransactionAudit(
+    repos,
+    runtime,
+    captured ? `capture_${source}` : "create_manual",
+    null,
+    row,
+  );
+  return { transaction: row, auditId };
+}
+async function createTransaction(
+  store: LedgerStore,
+  input: CreateManualTransactionInput & Partial<AutoCapturedTransactionInput>,
+  captured: boolean,
+  runtime: LedgerRuntime,
+): Promise<TransactionWriteResult> {
+  validateInput(input);
+  return store.transaction((repos) =>
+    createTransactionInUnit(repos, input, captured, runtime),
+  );
+}
+/** Internal composition seam: caller owns the awaited unit; never open a nested transaction. */
+export function insertCapturedTransactionInUnit(
+  repos: LedgerRepositories,
+  input: AutoCapturedTransactionInput,
+  runtime: LedgerRuntime,
+): Promise<TransactionWriteResult> {
+  return createTransactionInUnit(repos, input, true, runtime);
 }
 export function createManualTransaction(
   store: LedgerStore,

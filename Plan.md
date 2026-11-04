@@ -120,7 +120,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 ### Phase E: ingestion
 
 - [x] **S17. Notification parser.** Allowlist, sensitive-word drop, promo rejection, debit and credit, masked accounts, failed and reversed payments, post time as timestamp.
-- [ ] **S18. Deduplication.** One payment from a bank SMS and an app alert becomes one entry. Match on reference, or on amount plus time window.
+- [x] **S18. Deduplication.** One payment from a bank SMS and an app alert becomes one entry. Match on reference, or on amount plus time window.
 - [ ] **S19. Excel importer.** Dry run, idempotent re-import by row hash, `benefit_paise` and `tag` mapping, clear per-row errors. Fixtures are synthetic.
 
 ### Phase F: AI layer (`packages/agent`)

@@ -398,3 +398,31 @@ No migration change. Queue is excluded from backups as before. Test every added
 repository method, expired handles, rollback and zero rows for rejected inputs.
 Existing ledger/store, backup, audit and privacy callers rerun. No Node imports
 in parser, no raw payload error logging, no notification listener or UI code.
+
+## S18 atomic notification deduplication (2026-11-04)
+
+S17 cadaed3 CI41854664678 all five green. Sources: read-only reference matching
+logic/baseline3.5; SQLite transactions official docs (BEGIN does not nest, one
+writer, read/modify/write within IMMEDIATE); existing serialized awaited adapter,
+audits and stale undo. High confidence in atomic Node replay protection tested
+with concurrent calls, not separate mobile/device connections.
+
+Use a core transaction-scoped captured-write helper shared with existing ledger
+creation (no nested root access). Within one unit, match exact dedup reference
+first, else one compatible same-amount/direction normal notification in inclusive
+configured window. Restrict candidates to notification source/same wallet; never
+merge manual/import rows. Do not merge conflicting known last4 or references;
+exact reference/account conflict is a static error; ambiguous time-window matches
+are NOT collapsed. Enrich missing account/ref/counterparty only, audit changes
+atomically; repeated identical duplicates create no audit. This repairs reference
+un-audited enrichment, preserves undo's stale-state rules. Positive/negative tests
+first; default5min, configurable safe integer0..1day. Refund/reversal duplicates
+use exact reference only, as reference. No-reference equal-value payments within
+a short window remain a documented heuristic false-positive risk, not proven
+identity; all captures remain unverified for review.
+
+Blast radius: new core parsers/deduplication.ts + tests; internal ledger helper
+extraction (existing public behavior unchanged), notification capture call/options.
+No adapter/schema/migration/AI/UI changes. Current async list port bounds scope
+but scans ledger; indexed candidate-query optimization remains performance work,
+not an unmeasured speed claim. Full regression and rollback/undo tests required.
