@@ -44,3 +44,14 @@ export type {
   AutoCapturedTransactionInput,
   TransactionWriteResult,
 } from "./ledger/ledger.js";
+export {
+  createProposal,
+  getProposal,
+  approveProposal,
+  batchApproveProposals,
+  rejectProposal,
+} from "./ledger/approval.js";
+export type {
+  CreateProposalInput,
+  ApproveProposalResult,
+} from "./ledger/approval.js";

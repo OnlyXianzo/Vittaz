@@ -6,6 +6,7 @@ import type {
   TransactionEventType,
   TransactionRow,
   TransactionStatus,
+  ProposalRow,
 } from "./repositories.js";
 
 export class LedgerError extends Error {
@@ -66,6 +67,7 @@ export async function writeTransactionAudit(
   action: string,
   before: TransactionRow | null,
   after: TransactionRow,
+  related: ProposalRow | null = null,
 ): Promise<string> {
   const id = runtime.makeId("aud");
   await repos.audit.insert({
@@ -75,13 +77,13 @@ export async function writeTransactionAudit(
     entity_id: after.id,
     before_state: before === null ? null : JSON.stringify(before),
     after_state: JSON.stringify(after),
-    related_proposal_before: null,
+    related_proposal_before: related === null ? null : JSON.stringify(related),
     undone: 0,
     created_at: after.updated_at,
   });
   return id;
 }
-function validateInput(input: CreateManualTransactionInput) {
+export function validateInput(input: CreateManualTransactionInput) {
   assertPositivePaise(input.amountPaise, "amountPaise");
   assertNonNegativePaise(input.splitOwedPaise ?? 0, "splitOwedPaise");
   assertNonNegativePaise(input.benefitPaise ?? 0, "benefitPaise");
@@ -191,3 +193,11 @@ export async function transitionTransactionStatus(
     return { transaction: after, auditId };
   });
 }
+export {
+  createProposal,
+  getProposal,
+  approveProposal,
+  batchApproveProposals,
+  rejectProposal,
+} from "./approval.js";
+export type { CreateProposalInput, ApproveProposalResult } from "./approval.js";

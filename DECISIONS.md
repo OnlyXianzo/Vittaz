@@ -98,3 +98,11 @@ on migration-only proof. Native prebuilt installation avoids Python build tools.
 ## Reversal of tooling rewrite and agent tooling protection — 2026-11-04
 
 Per owner directive, `.agents/` is developer tooling and agent configuration, not application codebase. Reverted the unnecessary Python-to-TypeScript tooling conversion back to normal. Codified Rule 15 in `AGENTS.md` explicitly prohibiting agents from refactoring or porting `.agents/` skills and scripts.
+
+## 2026-11-04 — Approval corruption fails closed
+
+Async approval preserves reference idempotency but rejects an approved proposal
+whose committed transaction is missing/null with COMMITTED_TRANSACTION_MISSING,
+instead of relying on a non-null assertion that returns null as a transaction.
+Synthetic corruption regressions cover both cases. No repair or AI write path is
+introduced. Batch approval runs within one repository unit, not reentrant calls.

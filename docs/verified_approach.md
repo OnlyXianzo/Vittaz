@@ -141,3 +141,17 @@ so core imports no Node API and mobile can supply its platform implementation.
 No new dependency. Blast radius: new ledger module, type-only ports and barrel,
 new integration tests invoking real storage. Existing domains unaffected.
 S4 head ebf425f passed CI 41839309320 before this work. No UI/gate progression.
+
+## S6 approval queue (2026-11-04)
+
+Port reference create/get/approve/reject/batch semantics with the S4 awaited
+transaction capability, not nested root transactions. Proposal creation writes
+only pending proposals; approve writes transaction, proposal status and audit
+in one unit. Duplicate approval returns original transaction and null audit ID;
+reject never writes transactions. Batch uses one unit so a later rejection
+rolls back earlier items. Sources: baseline_1_3 and reference ledger.ts, Plan S6,
+SQLite atomic transaction docs and S4 rollback tests; confidence high. Corrupt
+approved links fail closed rather than reference's unsafe non-null assertion.
+No new APIs/dependencies. Blast radius: new approval module; audit helper gains
+optional proposal-before snapshot; ledger barrel exposes preserved public names.
+AI-facing tool restrictions remain S22, never pass full store to providers.

@@ -80,3 +80,14 @@ Audit snapshots created atomically now to preserve reference result shape; edit
 and undo remain S7. All legacy and numeric benefit/tag columns round-trip, import
 source retained. Invalid amounts/direction/event/FK or duplicate dedup key leave
 no partial write. 38 tests, 100% implemented core/storage coverage locally.
+
+## S6 bounded self-review — 2026-11-04
+
+S5 head 3b8da49 passed five jobs in CI 41839861735. Approval uses one awaited
+unit for transaction/proposal/audit, returns original transaction on repeated
+approval, and rejects corrupt approved links. Batch helper shares one capability
+rather than nesting root transactions; a later invalid proposal rolls back the
+whole batch. Synthetic injected audit failure leaves proposal pending and ledger
+empty. Concurrent same-store double approval writes once. No provider/tool gets
+the store. 42 tests, implemented core/storage coverage 100% locally; no new
+independent review claimed.
