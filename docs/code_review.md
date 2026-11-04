@@ -177,3 +177,13 @@ exact stored sum, supplementing the existing SQL sum regression. 55 tests and
 100% implemented core/storage coverage locally. All eight layer-one baseline
 families implemented; actual remote proof required before G1 report. No new
 independent review claimed, privacy/device/agent/UI phases not implemented.
+
+## PR6 owner review and concurrent merge — 2026-11-04
+
+Owner comment https://github.com/OnlyXianzo/Vittaz/pull/6#issuecomment-6632687254
+approves the backup changes. Record as owner review, not independent execution
+or an assertion that the later allowance received external review. Actual S10
+code head c989e99 passed 55 tests and CI41843604522. During final gate-document
+publication, fetch showed PR6 already merged by owner as a082d17; no attempt was
+made to re-merge or overwrite main. Rebased the documentation-only commit onto
+that merge and publish gate evidence separately. G1 still awaits sign-off.
