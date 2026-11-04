@@ -568,3 +568,33 @@ Usage unknown/unpriced outcomes explicit; no made-up pricing or retries on
 persistence failure. BigInt rounded integer cost with overflow rejection. Operational
 analytics excluded from financial backups, not accessible to QA registry. Actual
 S20/S21 HTTP and storage tests required. No raw errors or independent-review claim.
+
+## S25 verification gate — 2026-11-04
+
+Scope: agent LangChain completion bridge and QA adapter; extract existing S21
+request validation without behavior change; exact core1.3.4 dependency in agent
+only. Latest main5faf427 owner UI revert preserved; no UI/.agents edits.
+Sequential three-angle research: official model API/custom implementations,
+pinned native callback-manager source, failure-mode review of tracing/context,
+framework retries/caches and malformed tool JSON. No subagent tool available.
+
+Use real BaseChatModel.invoke/_generate/AIMessage, but a private per-request bridge
+retains the validated original wire snapshot (no lossy null/developer/tool-call
+normalization). Original raw tool arguments survive to S22 validation, never tool
+execution in framework. S23 owns tools/step/token/deadline permissions, framework
+cannot add tools or a second loop. Explicit no cache/retries; streaming unsupported
+on this buffered adapter, remains low-level S21 until safe service integration.
+
+Pinned public CallbackManager subclass: copy returns same restrictive subclass;
+addHandler always fails statically before LangChain dispatch can see payloads.
+Ambient verbose/tracing/hooks attempts fail closed. Explicit empty metadata/tags/
+configurable and restrictive callback manager prevent parent handler inheritance.
+No process.env/global manager monkey-patching. Prevalidate/sensitive/abort checks
+before any framework invoke; wrapper surfaces static adapter errors except existing
+safe provider status/cancellation errors required for fallback semantics. Tests:
+actual fake HTTP and read-only store through LangChain, native invoke spy, malformed
+arguments, no extra retries, limits/abort and ambient tracing/verbose/inherited
+callback non-observation. TDD missing-module red before implementation; full suite,
+audit/scan/type/lint/format/privacy/build and exact-SHA CI/protected merge required.
+This is a controlled LangChain model adapter, not unbounded createAgent, full
+AssistantService, native streaming or verified device bundling.

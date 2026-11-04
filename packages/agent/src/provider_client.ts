@@ -99,6 +99,31 @@ export interface ChatCompletionParams {
   onStreamReset?: (() => void) | null;
   maxCompletionTokens?: number;
 }
+export interface CompletionClient {
+  chatCompletion(params: ChatCompletionParams): Promise<ChatCompletionResult>;
+}
+/** Shared preflight before framework callbacks or HTTP. Owns a cloned wire snapshot. */
+export function validateCompletionRequest(params: ChatCompletionParams) {
+  let wire: z.infer<typeof request>;
+  let bodySize: number;
+  let callerSignal: AbortSignal | undefined;
+  try {
+    callerSignal = z.instanceof(AbortSignal).optional().parse(params.signal);
+    wire = request.parse({
+      stream: params.stream,
+      messages: params.messages,
+      tools: params.tools,
+      maxCompletionTokens: params.maxCompletionTokens,
+    });
+    bodySize = new TextEncoder().encode(JSON.stringify(wire)).byteLength;
+    if (bodySize > 64512) throw new Error();
+  } catch {
+    throw new Error("Invalid provider request");
+  }
+  if (checkSensitiveMessage(JSON.stringify(wire)).sensitive)
+    throw new Error("Sensitive provider input rejected");
+  return { wire, callerSignal };
+}
 class ProtocolError extends Error {
   constructor() {
     super("Invalid provider response");
@@ -294,24 +319,7 @@ export class OpenAICompatibleClient {
   async chatCompletion(
     params: ChatCompletionParams,
   ): Promise<ChatCompletionResult> {
-    let wire: z.infer<typeof request>;
-    let bodySize: number;
-    let callerSignal: AbortSignal | undefined;
-    try {
-      callerSignal = z.instanceof(AbortSignal).optional().parse(params.signal);
-      wire = request.parse({
-        stream: params.stream,
-        messages: params.messages,
-        tools: params.tools,
-        maxCompletionTokens: params.maxCompletionTokens,
-      });
-      bodySize = new TextEncoder().encode(JSON.stringify(wire)).byteLength;
-      if (bodySize > 64512) throw new Error();
-    } catch {
-      throw new Error("Invalid provider request");
-    }
-    if (checkSensitiveMessage(JSON.stringify(wire)).sensitive)
-      throw new Error("Sensitive provider input rejected");
+    const { wire, callerSignal } = validateCompletionRequest(params);
     const deadline = AbortSignal.timeout(this.#timeout);
     const signal = callerSignal
       ? AbortSignal.any([callerSignal, deadline])

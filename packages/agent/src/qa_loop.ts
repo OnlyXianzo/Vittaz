@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { checkSensitiveMessage, scrubOutboundText } from "@vittaz/core";
 import type { PrivacyRedactor } from "@vittaz/core";
-import type { ChatMessage, OpenAICompatibleClient } from "./provider_client.js";
+import type { ChatMessage, CompletionClient } from "./provider_client.js";
 import {
   createQaToolExecutor,
   ToolValidationError,
@@ -73,12 +73,18 @@ export interface AnswerQuestionResult {
   tokensUsed: number;
   answer: string | null;
 }
+export interface QuestionAnsweringAgent {
+  answerQuestion(
+    question: unknown,
+    options?: unknown,
+  ): Promise<AnswerQuestionResult>;
+}
 /** No SQL, mutation capability, history persistence or unvalidated stream callbacks. */
-export class ReadOnlyQaLoop {
+export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
   private readonly tools;
   constructor(
     private readonly params: {
-      client: Pick<OpenAICompatibleClient, "chatCompletion">;
+      client: CompletionClient;
       data: QaDataSource;
       redactor: PrivacyRedactor;
     },

@@ -3,7 +3,7 @@ import type { AppendAnalytics } from "@vittaz/core";
 import type {
   ChatCompletionParams,
   ChatCompletionResult,
-  OpenAICompatibleClient,
+  CompletionClient,
 } from "./provider_client.js";
 import type { KeyPool } from "./key_pool.js";
 export class AnalyticsError extends Error {
@@ -40,7 +40,7 @@ export class AnalyticsClient {
   private readonly now;
   constructor(
     private readonly params: {
-      client: Pick<OpenAICompatibleClient, "chatCompletion">;
+      client: CompletionClient;
       keyPool: Pick<KeyPool, "getStatusSnapshot">;
       append: AppendAnalytics;
       rates?: Record<

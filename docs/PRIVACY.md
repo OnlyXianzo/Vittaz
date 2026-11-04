@@ -155,3 +155,11 @@ numbers/outcomes. Configured public metadata cannot contain any configured raw
 credential bytes; this is not an arbitrary unknown-secret detector. Sensitive and
 provider-rejected requests create no analytics. Operational rows excluded from
 financial backups/restore payloads and inaccessible to model tools.
+
+S25 uses a private LangChain callback manager whose copy remains restrictive and
+whose addHandler always fails before message dispatch. Ambient tracing/verbose/
+context-hook requests therefore fail closed; parent callbacks are not inherited.
+Malformed/sensitive/pre-aborted requests never invoke LangChain. No process-global
+telemetry switches changed. Native message/result objects are transient, no cache;
+original validated wire retained for controlled provider calls. This proves the
+pinned Node adapter boundary, not future device/library-version behavior.
