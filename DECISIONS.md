@@ -85,4 +85,16 @@ CodeRabbit returned review 5768766230 with two valid foundation findings: raw sc
 
 ## Reversal of tooling rewrite and agent tooling protection — 2026-11-04
 
+## 2026-11-04 — Storage compatibility and money columns
+
+Keep legacy reference `benefit`, `tags_json`, and split fields for behavior
+preservation; add independent numeric `benefit_paise` and scalar `tag` required
+by Plan.md. They are not aliases; no inferred conversion of legacy text to money.
+Later import tests must explicitly map both forms. Use safe-integer SQL bounds
+and core guards at repository entry. Node-native code lives only in storage.
+S4 will be delivered as migrations then async repositories, not marked complete
+on migration-only proof. Native prebuilt installation avoids Python build tools.
+
+## Reversal of tooling rewrite and agent tooling protection — 2026-11-04
+
 Per owner directive, `.agents/` is developer tooling and agent configuration, not application codebase. Reverted the unnecessary Python-to-TypeScript tooling conversion back to normal. Codified Rule 15 in `AGENTS.md` explicitly prohibiting agents from refactoring or porting `.agents/` skills and scripts.

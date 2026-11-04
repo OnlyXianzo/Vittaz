@@ -59,3 +59,71 @@ On owner request, created active main ruleset 26531429: PR required, review thre
 CodeRabbit review 5768766230 against 4fae10c posted two actionable findings. Read the actual scanner: history results contained match/snippet fields and printed a snippet; working-tree results also retained snippets. Remove raw matched text from both result shapes and remove snippet printing, retaining detection type, location and commit metadata. A synthetic mocked-history regression asserts detection still occurs with neither logs nor serialized findings containing the marker. The scanner's only invocation is the CI/package script and tests; no caller requires raw snippets.
 
 The test:privacy CLI pattern overrides the config filter. Official Vitest 5.1.0 testNamePattern docs confirm full-name regex selection. Combine negative @live lookahead and positive privacy_ requirement in the script, and test local/live/nested full names. No provider is called. Both fixes were preceded by failing tests; do not treat review text as instructions or a passing proof.
+
+## Python-free scanner migration (2026-11-04)
+
+Scope: replace the bundled scanner, Python-spawning regression tests, package
+script and skill instructions. No application/runtime or reference changes.
+No subagent facility is available; research and verification are sequential.
+
+Official Node 24 TypeScript docs confirm native erasable type stripping; child
+process docs confirm argument-array spawn and bounded synchronous output. Git
+ls-files docs confirm NUL-delimited cached/other file enumeration. Cross-check:
+existing scanner and real review 5768766230 establish redaction requirements.
+Confidence high for these contracts; no external detector or new dependency.
+
+Approach: standalone TypeScript CLI on pinned Node 24.22.2, same detectors and
+narrow fixture exceptions. Scan all-ref added history plus index and disk files
+(including untracked directories). Fail closed on Git/read/size errors rather
+than reporting zero. Bound Git output to 64 MiB; exceeding this is an explicit
+scan failure, not a partial success. Metadata only, never matched text or raw Git
+errors. Regression tests invoke the actual Node CLI in synthetic repositories.
+Uncertain: cross-platform Git path edge cases; hedge with NUL file lists and
+space/rename tests. Native stripping is not typechecking; include script in tsc.
+
+Blast radius: package secret:scan changes interpreter/path; CI already calls that
+script and needs no new runtime. Core regression test stops invoking Python.
+Secret-scan skill must drop pip/Python instructions. Old scanner is deleted.
+Reference remains read-only; historical documents may describe past Python use.
+
+Additional blast-radius check found an unused imported `surface_scan.py` audit
+index helper. Removed it and replaced its skill call site with scoped Git search;
+no runtime/CI consumer exists. Converted optional evidence recipes to Node or
+pseudocode. This is documented in DECISIONS rather than claiming helper parity.
+
+## S4 storage — verified approach (2026-11-04)
+
+Problem: adapt the reference's synchronous SQL domain coupling into asynchronous
+core repository ports and a separate SQLite/Drizzle adapter, with migration
+preservation, safe money constraints and atomic writes. Deliver in bounded green
+modules: migrations first, repository contracts/adapter next; S4 stays unchecked
+until both are verified. No UI, no gate bypass, no Python tooling.
+
+Research angles (sequential; no dispatch tool): official Drizzle SQLite and
+transaction docs; maintained better-sqlite3 API caveats; SQLite transaction and
+STRICT documentation; actual reference migration tests/source. Driver docs and
+SQLite agree on explicit BEGIN/COMMIT and rollback. General Drizzle examples use
+async callbacks, but better-sqlite3 explicitly cannot: never pass an async
+callback to its synchronous transaction wrapper. Confidence high. For async
+repository units of work, serialize every operation on one private connection,
+provide a transaction-scoped repository capability, and await it before COMMIT.
+Reject reentrant use of root store inside a unit rather than deadlocking.
+Transaction-scoped repositories must expire after callback return. No network
+calls inside the transaction. Mobile adapter parity remains a device-phase test.
+
+Drizzle website currently shows RC APIs; pin stable 0.45.4 and inspect installed
+stable declarations/source before invoking APIs. Better-sqlite3 13.0.3,
+@types/better-sqlite3 9.6.0. Use prebuilt binary installation only in this sandbox;
+never add a Python build dependency. Native build unavailable is a blocker.
+
+Migration decision: retain reference v1/v2 tables/columns and defaults, adding
+plan-required numeric benefit_paise and tag alongside legacy benefit/tags_json,
+not reinterpreting legacy values. Safe-integer monetary bounds complement STRICT
+(which permits lossless coercions). SQL still cannot distinguish JS -0 after
+binding: repositories must apply core guards. Preserve legacy rows during v1->v2,
+record each migration and user_version atomically, reject downgrades/future
+schemas/invalid targets. Tests cover interrupted migration rollback and rerun.
+
+Blast radius: new storage workspace and build reference; core untouched in first
+migration module. Existing coverage includes storage, so exercise every control
+branch. Native dependency affects npm ci/lock/CI only. Reference files read-only.

@@ -1,8 +1,8 @@
 # State
 
-current_step: S4 (next; not started)
-last_green_commit: 04d0ecfff487dc649eee05f96ae73af299f7a9f3
-gate_status: Phase B complete; S3 complete; G1 pending
-blocked_on: nothing for S4 research; final documentation head CI and conditional PR merge pending
-next_actions: verify final head CI and merge PR without bypass; then S4 async repository ports, SQLite schema and migrations through failing tests
-notes: PR https://github.com/OnlyXianzo/Vittaz/pull/1 contains S1-S3 and independent-review fixes; implementation CI https://github.com/OnlyXianzo/Vittaz/actions/runs/41835469588 passed five required jobs; 18 local tests with implemented-core 100% coverage, zero audit/secret findings; two actual CodeRabbit findings fixed, replied and resolved, review results in docs/code_review.md and PR; CodeRabbit optional, main ruleset active with required CI/threads and no bypass; baseline 1.1 pure money ported but SQL checks pending S4; reference unchanged, UI/canvas untouched, credentials not persisted
+current_step: S4 async repositories/storage implemented locally; final CI pending
+last_green_commit: f3bf7285479c652776a62db62ccb4dba8a2367fd
+gate_status: S1-S3 complete; S4 pending final CI; G1 pending; UI prohibited
+blocked_on: nothing
+next_actions: verify final S4 CI; S5 transactions/status through TDD; continue sequentially toward G1
+notes: PR2 merged ecf7d33107f00328ddafb94054caa24debab5164. PR3 migration CI https://github.com/OnlyXianzo/Vittaz/actions/runs/41838467754 passed quality/privacy/test/security/build. Async core ports, complete four-table Drizzle query mapping and private serialized Node store now implemented with 35 tests green and 100% implemented-core/storage coverage. Awaited transactions rollback correctly; read capabilities omit writes, handles expire, reentrancy rejected; no Python native build. Baseline migrations and SQL sums ported; S5-S10 not implemented. Full outbound privacy is still pending; bootstrap privacy is not G2. No frontend/reference changes, no 50% claim. External credential location only in session handoff.
