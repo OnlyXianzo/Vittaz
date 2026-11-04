@@ -15,3 +15,9 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+coverage/
+.vitest/
+
+# External read-only checkout; provenance recorded in docs/references.md
+/reference/

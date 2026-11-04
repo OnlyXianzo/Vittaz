@@ -1,0 +1,55 @@
+# Verified references
+
+Checked on 2026-11-04. Exact direct dependency versions are pinned in package.json; transitive resolutions and integrity hashes are in package-lock.json. Only tooling used in local S1 preparation is listed; no AI service has been used.
+
+| Component                | Selected version                                  | Official documentation                                                                                  | Verification                                                                                                             |
+| ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Node.js                  | 24.22.2                                           | https://nodejs.org/en/about/previous-releases                                                           | Supported LTS; downloaded official Linux archive and checked against https://nodejs.org/dist/v24.22.2/SHASUMS256.txt     |
+| npm                      | 11.19.1 (bundled with Node)                       | https://docs.npmjs.com/cli/v10/using-npm/workspaces ; https://docs.npmjs.com/cli/v11/commands/npm-audit | Workspace linking verified by clean install and real CLI execution; audit threshold behavior reviewed                    |
+| TypeScript               | 5.9.3                                             | https://www.typescriptlang.org/docs/handbook/project-references.html                                    | Keep existing compiler version; project-reference builds and separate source/test no-emit checking                       |
+| Node type declarations   | 24.19.2                                           | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node                               | Match selected runtime major; exact version confirmed through npm registry                                               |
+| Vitest                   | 5.1.0                                             | https://vitest.dev/guide/                                                                               | Official current docs and npm engine metadata agree Node 20 is unsupported                                               |
+| V8 coverage              | 5.1.0                                             | https://vitest.dev/guide/coverage.html                                                                  | Explicit provider dependency, include uncovered source, matching Vitest version                                          |
+| ESLint                   | 10.14.0                                           | https://eslint.org/docs/latest/use/configure/configuration-files                                        | Current flat config; initial 9.39.5 candidate deprecated, replaced before completion                                     |
+| ESLint JavaScript config | 10.0.1                                            | https://eslint.org/docs/latest/use/configure/configuration-files                                        | Recommended rules through official config package                                                                        |
+| typescript-eslint        | 8.72.1                                            | https://typescript-eslint.io/getting-started/                                                           | Registry peer dependencies support ESLint 10 and TypeScript 5.9.3                                                        |
+| Prettier                 | 3.9.10                                            | https://prettier.io/docs/install                                                                        | Exact local installation and separate check command                                                                      |
+| checkout action          | v4.3.1 / 34e114876b0b11c390a56381ad16ebd13914f8d5 | https://github.com/actions/checkout/tree/v4.3.1                                                         | Tag resolved using git ls-remote; credentials persistence disabled                                                       |
+| setup-node action        | v4.4.0 / 49933ea5288caeca8642d1e84afbd3f7d6820020 | https://github.com/actions/setup-node/tree/v4.4.0                                                       | Tag resolved using git ls-remote; node-version-file and npm cache                                                        |
+| Workflow security        | hosted service, unversioned                       | https://docs.github.com/en/actions/reference/security/secure-use                                        | Minimal contents read permission and SHA pins                                                                            |
+| Existing secret scanner  | repository revision 2fb5f92                       | ../.agents/skills/secret-scan/SKILL.md                                                                  | Existing Python standard-library scanner; no new service or dependency; working tree and complete local Git history scan |
+
+## Security findings and resolution
+
+- Removed unused Zod 3 dependency, which had a high-severity advisory in the inherited lockfile. No core imports used it. Reintroduce validation at its planned step only after documentation and version review.
+- Initial `npm audit` reported 11 moderate findings from one minimatch advisory propagated through ESLint/typescript-eslint dev tooling. Official advisory: https://github.com/advisories/GHSA-g3hv-75wg-m249 (published 2026-10-27). Patched minimatch is 11.0.1, while tooling still depends on earlier majors. Do not force a cross-major override or downgrade ESLint to npm's suggested obsolete 4.0.0 without compatibility research and tests. Security is not clean, and S1 is not complete.
+
+## Reference engine supplied by the owner
+
+- Source: https://github.com/OnlyXianzo/khataclaw-typescript
+- Pinned revision: `b21801c3755f4da4ba4075782c45621d42a3c34c`.
+- Retrieved: 2026-11-04.
+- Local checkout: `reference/khataclaw-typescript/` (external, ignored by the Vittaz repository; not a workspace or CI dependency).
+- Reproduce: `git clone https://github.com/OnlyXianzo/khataclaw-typescript.git reference/khataclaw-typescript`, then check out the pinned revision.
+- Inspection confirmed 31 baseline test declarations: environment 4, core 8, privacy 6, parsers 6, agent 6, headless flows 1. Two extra suites contain 10 more checks.
+- The upstream execution report claims 41/41 passing. That is historical evidence, not a fresh test run in this sandbox. No dependencies were installed and no reference runner was executed; its runner writes test-results.json, so future baseline execution must use a disposable copy rather than mutate this read-only checkout.
+- The database interface is synchronous and exposes SQL. Adapt behavior to Vittaz async repositories, keep storage and agent implementations outside framework-free core, and inventory each baseline check at S2. Do not import this package wholesale.
+- Reference working tree was clean after inspection. No license file appears in its tracked file list; do not assume general reuse permission or add a license.
+
+### Tooling security fix verified
+
+- Exact root override: minimatch 11.0.1. Official npm override API: https://docs.npmjs.com/cli/v11/configuring-npm/package-json#overrides ; maintainer patch: https://github.com/isaacs/minimatch/releases/tag/v11.0.1 . Checked 2026-11-04.
+- After reviewing CommonJS/ESM exports and installed consumer call sites, a failing lockfile test confirmed the vulnerable versions, then the override removed them. Clean npm ci, ESLint, TypeScript and Vitest passed; npm audit reports zero vulnerabilities. This supersedes the unresolved finding above. Remove the temporary override once upstream toolchains adopt the fix.
+
+## Money and repository governance references (2026-11-04)
+
+- ECMAScript safe integers / BigInt, language built-ins (no third-party dependency): https://tc39.es/ecma262/multipage/numbers-and-dates.html#sec-number.issafeinteger ; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt ; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER . Runtime remains pinned Node 24.22.2 and TypeScript 5.9.3. Reference behavior independently checked in the pinned reference money module and Layer 1.1 assertions.
+- GitHub rulesets REST API, version 2022-11-28: https://docs.github.com/en/rest/repos/rules?apiVersion=2022-11-28 . Read creation schema, pull_request parameters, required_status_checks and active branch-rule verification before applying. Ruleset id 26531429 created and active on main.
+- GitHub PR reviews REST API, version 2022-11-28: https://docs.github.com/en/rest/pulls/reviews?apiVersion=2022-11-28 . Used to inspect reviews; no approval or reviewer identity is fabricated.
+- CodeRabbit hosted review service, unversioned: https://docs.coderabbit.ai/guides/commands . Observed installed bot/check in the PR; review command available if needed. Require its check and resolve findings before merge.
+
+### Review remediation APIs (2026-11-04)
+
+- Vitest 5.1.0 full-name pattern selection: https://vitest.dev/config/testnamepattern . CLI filter must include both privacy selection and @live exclusion.
+- GitHub REST pull requests and merge API: https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request . Use expected head SHA to avoid merging an untested concurrent update.
+- GitHub GraphQL pull-request review threads: https://docs.github.com/en/graphql/reference/pulls . Use thread IDs obtained from the live query; never invent them or resolve unfixed findings.

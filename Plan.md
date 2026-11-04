@@ -23,12 +23,12 @@ Read this file after `AGENTS.md` and before touching anything.
 
 ## 2. Roles
 
-| Who | Does what |
-| --- | --- |
-| Local agent | Creates the plain repo: docs and config only, no code (step S0). |
-| E2B agent | All code from S1 through gate G3. |
-| You, with your phone | Phase I device tests and every gate sign-off. |
-| UI agent | Phase J, only after G3. |
+| Who                  | Does what                                                        |
+| -------------------- | ---------------------------------------------------------------- |
+| Local agent          | Creates the plain repo: docs and config only, no code (step S0). |
+| E2B agent            | All code from S1 through gate G3.                                |
+| You, with your phone | Phase I device tests and every gate sign-off.                    |
+| UI agent             | Phase J, only after G3.                                          |
 
 ## 3. Target repo layout
 
@@ -57,18 +57,18 @@ vittaz/
 
 Confirm each against current docs before first use (rule 6).
 
-| Need | Choice |
-| --- | --- |
-| Language | TypeScript, strict mode |
-| Runtime | Node 20 LTS or newer. Bun is optional later. |
-| Workspaces | npm workspaces |
-| Tests | Vitest |
-| Lint and format | ESLint and Prettier |
-| Database | SQLite with Drizzle ORM behind **async** repository interfaces defined in core. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile. |
-| Validation | Zod |
-| Agent layer | LangChain, only inside `packages/agent`, behind an interface |
-| CLI | `commander` or `citty` |
-| Excel import | `exceljs` or SheetJS. Check license and docs first. |
+| Need            | Choice                                                                                                                                                |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language        | TypeScript, strict mode                                                                                                                               |
+| Runtime         | Node 20 LTS or newer. Bun is optional later.                                                                                                          |
+| Workspaces      | npm workspaces                                                                                                                                        |
+| Tests           | Vitest                                                                                                                                                |
+| Lint and format | ESLint and Prettier                                                                                                                                   |
+| Database        | SQLite with Drizzle ORM behind **async** repository interfaces defined in core. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile. |
+| Validation      | Zod                                                                                                                                                   |
+| Agent layer     | LangChain, only inside `packages/agent`, behind an interface                                                                                          |
+| CLI             | `commander` or `citty`                                                                                                                                |
+| Excel import    | `exceljs` or SheetJS. Check license and docs first.                                                                                                   |
 
 ## 5. Definition of done for every step
 
@@ -88,14 +88,14 @@ Confirm each against current docs before first use (rule 6).
 
 ### Phase B: foundation (E2B agent)
 
-- [ ] **S1. Workspace and CI.** Set up npm workspaces, TypeScript, Vitest, ESLint and Prettier. Add one trivial test (red, then green). Add `.github/workflows/ci.yml` (section 10). CI must be green on push.
-- [ ] **S2. Reference inventory.** Read `reference/` without importing anything. Write `docs/reference_inventory.md` mapping each of the 31 checks to a target test file in this repo.
+- [x] **S1. Workspace and CI.** Set up npm workspaces, TypeScript, Vitest, ESLint and Prettier. Add one trivial test (red, then green). Add `.github/workflows/ci.yml` (section 10). CI must be green on push.
+- [x] **S2. Reference inventory.** Read `reference/` without importing anything. Write `docs/reference_inventory.md` mapping each of the 31 checks to a target test file in this repo.
 
 ### Phase C: core logic, ported by TDD
 
 For each step: write the failing test from the inventory, implement, pass, refactor, push.
 
-- [ ] **S3. Money.** Integer paise only. Reject floats, `NaN` and `-0`. String rupee parser without float drift.
+- [x] **S3. Money.** Integer paise only. Reject floats, `NaN` and `-0`. String rupee parser without float drift.
 - [ ] **S4. Repository ports, storage and migrations.** Async repository interfaces in core. SQLite schema and Drizzle repositories in `packages/storage`. Migrations from empty and from the previous version, safe to run twice. The reference engine is synchronous, so adapt its tests to the async interface instead of copying its database code.
 - [ ] **S5. Transactions and status.** `unverified`, `ai_checked`, `user_confirmed`, forward only. Manual entries start as `user_confirmed`. Columns include `benefit_paise`, `tag` and `source` (with `import`).
 - [ ] **S6. Approval queue.** A proposal writes no transaction. Approve commits one. Reject commits none. Approving twice commits once.
@@ -178,14 +178,14 @@ Voice, OCR, notification listener in Kotlin, local model catalog with download a
 
 ## 7. AI tool catalog (snake_case)
 
-| Tool | Access | Purpose |
-| --- | --- | --- |
-| `propose_transaction` | creates a pending proposal only | Draft an entry for approval. |
-| `find_person` | read-only | Look up a counterparty by name. |
-| `query_transactions` | read-only | Filter by date, category, account, person or status. |
-| `get_balance` | read-only | Cash and account balances, receivable and payable. |
-| `get_month_summary` | read-only | Spent, received and totals for a month. |
-| `check_unverified` | read-only | List entries still waiting for confirmation. |
+| Tool                  | Access                          | Purpose                                              |
+| --------------------- | ------------------------------- | ---------------------------------------------------- |
+| `propose_transaction` | creates a pending proposal only | Draft an entry for approval.                         |
+| `find_person`         | read-only                       | Look up a counterparty by name.                      |
+| `query_transactions`  | read-only                       | Filter by date, category, account, person or status. |
+| `get_balance`         | read-only                       | Cash and account balances, receivable and payable.   |
+| `get_month_summary`   | read-only                       | Spent, received and totals for a month.              |
+| `check_unverified`    | read-only                       | List entries still waiting for confirmation.         |
 
 Local-model tasks, not tools: `parse_entry`, `improve_note`.
 
@@ -239,12 +239,12 @@ notes: <anything the next agent must know>
 
 ## 12. Gates
 
-| Gate | Meaning | Who signs off |
-| --- | --- | --- |
-| G1 | Core logic green | You |
-| G2 | Privacy green | You |
-| G3 | Backend and CLI ready, canvas may open | You |
-| G4 | Device tests pass | You |
+| Gate | Meaning                                | Who signs off |
+| ---- | -------------------------------------- | ------------- |
+| G1   | Core logic green                       | You           |
+| G2   | Privacy green                          | You           |
+| G3   | Backend and CLI ready, canvas may open | You           |
+| G4   | Device tests pass                      | You           |
 
 ## 13. Open decisions
 

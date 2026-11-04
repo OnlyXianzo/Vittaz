@@ -29,14 +29,14 @@ The initial target is Android. A command-line interface supports development and
 
 ## Planned capabilities
 
-| Area | Direction |
-|---|---|
-| Ledger | Cash, UPI and bank accounts; income, expenses, lending and borrowing |
-| Review | A queue for unverified or AI-proposed entries |
-| AI assistance | Natural-language entry drafting and read-only financial questions |
-| Import | Supported notification formats and spreadsheet imports |
-| Backup | Local backups and user-controlled export/import |
-| Messaging | Optional Telegram connector to the same assistant |
+| Area          | Direction                                                             |
+| ------------- | --------------------------------------------------------------------- |
+| Ledger        | Cash, UPI and bank accounts; income, expenses, lending and borrowing  |
+| Review        | A queue for unverified or AI-proposed entries                         |
+| AI assistance | Natural-language entry drafting and read-only financial questions     |
+| Import        | Supported notification formats and spreadsheet imports                |
+| Backup        | Local backups and user-controlled export/import                       |
+| Messaging     | Optional Telegram connector to the same assistant                     |
 | Voice and OCR | Later input methods, subject to on-device quality and privacy testing |
 
 Features may change as implementation and testing reveal practical constraints. See [the roadmap](docs/ROADMAP.md).

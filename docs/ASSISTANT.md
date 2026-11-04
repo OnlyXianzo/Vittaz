@@ -10,14 +10,14 @@ The agent framework (LangChain in v1) lives only inside `packages/agent`. The co
 
 Most features are fixed workflows. The code decides the steps, and a model fills in blanks.
 
-| Feature | Who decides the steps | Model calls |
-| --- | --- | --- |
-| Manual entry | Code | 0 |
-| Notification parsing | Code (rules), local model only for unknown formats | 0 or 1, local |
-| "Paid 450 to Aman" | Code | 1, to turn text into fields |
-| Improve note | Code | 1, local |
-| Daily digest | Code computes numbers | 0 or 1 |
-| Questions about the ledger | The model, within limits | A few |
+| Feature                    | Who decides the steps                              | Model calls                 |
+| -------------------------- | -------------------------------------------------- | --------------------------- |
+| Manual entry               | Code                                               | 0                           |
+| Notification parsing       | Code (rules), local model only for unknown formats | 0 or 1, local               |
+| "Paid 450 to Aman"         | Code                                               | 1, to turn text into fields |
+| Improve note               | Code                                               | 1, local                    |
+| Daily digest               | Code computes numbers                              | 0 or 1                      |
+| Questions about the ledger | The model, within limits                           | A few                       |
 
 Only ledger questions use an open tool-calling loop. It is capped by a step limit, a token budget and a timeout, and it can use read-only tools.
 
@@ -25,14 +25,14 @@ Only ledger questions use an open tool-calling loop. It is capped by a step limi
 
 Tool names use `snake_case`. The application registers them. The model chooses among the ones it is given.
 
-| Tool | Access | Purpose |
-| --- | --- | --- |
-| `propose_transaction` | creates a pending proposal only | Draft an entry for approval |
-| `find_person` | read-only | Look up a counterparty |
-| `query_transactions` | read-only | Filter by date, category, account, person or status |
-| `get_balance` | read-only | Balances, receivable and payable |
-| `get_month_summary` | read-only | Spent, received and totals for a month |
-| `check_unverified` | read-only | Entries waiting for confirmation |
+| Tool                  | Access                          | Purpose                                             |
+| --------------------- | ------------------------------- | --------------------------------------------------- |
+| `propose_transaction` | creates a pending proposal only | Draft an entry for approval                         |
+| `find_person`         | read-only                       | Look up a counterparty                              |
+| `query_transactions`  | read-only                       | Filter by date, category, account, person or status |
+| `get_balance`         | read-only                       | Balances, receivable and payable                    |
+| `get_month_summary`   | read-only                       | Spent, received and totals for a month              |
+| `check_unverified`    | read-only                       | Entries waiting for confirmation                    |
 
 Local-model tasks that are not tools: `parse_entry`, `improve_note`.
 
@@ -54,8 +54,8 @@ The settings screen calls this Assistant personalization. It has two parts.
 
 **Custom rules:** two kinds.
 
-- *Behavior rules*, such as "show amounts in rupees" or "keep summaries short". These guide the model but never override [Agent policy](AGENT_POLICY.md).
-- *Message conditions*, such as "only accept messages from my paired chat". These are enforced in code before a message reaches the assistant.
+- _Behavior rules_, such as "show amounts in rupees" or "keep summaries short". These guide the model but never override [Agent policy](AGENT_POLICY.md).
+- _Message conditions_, such as "only accept messages from my paired chat". These are enforced in code before a message reaches the assistant.
 
 Rules are validated structured settings, not free-form system prompts. A secret phrase in a message is not authentication. Authentication happens before the assistant sees anything.
 
