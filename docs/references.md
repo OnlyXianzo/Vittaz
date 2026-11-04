@@ -83,3 +83,8 @@ Python/build step. This supersedes older-driver installation assumptions.
 - https://orm.drizzle.team/docs/sql-schema-declaration — explicit SQLite table mappings; existing SQL migrations remain authoritative for constraints (no Drizzle-Kit generation used).
 
 - Vitest **5.1.0**, https://vitest.dev/config/alias (2026-11-04): test aliases resolve source imports without requiring compiled workspace outputs. Clean CI caught core package resolution masked by local dist files; reproduced after deleting dist, fixed with an explicit core-source alias, no early build or privacy-job bypass.
+
+### S5 runtime capabilities — 2026-11-04
+
+- https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID — Web Crypto v4 UUID; Node 24 supports it. Default runtime uses global Crypto, not node:crypto. Mobile supplies an injected ID/clock implementation; device support is not presumed.
+- Reference b21801c `ledger/ledger.ts` manual/capture/status and baseline_1_4, cross-checked with Plan.md S5 and atomic SQLite unit-of-work tests. No new packages.

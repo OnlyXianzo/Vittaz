@@ -29,3 +29,18 @@ export type {
   LedgerRepositories,
   LedgerStore,
 } from "./ledger/repositories.js";
+export {
+  LedgerError,
+  InvalidStatusTransitionError,
+  defaultLedgerRuntime,
+  createManualTransaction,
+  insertAutoCapturedTransaction,
+  getTransaction,
+  transitionTransactionStatus,
+} from "./ledger/ledger.js";
+export type {
+  LedgerRuntime,
+  CreateManualTransactionInput,
+  AutoCapturedTransactionInput,
+  TransactionWriteResult,
+} from "./ledger/ledger.js";

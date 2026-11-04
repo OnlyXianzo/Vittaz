@@ -70,3 +70,13 @@ clean checkout because @vittaz/core resolved to absent dist. Reproduced locally
 by removing core/storage dist directories. Added a test-only source alias per
 Vitest docs; no build prerequisite and no privacy job bypass. All subsequent
 checks must start without dist to avoid masking package-resolution regressions.
+
+## S5 bounded self-review — 2026-11-04
+
+Preserved manual/captured creation and forward-only transitions via async store.
+No database, framework or Node API import in core. Runtime ID/clock injectable;
+global Web Crypto default exercised in Node, mobile implementation deferred.
+Audit snapshots created atomically now to preserve reference result shape; edit
+and undo remain S7. All legacy and numeric benefit/tag columns round-trip, import
+source retained. Invalid amounts/direction/event/FK or duplicate dedup key leave
+no partial write. 38 tests, 100% implemented core/storage coverage locally.

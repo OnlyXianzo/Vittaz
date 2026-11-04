@@ -127,3 +127,17 @@ schemas/invalid targets. Tests cover interrupted migration rollback and rerun.
 Blast radius: new storage workspace and build reference; core untouched in first
 migration module. Existing coverage includes storage, so exercise every control
 branch. Native dependency affects npm ci/lock/CI only. Reference files read-only.
+
+## S5 ledger transactions/status (2026-11-04)
+
+Scope: reference manual/captured creation, lookup and strict forward-only status
+transitions, adapted to async repositories. Preserve result shape including audit
+ID: create the atomic audit snapshot now, while S7 will add edit/undo. Sources:
+reference ledger.ts and baseline_1_4; Plan S5; SQLite transaction docs; S4 verified
+unit of work. High confidence: manual starts confirmed, captured unverified;
+only adjacent forward transitions allowed, same-status/backward/skips rejected.
+MDN Crypto.randomUUID documents secure UUIDs; runtime clock/ID port is injectable
+so core imports no Node API and mobile can supply its platform implementation.
+No new dependency. Blast radius: new ledger module, type-only ports and barrel,
+new integration tests invoking real storage. Existing domains unaffected.
+S4 head ebf425f passed CI 41839309320 before this work. No UI/gate progression.
