@@ -17,15 +17,20 @@ test("dependencies_are_exactly_pinned", () => {
   for (const path of [
     "package.json",
     "packages/core/package.json",
+    "packages/storage/package.json",
     "apps/cli/package.json",
     "apps/mobile/package.json",
   ]) {
     const pkg = JSON.parse(read(path));
-    for (const version of Object.values({
+    for (const [name, version] of Object.entries({
       ...pkg.dependencies,
       ...pkg.devDependencies,
     })) {
-      expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+      if (path === "packages/storage/package.json" && name === "xlsx") {
+        expect(version).toBe(
+          "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+        );
+      } else expect(version).toMatch(/^\d+\.\d+\.\d+$/);
     }
   }
 });
@@ -64,4 +69,14 @@ test("test_selector_excludes_live_names", () => {
   expect(pattern.test("privacy_zero_trace @live")).toBe(false);
   expect(pattern.test("@live suite > privacy_zero_trace")).toBe(false);
   expect(pattern.test("core_money")).toBe(false);
+});
+
+test("spreadsheet_dependency_is_official_pinned_and_integrity_locked", () => {
+  const lock = JSON.parse(read("package-lock.json"));
+  expect(lock.packages["node_modules/xlsx"]).toMatchObject({
+    version: "0.20.3",
+    resolved: "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    integrity:
+      "sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==",
+  });
 });

@@ -300,3 +300,21 @@ Synthetic corrupt reference identity cannot silently match wrong money/event.
 No nested root-store access. All lint/types/format/privacy/build/CLI/audit/scan
 passed. Real multi-process contention/device replay/performance remain unmeasured;
 existing SQLite IMMEDIATE semantics are not proof of device execution.
+
+## S19 bounded self-review — 2026-11-04
+
+Correct missing-module reds for workbook adapter and ZIP guard.126tests23files
+pass100% all implemented-source metrics. Ported reference3.6 using real synthetic
+XLSX, including compressed roundtrip. Dry-run store methods intentionally throw
+if touched; no calls occur. Re-import and concurrent batches preserve duplicate
+occurrence counts; cross-wallet imports do not suppress data. Audits/whole batch
+roll back on second-audit failure; no database fault is disguised as a row error.
+Physical blank-row numbers, both calendar/serial epochs, pre1900fake-leap serial,
+positive exact paise/no rounding, benefit_paise/tag mappings, formula/error-cell
+rejects, sensitive/oversized/unreadable fields and static errors verified. Header
+aliases reject collisions; **proto** is inert Map data. ZIP32 stored/deflate and
+both descriptor formats, extra records, CRC/size/header corruption, declared and
+forged expansion bombs tested before library parsing. First-sheet and format
+limits documented, not universal parser security/device proof. Full local
+lint/types/format/privacy/build/CLI/audit0/secret scan0 pass; dependency official
+0.20.3 URL/SRI tested. No independent reviewer claim.
