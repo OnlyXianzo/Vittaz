@@ -180,3 +180,26 @@ Reuse existing safe BigInt-backed money aggregation and reject unsafe totals.
 Sources: reference wallet.ts/baseline_1_6, Plan S8, DATA_MODEL accounts, existing
 money guards; high confidence. No libraries/APIs added. Blast radius: new pure
 wallet use cases, real-storage tests, full wallet-equivalence audit regression.
+
+## S9 backup/restore (2026-11-04)
+
+Port reference five-table ledger snapshot and allowlisted setting, SHA-256
+payload integrity and explicit unredacted-data warning. Snapshot and replacement
+are serialized storage capabilities, not core SQL or AI tools. Read consistent
+snapshot in one read transaction; restore all ledger tables in one write unit,
+child-first deletion/parent-first insertion, so malformed rows/FKs roll back.
+Retain reference backup envelope/format identifier and camelCase metadata for
+behavior preservation; database/ledger row keys stay snake_case.
+
+Research: reference backup.ts/baseline_1_7, official Node crypto createHash,
+Zod 4.6.7 official API (strictObject, safeParse, number bounds, enums), SQLite
+atomicity and docs/PRIVACY. High confidence for checksum/integrity and atomicity;
+checksum is not authentication or encryption. Add strict envelope/row validation,
+allowlisted settings on both directions, signed-safe paise checks and embedded
+audit snapshot validation before any destructive work. Accept supported current
+schema v2 only; older foreign backup conversion is not silently guessed.
+
+Blast radius: storage-only backup module and schema validation, two snapshot
+capabilities on the Node store; core LedgerStore remains unchanged. Counterparty
+and setting query mappings added solely to preserve existing stored backup data.
+No new privacy use cases or secure-storage implementation. Zod pinned 4.6.7.

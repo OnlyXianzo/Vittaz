@@ -122,3 +122,20 @@ PR4 and Rule 15 supersede the earlier Python-free developer-tooling decision.
 Preserve restored .agents tooling in its original language; application/core
 remain TypeScript. PR5 rebase retains both this owner policy and the ledger
 corruption/stale-undo decisions. Do not reapply the earlier tooling conversion.
+
+## 2026-11-04 — Backup encryption and recovery decision (S9)
+
+Current development backup is explicit **plaintext** with a SHA-256 corruption
+checksum, NOT encryption, authentication, anonymity or secure cloud storage. It
+contains private ledger names/notes and must display the inherited warning.
+Only send_notes_to_cloud is exported/restored; secure-store keys and connector
+tokens are excluded. AI never receives backup or restore capabilities.
+
+Production encrypted export requires a separately reviewed, versioned authenticated
+encryption envelope and user recovery/passphrase policy before release; no custom
+cryptography or pretend key recovery is introduced now. This remains a recorded
+release decision, not proof that Android at-rest encryption is implemented.
+Keep reference format identifier/envelope for behavior preservation, but only
+current schema-v2 backup rows validate; automatic conversion of external older
+backups requires explicit migration tests later. Restoring raw notifications,
+analytics or non-allowlisted settings is intentionally excluded as in reference.
