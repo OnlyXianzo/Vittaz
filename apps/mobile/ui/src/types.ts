@@ -86,6 +86,7 @@ export interface AppState {
   chatMessages: ChatMessage[];
   chatSteps: ChatStep[];
   chatProposalId: string | null;
+  chatQuestion: string | null;
   quickInput: string;
   quickRecentIds: string[];
   addDraft: AddDraft;
@@ -126,6 +127,7 @@ export type Action =
   | { type: "set_review_digest"; value: Settings["reviewDigest"] }
   | { type: "set_chat_input"; value: string }
   | { type: "send_chat" }
+  | { type: "send_chat_text"; text: string }
   | { type: "finish_chat_thinking" }
   | { type: "set_quick_input"; value: string }
   | { type: "analyze_quick" }

@@ -771,12 +771,21 @@ select:focus-visible {
 .chat-suggestions {
   position: absolute;
   left: 12px;
+  right: 12px;
   bottom: 84px;
   display: flex;
   gap: 8px;
   z-index: 4;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.chat-suggestions::-webkit-scrollbar {
+  display: none;
 }
 .qc {
+  flex: 0 0 auto;
+  white-space: nowrap;
   border: 1px solid rgba(190, 255, 120, 0.25);
   background: rgba(9, 22, 11, 0.9);
   color: var(--text);
