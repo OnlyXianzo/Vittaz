@@ -155,3 +155,17 @@ approved links fail closed rather than reference's unsafe non-null assertion.
 No new APIs/dependencies. Blast radius: new approval module; audit helper gains
 optional proposal-before snapshot; ledger barrel exposes preserved public names.
 AI-facing tool restrictions remain S22, never pass full store to providers.
+
+## S7 edit/audit/undo (2026-11-04)
+
+Port baseline_1_5/reference update and undo using awaited repositories. Audit
+snapshots already exist for every approved transaction write; edits add one
+snapshot in the same unit. Undo retains the original row, marks it undone and
+restores exact transaction/proposal data. Compare current state against audited
+after-state before restoring, so undo cannot silently overwrite later changes.
+This safety extension follows DATA_MODEL integrity/undo questions and SQLite
+atomicity, rather than copying the reference's unchecked restore. Explicit
+unsupported/corrupt/stale errors and rollback tests hedge against damaged local
+state. Confidence high for normal paths; imported external snapshots still
+require later backup validation. No new library. Blast radius: new audit module,
+ledger/barrel re-exports and integration tests; no schema or provider change.

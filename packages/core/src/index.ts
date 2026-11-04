@@ -55,3 +55,5 @@ export type {
   CreateProposalInput,
   ApproveProposalResult,
 } from "./ledger/approval.js";
+export { updateTransaction, undoAuditEntry } from "./ledger/audit.js";
+export type { UpdateTransactionPatch } from "./ledger/audit.js";

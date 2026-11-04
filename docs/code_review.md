@@ -91,3 +91,15 @@ whole batch. Synthetic injected audit failure leaves proposal pending and ledger
 empty. Concurrent same-store double approval writes once. No provider/tool gets
 the store. 42 tests, implemented core/storage coverage 100% locally; no new
 independent review claimed.
+
+## S7 bounded self-review — 2026-11-04
+
+S6 head 4ca95ba passed all five jobs in CI 41840252895. Edits preserve status and
+all untouched fields, validate money and create an atomic audit snapshot. Undo
+restores exact row timestamps/fields and proposal state, retains audit rows,
+rejects repeat/stale/unsupported/corrupt-shape events and rolls back on audit
+failure. Deletion-snapshot restoration is preserved although no delete use case
+is introduced. Stale-undo extension is recorded in DECISIONS. 48 tests and 100%
+implemented core/storage coverage locally. Wallet-summary equivalence follows S8.
+Audit snapshots are local trusted records, not an authenticated external format;
+backup parsing/validation remains S9. No new independent review claimed.

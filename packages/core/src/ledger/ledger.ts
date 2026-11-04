@@ -201,3 +201,5 @@ export {
   rejectProposal,
 } from "./approval.js";
 export type { CreateProposalInput, ApproveProposalResult } from "./approval.js";
+export { updateTransaction, undoAuditEntry } from "./audit.js";
+export type { UpdateTransactionPatch } from "./audit.js";

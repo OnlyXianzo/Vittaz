@@ -106,3 +106,12 @@ whose committed transaction is missing/null with COMMITTED_TRANSACTION_MISSING,
 instead of relying on a non-null assertion that returns null as a transaction.
 Synthetic corruption regressions cover both cases. No repair or AI write path is
 introduced. Batch approval runs within one repository unit, not reentrant calls.
+
+## 2026-11-04 — Undo must not overwrite newer state
+
+Reference undo blindly restores old snapshots. Vittaz will reject stale undo if
+the current transaction differs from the recorded after-state (or a deleted row
+has since reappeared), and verify approved proposal linkage before restoring it.
+Unsupported entity types or empty snapshots fail instead of falsely marking an
+event undone. Normal create/edit/approval/deletion snapshot results remain exact;
+audit rows are retained with undone=1. Tests document these safety extensions.
