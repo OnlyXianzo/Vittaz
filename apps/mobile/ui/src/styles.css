@@ -1069,3 +1069,219 @@ select:focus-visible {
     box-shadow: none;
   }
 }
+
+/* Chat-first window: the assistant is the only main surface. */
+.screen-scroll.chat-only {
+  overflow: hidden;
+}
+.chat-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 8px;
+  padding: 22px 16px 14px;
+}
+.chat-head {
+  flex: none;
+}
+.chat-tools {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chat-tools button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(190, 255, 120, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chat-tools button:hover {
+  color: var(--lime);
+  border-color: rgba(190, 255, 120, 0.4);
+}
+.chat-tools .nav-badge {
+  position: static;
+  margin-left: 2px;
+}
+.chat-screen .chat-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 4px;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+.chat-screen .chat-suggestions {
+  position: static;
+  flex: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.chat-screen .qc {
+  flex: none;
+  height: 38px;
+  font-size: 13px;
+  padding: 0 14px;
+}
+.chat-screen .inp {
+  position: static;
+  flex: none;
+  height: 58px;
+  padding-left: 8px;
+}
+.tool-calls {
+  margin-top: 10px;
+}
+.tool-args {
+  display: block;
+  margin-top: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #cfe6bd;
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 5px 8px;
+  overflow-wrap: anywhere;
+}
+.tool-result {
+  font-size: 12px;
+  margin-top: 5px;
+}
+.st.queued {
+  opacity: 0.55;
+}
+.qd {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px dashed rgba(157, 179, 154, 0.6);
+  flex: none;
+  margin-top: 1px;
+}
+.redacted-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0 auto;
+  max-width: 86%;
+  justify-content: flex-end;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--amber);
+}
+.telegram-card {
+  margin-top: 10px;
+  border-color: rgba(190, 255, 120, 0.3);
+}
+.telegram-card .b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.telegram-preview {
+  margin: 10px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #e7f6da;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.add-menu {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 84px;
+  z-index: 8;
+  padding: 6px 12px;
+  background: rgba(9, 22, 11, 0.98);
+}
+.add-menu .setting-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Everything else opens as a panel over the chat window. */
+.sheet-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+}
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(3, 10, 5, 0.62);
+  backdrop-filter: blur(2px);
+}
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 86%;
+  border-radius: 26px 26px 0 0;
+  overflow: hidden;
+  background: var(--bg);
+  border-top: 1px solid rgba(190, 255, 120, 0.24);
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.5);
+  animation: sheet-up 0.18s ease-out;
+}
+.sheet.full {
+  height: 100%;
+  border-radius: 0;
+}
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(14px);
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}
+
+/* Programmatic focus lands on the screen heading; keep the ring subtle. */
+h1:focus-visible,
+h1:focus {
+  outline: 2px solid rgba(184, 242, 60, 0.55);
+  outline-offset: 4px;
+  border-radius: 10px;
+}

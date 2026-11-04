@@ -1,11 +1,22 @@
 import type { AppState } from "../types";
 import { formatPaise } from "../money";
 import { PageHeader } from "../components";
+import type { DispatchAction } from "../components";
 
-export function PeopleScreen({ state }: { state: AppState }) {
+export function PeopleScreen({
+  state,
+  dispatch,
+}: {
+  state: AppState;
+  dispatch: DispatchAction;
+}) {
   return (
     <div className="s">
-      <PageHeader large title="People" />
+      <PageHeader
+        large
+        title="People"
+        onBack={() => dispatch({ type: "back" })}
+      />
       <div className="m" style={{ margin: "8px 2px 12px" }}>
         Receivables and payables in this synthetic preview.
       </div>
