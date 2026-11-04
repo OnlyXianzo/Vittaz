@@ -148,3 +148,10 @@ tool data projected; raw errors and free text with tool calls never re-enter wir
 Internal generated call IDs prevent model-returned identifiers being echoed;
 validated argument echo is canonicalized then redacted/scrubbed. Full channel,
 persistent context and outbound policy acceptance still S27d/e, not claimed here.
+
+S24 opt-in metadata-only analytics receives constructed usage/public model-key codes,
+never prompt/reply/HTTP/error objects. Storage rejects extra fields and invalid
+numbers/outcomes. Configured public metadata cannot contain any configured raw
+credential bytes; this is not an arbitrary unknown-secret detector. Sensitive and
+provider-rejected requests create no analytics. Operational rows excluded from
+financial backups/restore payloads and inaccessible to model tools.
