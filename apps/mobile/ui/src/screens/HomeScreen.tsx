@@ -1,4 +1,4 @@
-import { Settings, Sparkles, Mic } from "lucide-react";
+import { ChevronLeft, Settings, Sparkles, Mic } from "lucide-react";
 import type { AppState } from "../types";
 import { formatPaise } from "../money";
 import { selectPending, selectSummary } from "../selectors";
@@ -20,7 +20,10 @@ export function HomeScreen({
   return (
     <div className="s">
       <div className="row" style={{ height: 44 }}>
-        <div className="row" style={{ gap: 10, justifyContent: "flex-start" }}>
+        <div className="row" style={{ gap: 6, justifyContent: "flex-start" }}>
+          <IconButton label="Back" onClick={() => dispatch({ type: "back" })}>
+            <ChevronLeft size={22} />
+          </IconButton>
           <span className="k">V</span>
           <h1 className="h" style={{ margin: 0 }} tabIndex={-1}>
             Vittaz

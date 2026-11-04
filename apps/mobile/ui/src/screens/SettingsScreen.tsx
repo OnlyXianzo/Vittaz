@@ -26,7 +26,11 @@ export function SettingsScreen({
         : "Twice a day";
   return (
     <div className="s">
-      <PageHeader large title="Settings" />
+      <PageHeader
+        large
+        title="Settings"
+        onBack={() => dispatch({ type: "back" })}
+      />
       <div className="sec">AI</div>
       <div className="c" style={{ padding: "2px 16px" }}>
         <SettingRow
