@@ -24,3 +24,7 @@ Reviewed current dirty changes relative to foundation head plus owner's reviewer
 ## Merge conditions
 
 Owner clarified CodeRabbit is optional. Main ruleset 26531429 still requires quality/privacy/test/security/build, strict up-to-date code, PR and resolved threads; deletion and force-push are forbidden, with no bypass actors. Reply to the two validated external findings and resolve only their fixed threads after pushing. Merge only the exact tested head after required CI succeeds. A pending or missing optional CodeRabbit update alone is not a blocker.
+
+## Remote verification and thread resolution
+
+Implementation head `04d0ecfff487dc649eee05f96ae73af299f7a9f3` passed all required CI jobs in https://github.com/OnlyXianzo/Vittaz/actions/runs/41835469588 . Posted detailed replies to both external findings and added the review-results summary at https://github.com/OnlyXianzo/Vittaz/pull/1#issuecomment-6631472878 . Queried actual review thread IDs; only fixed findings were resolved, leaving zero unresolved threads at verification time. Requested an incremental CodeRabbit review of later changes without making its availability mandatory. The existing owner-account approval comment is not represented as an independently launched local agent.

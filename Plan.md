@@ -95,7 +95,7 @@ Confirm each against current docs before first use (rule 6).
 
 For each step: write the failing test from the inventory, implement, pass, refactor, push.
 
-- [ ] **S3. Money.** Integer paise only. Reject floats, `NaN` and `-0`. String rupee parser without float drift.
+- [x] **S3. Money.** Integer paise only. Reject floats, `NaN` and `-0`. String rupee parser without float drift.
 - [ ] **S4. Repository ports, storage and migrations.** Async repository interfaces in core. SQLite schema and Drizzle repositories in `packages/storage`. Migrations from empty and from the previous version, safe to run twice. The reference engine is synchronous, so adapt its tests to the async interface instead of copying its database code.
 - [ ] **S5. Transactions and status.** `unverified`, `ai_checked`, `user_confirmed`, forward only. Manual entries start as `user_confirmed`. Columns include `benefit_paise`, `tag` and `source` (with `import`).
 - [ ] **S6. Approval queue.** A proposal writes no transaction. Approve commits one. Reject commits none. Approving twice commits once.
