@@ -341,3 +341,19 @@ tools, missing usage0/unknown, corrupted JSON/UTF8, input/output budgets, privat
 provider exception payloads and redirect policy checked. No write or log capability,
 no model calls outside fakes, no independent reviewer/Expo/real-provider claim.
 Concurrent owner UI-only PR13/main a4a1987 preserved by clean rebase; repeated151tests100% and all quality/privacy/build/security checks pass. Exact-head CI next.
+
+## S22 bounded self-review — 2026-11-04
+
+Correct missing-module red; failing oversized-name and year-zero regressions
+before fixes.164tests27files all pass100% implemented-source metrics.13 tool tests
+cover pending-only proposal/no transactions, local Person_N restore/model-safe
+projection, strict snake_case six-tool catalog, bad money/negativezero/direction/
+split/placeholder/unknown fields/JSON/names/calendar, mode/unknown/user-only tool
+rejection with zero application calls. Actual store.read and core wallet/month
+numeric projections, sorting/filtering/limits, custom category coalescing, names/
+notes/accounts/reference omission and sensitive zero-proposal trace checked.
+Malformed output, invalid pending status, private storage errors and integer sum
+overflow fail statically rather than leak or invent totals. Full local quality,
+privacy/build/CLI/audit0/scan0 pass. S23 actual read-only loop/PRAGMA and S27d/e full
+assistant integration remain unproved; not all31/G3/backend readiness. No independent
+review claim. Owner UI PR13 changes preserved and not part of backend review.

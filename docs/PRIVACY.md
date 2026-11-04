@@ -130,3 +130,14 @@ exist. Unknown aliases/typos/homographs and free-text notes remain local-only by
 policy; S17/S27d must enforce that policy with real integration tests before use.
 See DECISIONS.md for explicit name/diagnostic tradeoffs. G1 is owner-approved;
 G2 was subsequently accepted; owner authorized checked autonomous backend checkpoints. G3 technical evidence is still incomplete. Do not use real messages or credentials.
+
+## Current backend boundary update (2026-11-04, S17–S22)
+
+Node notification ingestion and provider wire guards now reject known-sensitive
+inputs before financial/queue persistence or outbound HTTP, respectively. Tool
+read projections omit raw names/notes/account/reference/IDs and unsafe custom
+category labels; AI draft capability creates pending proposals only. These are
+actual unit/adapter fixtures, not proof of full AssistantService/provider/Telegram
+zero-trace, persistent redactor mappings, real listener or Expo/device behavior.
+Those gates remain incomplete; primitive-report caveats above describe the earlier
+foundation snapshot and must not be read as proof of application-wide privacy.

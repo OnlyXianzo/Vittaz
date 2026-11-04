@@ -317,3 +317,31 @@ not reference invented token counts. Fatal UTF8 flush validates truncation witho
 unreachable replacement-text branch. Application callbacks fail statically and do
 not trigger paid retries. Service-level name/history/privacy gating and actual
 Kilo/Expo interoperability remain separate unproved steps.
+
+## 2026-11-04 — S22 schema/capability restricted tool catalog
+
+After S21 exact1607336 CI41860787302 five success and SHA-pinned protected PR17
+merge3ab6e63a6bb4535a394501d776c6b446512775fd, implement the six Plan7 tools.
+No generic SQL/DB/repository or user-only action handle enters registry. QA receives
+two application query functions; draft receives only create-pending-proposal use
+case. Tests wire actual core/store.read capabilities. Physical PRAGMA/read-only
+Q&A loop integration remains S23, not preclaimed as full baseline4.5.
+
+Strict Zod input/output validation, JSONSchema from same input schemas, no
+coercion. Enforce safe integer paise/negativezero/split bounds, domain years1..9999,
+real calendar dates/months, bounded names/arguments/limits, no unknown properties.
+Unknown/forbidden/sensitive/invalid calls rejected before application ports. Raw
+names forbidden in counterparty args: stable Person_N resolves locally. Local
+helper returns core ProposalRow for app only, model-facing draft result minimal.
+No approval/rejection/undo/import/settings/credential/tool escalation possible.
+
+Read projections omit raw names, notes, IDs, account digits/references entirely.
+Custom freeform category labels are not certified anonymous: output built-in
+vocabulary only, other bucket for unknown labels. Do not claim full anonymity or
+raw cloud-safe rows. Balance returns existing cash movement semantics, not an
+invented outstanding-debt engine. find_person checks local placeholder registry,
+not a new contacts database/search engine. check_unverified includes ai_checked
+rows still needing human confirmation. Reference get_category_breakdown and
+list_recent_transactions behaviors are covered via catalog monthly breakdown and
+query_transactions; no extra advertised tools. Static validation/execution errors
+omit provider/storage payloads. No framework/provider/SQL integration in registry.
