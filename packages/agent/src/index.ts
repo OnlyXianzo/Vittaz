@@ -35,3 +35,10 @@ export type {
   QaStopReason,
 } from "./qa_loop.js";
 export { AnalyticsClient, AnalyticsError } from "./analytics.js";
+export type { CompletionClient } from "./provider_client.js";
+export type { QuestionAnsweringAgent } from "./qa_loop.js";
+export {
+  LangChainCompletionClient,
+  LangChainQaAgent,
+  LangChainAdapterError,
+} from "./langchain_adapter.js";

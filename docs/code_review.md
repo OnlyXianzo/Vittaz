@@ -382,3 +382,15 @@ Sensitive/provider failure has no analytics; malformed/gGetter/extra/unsafe numb
 outcome rejection creates none. Overflow/clock/sink errors static, no HTTP retry.
 Query registry receives no analytics capability. No independent review or billing
 accuracy/current market pricing/full assistant privacy claim.
+
+## S25 bounded self-review — 2026-11-04
+
+195tests31files100% implemented-source metrics.10 new adapter tests: native invoke/
+raw tool-argument preservation, real HTTP/readonly SQLite/projection/no mutations,
+400/fallback/allkeys/no outer retry, forbidden+malformed tools/step/timeout, original
+developer/null/tool protocol/no cache, safe unknown/abort errors, zero-call input
+preflight. Ambient tracing/verbose sees no requests/log/payload; inherited callback
+not invoked/forwarded; registered context handler fails before observing data.
+Correct missing-module/deprecated-native-warning reds first. Pinned source review
+of callback copy/handler attachment in addition to public docs; upgrade regression
+required. No independent reviewer, native-device or full AssistantService claim.

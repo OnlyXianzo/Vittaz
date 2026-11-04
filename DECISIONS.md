@@ -414,3 +414,36 @@ that failure. PR22 closed unmerged; own branch replaced from green S23 base with
 short synthetic fixture preserving the exact rejection behavior. No scanner,
 allowlist, tests or protections weakened; no force push. Prior all-green/scan0
 claim in PR22 was invalid. Rerun every check before publishing replacement.
+
+## 2026-11-04 — S25 controlled LangChain model adapter
+
+S24 exactbf52d2f CI41871839252 five SUCCESS, protected PR23 merge6406350.
+Latest owner main5faf427 reverts chat-first UI (PR20); preserved as-is, no backend
+UI rollback/reintroduction. G3 owner approval remains granted, technical gate open.
+
+Pin @langchain/core1.3.4 only in agent, exact lock and audit0. Use real native
+BaseChatModel.invoke/_generate and AIMessage, implementing CompletionClient and
+QuestionAnsweringAgent interfaces; core imports no framework. Keep S23 authoritative
+QA loop instead of a competing createAgent/LangGraph loop. Private one-shot model
+holds original validated wire closure; generic native message projection carries
+role/text, original null/developer/tool-call protocol never gets rewritten on HTTP.
+Standard native valid/invalid tool-call representation plus exact raw result in
+private response metadata retain malformed/negativezero argument strings until
+S22 validation. No framework tool execution. No cache/outer retries, streaming
+callbacks deliberately unsupported here; low-level S21 stream behavior unchanged.
+
+Extract shared S21 preflight (same behavior) before framework invocation: malformed,
+sensitive or pre-aborted input has no framework/provider calls. Private callback
+manager copy preserves restrictive subclass; all handler attachment throws before
+payload delivery. Blocks ambient verbose/tracing/configure hooks without changing
+global env/library methods. Explicit invocation config prevents parent callback/
+metadata propagation. No telemetry error swallowing or assumption callbacks:[] is
+safe. Node inherited callback/context-hook tests and zero-fetch/log tracing tests
+exercise this actual pinned manager. Re-audit on dependency upgrades. No claim of
+resistance to trusted global prototype tampering or device/Metro certification.
+
+Correct missing-module red and deprecated native tool-warning red before fixes.
+195tests31files100% implemented-source metrics, no vendor coverage claim. Actual
+fake HTTP/read-only SQLite projections/no mutations, forbidden/malformed tool
+rejection, limits/timeout, fallback/400/all-keys/no extra retry, original protocol,
+no cache, static unknown/abort errors. No independent-review or full service proof.
