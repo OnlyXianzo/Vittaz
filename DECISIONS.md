@@ -254,3 +254,29 @@ Refund/reversal no-reference fallback remains unsupported as reference; identica
 UTR/event replays are supported. Amount/time-only matching can still false-merge
 legitimate equal-value payments and remains unverified/reviewable, not a claim of
 universal identity. Future indexed query optimization requires measured evidence.
+
+## 2026-11-04 — S19 importer boundary and privacy-safe errors
+
+PR14 exacta5aa761 CI41855573141 five SUCCESS; SHA-pinned protected merge
+18dcfc95f07ac9800670a760f94077faa27993cd with no unresolved threads. Under
+existing autonomous permission, port reference3.6 incrementally. Put SheetJS CE
+0.20.3 in Node storage adapter using official version URL+lockedSRI, not outdated
+npm0.18.5. Broaden exact-pin foundation test to cover storage and this ONE exact
+URL; no generic URL pin exception. Core importExcelRows stays framework-free,
+async and deterministic except injected ID/clock and standard SHA256.
+
+Preserve default first-sheet import, benefit string, normalized tags, occurrence
+ordinal duplicate semantics; add benefit_paise integer column mapping/singular tag.
+Wallet-aware row hash prevents silent suppression across selected wallets. Check
+per-row Wallet column conflicts rather than reference ignoring it. Reject formula
+cached values/error cells/sensitive fields, nonpositive/inexact money (no numeric
+rounding), calendar-roll dates/fake1900leapday/fractional serials, duplicate mapped
+headers. Return static errors with physical row numbers, never raw cell exception
+messages. Real missing wallet/audit/storage failure aborts batch atomically.
+
+Only XLSX ZIP32 stored/deflate subset, max1MiB input/128entries/16MiB actual
+expanded/10000rows/64columns; bounded CRC and header/descriptor/extra consistency
+preflight addresses compression expansion before SheetJS. Not CRC authentication,
+not XLS/ZIP64/encryption or comprehensive hostile-file certification. Node-only
+preflight intentionally not claimed as a mobile implementation. No cloud/model/
+logger capability, UI, migration, backup change or native build. G3 still pending.

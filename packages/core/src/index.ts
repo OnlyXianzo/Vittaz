@@ -96,3 +96,10 @@ export type {
   ProcessNotificationOptions,
   ProcessNotificationResult,
 } from "./parsers/notificationParser.js";
+export { importExcelRows } from "./importers/excelImporter.js";
+export type {
+  ExcelRowError,
+  ExcelImportResult,
+  ExcelGrid,
+  ExcelImportOptions,
+} from "./importers/excelImporter.js";

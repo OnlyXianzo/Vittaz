@@ -426,3 +426,41 @@ extraction (existing public behavior unchanged), notification capture call/optio
 No adapter/schema/migration/AI/UI changes. Current async list port bounds scope
 but scans ledger; indexed candidate-query optimization remains performance work,
 not an unmeasured speed claim. Full regression and rollback/undo tests required.
+
+## S19 Excel dry-run/idempotent import — 2026-11-04
+
+Scope: port baseline3.6 on real synthetic xlsx. Dependency and workbook decoding in
+Node storage adapter; core receives primitive header/row grid, validates and maps
+it without Node/native/framework imports. Pure async SHA256 fingerprints include
+wallet + normalized row + occurrence ordinal, preserving identical repeated
+source rows while making replay idempotent. Whole valid batch plus audits is one
+transaction using the S18 internal unit seam; no nested root reads. Dry-run uses
+no store capability at all. Import skips bad rows with static per-physical-row
+errors, not raw private cell values or DB errors. Storage errors roll back whole
+batch and propagate (never mislabeled row input errors).
+
+Research reconciled SheetJS official version/parse docs with existing reference
+and SQLite atomicity contracts: high confidence fixture behavior, no blanket
+hostile Excel parser claim. Bound supplied bytes and row/column/text counts;
+reject formula cells (including cached values), duplicate mapped headers and
+unknown object/coercion types. Support strict text calendar dates and Excel serial
+dates in both 1900/1904 systems; reject 1900 fake leap day and time fractions.
+Benefit maps reference string enum; BenefitPaise/benefit_paise maps nonnegative
+integer paise, not rupees; tag and tags_json preserve reference normalization.
+Wallet column, silently ignored by reference, must be checked per row rather than
+silently redirect money. Only first sheet as reference; no macro/formula execution.
+
+Planned deviations: async adapter export importExcelBuffer from storage and core
+importExcelRows; static errors, no rounding, stronger wallet-aware fingerprints,
+strict header/formula/date validation. ZIP-bomb isolation and performance require
+explicit negative evidence before advertising untrusted-upload readiness; no UI
+upload introduced. Full checks + audit-failure/concurrent replay tests required.
+
+S19 pre-publication review found byte/sheet limits alone do NOT bound ZIP expansion.
+Mitigate within importer adapter now: snapshot bytes, validate a strict ZIP32
+subset with stored/deflate entries, bounded Node zlib expansion and CRC/size/header
+consistency, max128entries/16MiB actual expanded total, reject ZIP64 extras and
+orphan/overlapping local records. PKWARE spec and installed SheetJS reader agree
+on field offsets/descriptor usage; bounded inflater not custom compression code.
+Test failed zip expansion/header preflight first, including forged sizes and CRC.
+This is a bounded decoder check, not comprehensive parser-security certification.

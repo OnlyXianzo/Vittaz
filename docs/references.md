@@ -147,3 +147,20 @@ Python/build step. This supersedes older-driver installation assumptions.
 
 - SQLite **3.53.4** https://www.sqlite.org/lang_transaction.html — BEGIN transactions do not nest; IMMEDIATE obtains write transaction before lookup/modify, explicit rollback. Existing Node store serializes awaited units.
 - Read-only reference b21801c notificationParser.ts:170-290 / layer3.parsers.test.ts:139-188; cross-check audit/undo contracts: exact reference first, amount+inclusive window fallback, conservative account/source/reference conflicts and audited enrichment documented in DECISIONS. No new dependencies.
+
+### S19 spreadsheet adapter and importer — 2026-11-04
+
+- SheetJS CE **0.20.3** official https://docs.sheetjs.com/docs/getting-started/installation/nodejs/ — CDN versioned tarball authoritative; npm0.18.5 outdated. Pin URL https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz and lock integrity, no warning suppression or native builds.
+- https://docs.sheetjs.com/docs/api/parse-options/ — read Uint8Array, raw values, formula/date flags, sheets and sheetRows; no formula evaluation. https://docs.sheetjs.com/docs/api/utilities/array/ — raw array cells, header/blank row handling. Reference b21801c excelImporter.ts and baseline3.6 cross-checked for outputs/idempotence; adapter must preserve physical row numbers instead of compacting blank rows.
+- Existing getDaysInMonth and exact decimal paise utilities: reject rolled dates, negative/zero/overprecision numbers; no floating rounding or raw error payloads. Framework-free core uses Web Crypto SHA-256, workbook decoding remains Node storage adapter.
+
+S19 hostile-container follow-up before publication: Node24.22.2
+https://nodejs.org/docs/latest-v24.x/api/zlib.html (bounded maxOutputLength and
+CRC32, checksum NOT authentication); PKWARE ZIP APPNOTE6.3.10 (2022-11-01),
+https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT sections4.3.7-4.3.16.
+Cross-check installed SheetJS0.20.3 xlsx.js:2719-2828: central entries lead to
+local records, ZIP64 extras can override sizes. Consequently preflight BOTH
+headers and extras, bounded-inflate/CRC-check all entries, reject mismatched sizes,
+ZIP64/encryption/multidisk/non-store/non-deflate/duplicate or overlapping records.
+No hand-rolled decompressor. Lock SRI:
+sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==

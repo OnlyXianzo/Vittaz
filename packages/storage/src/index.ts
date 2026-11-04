@@ -16,3 +16,4 @@ export type {
   LedgerBackup,
   KhataclawBackup,
 } from "./backup.js";
+export { importExcelBuffer } from "./excel.js";
