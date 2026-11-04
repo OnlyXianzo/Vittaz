@@ -23,7 +23,7 @@ export function QuickScreen({
         <textarea
           className="quick-input"
           aria-label="Transaction text"
-          placeholder="Paste a bank SMS or UPI alert, or type it as you would say it."
+          placeholder="Paste a bank SMS, or just ask: Who owes me? What did I spend this month?"
           value={state.quickInput}
           onChange={(e) =>
             dispatch({ type: "set_quick_input", value: e.target.value })
@@ -31,7 +31,7 @@ export function QuickScreen({
         />
       </div>
       <div className="m" style={{ margin: "10px 4px" }}>
-        For example: I spent 299 on Zomato
+        Add an entry: I spent 299 on Zomato. Ask a question: Who owes me?
       </div>
       <div className="row" style={{ margin: "20px 0 4px" }}>
         <span className="b">Recent inputs</span>
@@ -64,7 +64,8 @@ export function QuickScreen({
         ))}
       </div>
       <div className="m" style={{ margin: "14px 4px" }}>
-        Demo parser only. No message leaves this preview.
+        Questions are answered from the preview ledger and need no amount. No
+        message leaves this preview.
       </div>
       <button
         className="lime sticky-action"

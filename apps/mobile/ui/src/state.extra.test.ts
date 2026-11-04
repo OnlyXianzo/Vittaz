@@ -39,9 +39,53 @@ describe("UI preview reducer edge cases", () => {
     expect(next.toast).toMatch(/Type a message/);
   });
 
-  it("quick analyze without amount shows a toast", () => {
+  it("quick analyze with no text shows a toast", () => {
     const next = reducer(createInitialState(), { type: "analyze_quick" });
-    expect(next.toast).toMatch(/Include an amount/);
+    expect(next.toast).toMatch(/Type a message or a question/);
+  });
+
+  it("quick analyze answers a question instead of demanding an amount", () => {
+    let state = createInitialState();
+    state = reducer(state, {
+      type: "set_quick_input",
+      value: "Who owes me?",
+    });
+    state = reducer(state, { type: "analyze_quick" });
+    expect(state.toast).toBeNull();
+    expect(state.screen).toBe("chat");
+    expect(state.chatMode).toBe("thinking");
+    expect(state.chatProposalId).toBeNull();
+    expect(state.transactions).toHaveLength(
+      createInitialState().transactions.length,
+    );
+    state = reducer(state, { type: "finish_chat_thinking" });
+    const last = state.chatMessages[state.chatMessages.length - 1];
+    expect(last.role).toBe("assistant");
+    expect(last.text).toMatch(/Owed to you: Aman/);
+  });
+
+  it("answers monthly spend from the same totals as Home", () => {
+    let state = createInitialState();
+    state = reducer(state, { type: "send_chat_text", text: "monthly spend" });
+    expect(state.chatMode).toBe("thinking");
+    state = reducer(state, { type: "finish_chat_thinking" });
+    expect(state.chatMode).toBe("idle");
+    const last = state.chatMessages[state.chatMessages.length - 1];
+    expect(last.text).toMatch(/This month you spent ₹8,750/);
+    expect(last.text).toMatch(/received ₹3,500/);
+    expect(state.chatSteps.every((s) => s.state === "done")).toBe(true);
+  });
+
+  it("keeps drafting payment messages that contain an amount", () => {
+    let state = createInitialState();
+    state = reducer(state, {
+      type: "send_chat_text",
+      text: "Paid Rs 2,500.00 to Aman",
+    });
+    expect(state.chatMode).toBe("approval");
+    const draft = state.transactions.find((t) => t.id === state.chatProposalId);
+    expect(draft?.amountPaise).toBe(250000);
+    expect(draft?.status).toBe("unverified");
   });
 
   it("quick analyze detects received, recharge and fuel categories", () => {
