@@ -68,3 +68,11 @@ export type {
   DailyAllowanceInput,
   DailyAllowanceResult,
 } from "./ledger/allowance.js";
+export {
+  checkSensitiveMessage,
+  withNonSensitiveMessage,
+} from "./privacy/sensitiveFilter.js";
+export type {
+  SensitiveReason,
+  SensitiveCheckResult,
+} from "./privacy/sensitiveFilter.js";

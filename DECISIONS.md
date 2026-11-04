@@ -147,3 +147,18 @@ for years 1-9999 to avoid Date.UTC's special remapping of years 0-99; reject yea
 canonical 0 for negative fractions rather than the forbidden monetary -0.
 Omitted date uses an injectable clock and Asia/Kolkata; explicit dates never
 consult the clock. This is pure domain code, with no UI or Node import.
+
+## 2026-11-04 — G1 approval and sensitive ingress boundary (S11)
+
+Owner explicitly said "Approve G1, continue backend". Record G1 owner-approved;
+continue planned backend only and stop for G2 owner sign-off. No G3/UI authority.
+S11 retains pure checkSensitiveMessage and adds withNonSensitiveMessage to ensure
+a rejected message never reaches a supplied downstream processor. Nonstring and
+blank inputs now fail closed with static invalid_input, unlike the reference.
+NFKC and removal of Unicode format controls prevent basic fullwidth/zero-width
+keyword bypasses without mutating allowed content. This does not prove arbitrary
+secret detection, memory erasure or future channel-wide zero trace. S17/S27d must
+use the filter before any logging/storage/provider activity and prove integration.
+The restored sandbox had stale Git metadata, missing review instructions and old
+CI/scanner files. Archived it externally, fetched main, verified all application
+files match main, and restored exact upstream tooling/workflow (no rewrite).

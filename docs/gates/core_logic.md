@@ -65,3 +65,10 @@ This is eight baseline families, not a claim that all 31 reference checks pass.
 Review and sign off **G1** before Phase D (S11 sensitive filter). This report does
 not itself grant approval or waive any later gate. S1–S10 implemented is not a
 reliable percentage of the whole product and is not backend readiness.
+
+## Owner decision — 2026-11-04
+
+Owner explicitly approved G1 in conversation: **"Approve G1, continue backend"**.
+This authorizes Phase D starting with S11. It is not G2/G3 approval, an independent
+security audit, or permission to implement UI. The additional owner-review audit
+was cancelled before completion; no G1_OWNER_REVIEW.md report is claimed.

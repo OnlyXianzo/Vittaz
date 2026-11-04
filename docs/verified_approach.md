@@ -219,3 +219,36 @@ new pure allowance module, barrel and tests. Add original 1000-entry create-use-
 case audit/sum regression to finish baseline_1_1, not merely direct SQL sum.
 G1 requires all eight layer-one equivalents in CI and explicit owner sign-off;
 this is not 50%, backend readiness or permission for UI/privacy-phase progress.
+
+## Phase D / S11 sensitive ingress (2026-11-04)
+
+Owner explicitly authorized: "Approve G1, continue backend" in this conversation.
+G1 is owner-approved; G2/G3 are not. S11 implements a pure framework-independent
+classifier and a guarded callback boundary, not an AssistantService or ingestion
+pipeline. No independent subagent facility is available; research/cross-verification
+and bounded security self-review are performed sequentially, not called external review.
+
+Research angles: (1) MDN String.normalize and Unicode property escapes describe
+NFKC compatibility folding and Unicode-aware letter/mark boundaries; (2) the
+read-only reference sensitiveFilter.ts and layer2.privacy.test.ts preserve static
+reason categories and English/Hinglish/Devanagari patterns; (3) OWASP Logging
+Cheat Sheet warns against authentication/password/payload logging and untrusted
+event content. Cross-check with docs/PRIVACY and Plan S11. High confidence that
+pure detection plus no-callback-on-drop avoids side effects at THIS boundary;
+not proof of future channel/device/provider zero trace.
+
+Approach: inspect unknown without coercion, normalize only a temporary in-memory
+copy with NFKC, remove format controls, match explicit sensitive terms with
+Unicode letter/mark boundaries, return static reason codes only. Reject nonstring
+and blank input fail-closed (intentional safer deviation from reference's false).
+Preserve reason categories; include auth/security/verification code variants.
+Do not return/store matched text, credentials, or offsets. Guard callback never
+receives rejected input. No diagnostic sink or persistence dependency is accepted.
+
+Blast radius: new core/privacy/sensitiveFilter.ts + tests, core barrel, documentation.
+No current assistant/parser/message-store call sites exist (searched source);
+future S17/S27d must invoke this boundary BEFORE persistence/logging/network and
+prove the real entry points separately. Exact keywords are not universal secret
+or adversarial-language detection; homoglyphs, arbitrary paraphrases, secrets
+without contextual labels and runtime memory erasure remain unproved. No claim
+that zero trace across all app entry points or G2 is complete. No new dependency.

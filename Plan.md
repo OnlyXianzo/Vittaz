@@ -108,7 +108,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 ### Phase D: privacy
 
-- [ ] **S11. Sensitive filter.** OTP, PIN, CVV, password and "do not share" drop the message with no trace anywhere.
+- [x] **S11. Sensitive filter.** OTP, PIN, CVV, password and "do not share" drop the message with no trace anywhere.
 - [ ] **S12. Name replacement.** Exact match, longest name first, stable `Person_N` placeholders, reversible on the reply.
 - [ ] **S13. Scrubber.** Remove UPI references, VPA handles and account numbers from anything sent out.
 - [ ] **S14. Safe logger and crash reporter.** Keys, tokens and names never appear.
