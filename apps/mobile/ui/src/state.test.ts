@@ -9,9 +9,9 @@ function pendingId(state: AppState): string {
 }
 
 describe("UI preview reducer", () => {
-  it("starts on home with synthetic pending entries", () => {
+  it("starts in the chat window with synthetic pending entries", () => {
     const state = createInitialState();
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("chat");
     expect(
       state.transactions.filter((t) => t.status === "unverified"),
     ).toHaveLength(3);
@@ -77,13 +77,15 @@ describe("UI preview reducer", () => {
     expect(unverified.ledgerFilter).toBe("unverified");
   });
 
-  it("quick ingestion creates a pending proposal and opens chat approval", () => {
+  it("a pasted message creates a pending proposal and a chat approval", () => {
     const state = createInitialState();
     const withInput = reducer(state, {
       type: "set_quick_input",
       value: "I spent 299 on Zomato",
     });
-    const next = reducer(withInput, { type: "analyze_quick" });
+    const next = reducer(reducer(withInput, { type: "analyze_quick" }), {
+      type: "finish_chat_thinking",
+    });
     expect(next.screen).toBe("chat");
     expect(next.chatMode).toBe("approval");
     expect(next.chatProposalId).toBeTruthy();
@@ -117,7 +119,7 @@ describe("UI preview reducer", () => {
     expect(next.toast).toMatch(/always requires approval/i);
   });
 
-  it("moves through onboarding and finishes on home", () => {
+  it("moves through onboarding and finishes in the chat window", () => {
     let state = createInitialState();
     state = reducer(state, { type: "navigate", screen: "onboarding-welcome" });
     state = reducer(state, { type: "set_onboarding_step", step: 1 });
@@ -125,6 +127,6 @@ describe("UI preview reducer", () => {
     state = reducer(state, { type: "set_onboarding_step", step: 2 });
     expect(state.screen).toBe("onboarding-ai");
     state = reducer(state, { type: "finish_onboarding" });
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("chat");
   });
 });
