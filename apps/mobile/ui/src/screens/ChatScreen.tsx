@@ -54,8 +54,8 @@ export function ChatScreen({
           <div className="c empty-state">
             <div className="b">Ask or add by message</div>
             <div className="m">
-              This is a deterministic demo. Try “I spent 299 on Zomato” or “How
-              much did I spend on food?”.
+              Questions need no amount — try “Who owes me?” or “What did I spend
+              this month?”. To add an entry, say “I spent 299 on Zomato”.
             </div>
           </div>
         )}
@@ -145,20 +145,23 @@ export function ChatScreen({
         )}
       </div>
       <div className="chat-suggestions">
-        <button
-          className="qc"
-          onClick={() => dispatch({ type: "navigate", screen: "inbox" })}
-          type="button"
-        >
-          Show unverified
-        </button>
-        <button
-          className="qc"
-          onClick={() => dispatch({ type: "navigate", screen: "people" })}
-          type="button"
-        >
-          Who owes me?
-        </button>
+        {[
+          { label: "Who owes me?", text: "Who owes me?" },
+          { label: "Monthly spend", text: "What did I spend this month?" },
+          { label: "Food spend", text: "How much on food?" },
+          { label: "Pending review", text: "What is pending?" },
+        ].map((chip) => (
+          <button
+            className="qc"
+            key={chip.label}
+            onClick={() =>
+              dispatch({ type: "send_chat_text", text: chip.text })
+            }
+            type="button"
+          >
+            {chip.label}
+          </button>
+        ))}
       </div>
       <form
         className="inp"

@@ -106,9 +106,7 @@ describe("App preview", () => {
     expect(
       main.getByText("Demo steps only. No cloud model is called."),
     ).toBeInTheDocument();
-    expect(
-      await main.findByText(/confirmed food entries total/),
-    ).toBeInTheDocument();
+    expect(await main.findByText(/Food comes to/)).toBeInTheDocument();
   });
 
   it("filters and searches the ledger", async () => {

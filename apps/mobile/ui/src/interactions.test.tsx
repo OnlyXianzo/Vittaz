@@ -69,13 +69,11 @@ describe("preview interactions", () => {
     await user.click(main.getByRole("button", { name: "Back" }));
     await user.click(main.getByRole("button", { name: "Voice input" }));
     expect(main.getByText(/Voice input is not connected/)).toBeInTheDocument();
-    await user.click(main.getByRole("button", { name: "Show unverified" }));
-    expect(main.getByText("Pending inbox")).toBeInTheDocument();
-    await user.click(main.getByRole("button", { name: "Back" }));
     await user.click(main.getByRole("button", { name: "Who owes me?" }));
-    expect(
-      main.getByText("Receivables and payables in this synthetic preview."),
-    ).toBeInTheDocument();
+    expect(await main.findByText(/Owed to you: Aman/)).toBeInTheDocument();
+    await user.click(main.getByRole("button", { name: "Pending review" }));
+    expect(await main.findByText(/entries need review/)).toBeInTheDocument();
+    expect(main.queryByText("Pending inbox")).not.toBeInTheDocument();
   });
 
   it("chat approval edit and reject work", async () => {

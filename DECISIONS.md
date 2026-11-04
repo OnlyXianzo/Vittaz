@@ -478,3 +478,8 @@ but late values cannot be accepted. Static error codes, no native error text.
 clone boundary, valid raw names, defaults/no guessed money, null/invalid/sensitive,
 zero runner calls, driver errors, abort/non-cooperative timeout/late inference and
 late validation. No independent-review or device-readiness claim.
+
+S26 publish reconciliation: required CI41875662202 succeeded on91ebb3d, but normal
+merge was refused because owner main advanced with UI PR25/04a59f1. Merge owner
+main into this step without editing its UI; re-run full local checks and exact-head
+CI before retrying protected merge. No force push or branch-protection bypass.

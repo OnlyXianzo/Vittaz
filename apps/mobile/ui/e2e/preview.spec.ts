@@ -44,6 +44,20 @@ test("quick ingestion creates an approval card", async ({ page }) => {
   await expect(device.getByText(/Approved\. The preview ledger/)).toBeVisible();
 });
 
+test("chat answers a question that has no amount", async ({ page }) => {
+  await page.goto("/");
+  const device = page.getByRole("main");
+  await device.getByRole("button", { name: /Add or ask by message/ }).click();
+  await device.getByLabel("Transaction text").fill("Who owes me?");
+  await device.getByRole("button", { name: "Analyze" }).click();
+  await expect(device.getByText(/Owed to you: Aman/)).toBeVisible();
+  await expect(device.getByText(/Include an amount/)).toHaveCount(0);
+  await device.getByLabel("Message").fill("What did I spend this month?");
+  await device.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(device.getByText(/This month you spent/)).toBeVisible();
+  await expect(device.getByRole("button", { name: "Approve" })).toHaveCount(0);
+});
+
 test("keyboard access focuses screen headings and Escape returns", async ({
   page,
 }) => {

@@ -4,6 +4,14 @@ import {
   SYNTHETIC_TRANSACTIONS,
 } from "./data";
 import { formatPaise, parseAmountToPaise } from "./money";
+import {
+  answerQuestion,
+  detectPeriod,
+  detectQuestion,
+  questionSteps,
+} from "./answers";
+import type { LedgerFacts } from "./answers";
+import { selectPending, selectSummary } from "./selectors";
 import type { Action, AppState, Screen, Transaction } from "./types";
 
 const ONBOARDING_SCREENS: Record<0 | 1 | 2, Screen> = {
@@ -39,6 +47,7 @@ export function createInitialState(): AppState {
     chatMessages: [],
     chatSteps: [],
     chatProposalId: null,
+    chatQuestion: null,
     quickInput: "",
     quickRecentIds: ["txn_zomato", "txn_hdfc"],
     addDraft: {
@@ -66,8 +75,15 @@ function makeProposal(
   input: string,
   idPrefix: string,
 ): Transaction | null {
-  const amountMatch = input.match(/(?:₹\s*)?(\d+(?:\.\d{1,2})?)/);
-  const amountPaise = amountMatch ? parseAmountToPaise(amountMatch[1]) : null;
+  // Questions ("who owes me?", "what did I spend in 2 days?") are never drafts.
+  if (detectQuestion(input)) return null;
+  const amountMatch =
+    input.match(
+      /(?:₹|rs\.?|inr)\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/i,
+    ) ?? input.match(/(\d{1,3}(?:,\d{2,3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/);
+  const amountPaise = amountMatch
+    ? parseAmountToPaise(amountMatch[1].replace(/,/g, ""))
+    : null;
   if (!amountPaise) return null;
   const merchantMatch = input.match(
     /\b(?:on|to|at)\s+([A-Za-z][A-Za-z .&'-]*)/i,
@@ -188,23 +204,115 @@ function addTransaction(state: AppState): AppState {
   };
 }
 
-function sendChat(state: AppState): AppState {
-  const text = state.chatInput.trim();
-  if (!text) return { ...state, toast: "Type a message first." };
+function ledgerFacts(state: AppState): LedgerFacts {
+  const summary = selectSummary(state);
+  const totals = new Map<string, number>();
+  for (const t of state.transactions) {
+    if (t.status !== "user_confirmed" || t.direction !== "spent") continue;
+    totals.set(t.category, (totals.get(t.category) ?? 0) + t.amountPaise);
+  }
+  const pending = selectPending(state);
+  const periodKey = detectPeriod(state.chatQuestion ?? "");
+  const days =
+    periodKey === "today"
+      ? ["Today"]
+      : periodKey === "yesterday"
+        ? ["Yesterday"]
+        : ["Today", "Yesterday", "27 Oct"];
+  const inWindow = state.transactions.filter(
+    (t) => t.status === "user_confirmed" && days.includes(t.day),
+  );
+  const windowTotals = new Map<string, number>();
+  let windowSpent = 0;
+  let windowReceived = 0;
+  for (const t of inWindow) {
+    if (t.direction === "received") {
+      windowReceived += t.amountPaise;
+      continue;
+    }
+    windowSpent += t.amountPaise;
+    windowTotals.set(
+      t.category,
+      (windowTotals.get(t.category) ?? 0) + t.amountPaise,
+    );
+  }
+  return {
+    spentPaise: summary.spentPaise,
+    receivedPaise: summary.receivedPaise,
+    cashPaise: summary.cashPaise,
+    pendingCount: pending.length,
+    pendingTitles: pending.slice(0, 3).map((t) => t.title),
+    categories: [...totals]
+      .map(([name, paise]) => ({ name, paise }))
+      .sort((a, b) => b.paise - a.paise),
+    owedToYou: state.people
+      .filter((p) => p.balancePaise > 0)
+      .map((p) => ({ name: p.name, paise: p.balancePaise })),
+    youOwe: state.people
+      .filter((p) => p.balancePaise < 0)
+      .map((p) => ({ name: p.name, paise: -p.balancePaise })),
+    period: {
+      label:
+        periodKey === "today"
+          ? "today"
+          : periodKey === "yesterday"
+            ? "yesterday"
+            : "in the last few days",
+      spentPaise: windowSpent,
+      receivedPaise: windowReceived,
+      count: inWindow.length,
+      categories: [...windowTotals]
+        .map(([name, paise]) => ({ name, paise }))
+        .sort((a, b) => b.paise - a.paise),
+    },
+  };
+}
+
+/**
+ * One path for chat and for the message screen: a question is answered from the
+ * ledger, a payment becomes a draft. Neither requires the other's shape.
+ */
+function startMessage(
+  state: AppState,
+  rawText: string,
+  from: "chat" | "quick",
+): AppState {
+  const text = rawText.trim();
+  if (!text)
+    return {
+      ...state,
+      toast:
+        from === "quick"
+          ? "Type a message or a question, for example: Who owes me?"
+          : "Type a message first.",
+    };
+
+  const kind = detectQuestion(text);
+  const proposal = kind
+    ? null
+    : makeProposal(state, text, from === "quick" ? "quick" : "chat");
   const userMessage = {
     id: `msg_${state.sequence}`,
     role: "user" as const,
     text,
   };
-  const proposal = makeProposal(state, text, "chat");
+  const shared = {
+    ...state,
+    chatInput: "",
+    quickInput: from === "quick" ? "" : state.quickInput,
+    screen: "chat" as const,
+    previousScreen:
+      from === "quick" ? ("quick" as const) : state.previousScreen,
+  };
+
   if (proposal) {
     return {
-      ...state,
+      ...shared,
       transactions: [proposal, ...state.transactions],
       sequence: state.sequence + 2,
-      chatInput: "",
       chatMode: "approval",
       chatProposalId: proposal.id,
+      chatQuestion: null,
       chatMessages: [
         ...state.chatMessages,
         userMessage,
@@ -230,62 +338,41 @@ function sendChat(state: AppState): AppState {
       ],
     };
   }
+
   return {
-    ...state,
+    ...shared,
     sequence: state.sequence + 1,
-    chatInput: "",
     chatMode: "thinking",
+    chatProposalId: null,
+    chatQuestion: text,
     chatMessages: [...state.chatMessages, userMessage],
-    chatSteps: [
-      {
-        label: "Searched the preview ledger",
-        tool: "query_transactions",
-        detail: "Synthetic rows",
-        state: "done",
-      },
-      {
-        label: "Added them up",
-        tool: "sum_by_category",
-        detail: "Deterministic demo sum",
-        state: "done",
-      },
-      {
-        label: "Checking unverified entries",
-        tool: "check_unverified",
-        detail: "Running",
-        state: "running",
-      },
-    ],
+    chatSteps: questionSteps(kind ?? "help"),
   };
 }
 
 function finishChatThinking(state: AppState): AppState {
   if (state.chatMode !== "thinking") return state;
-  const foodPaise = state.transactions
-    .filter(
-      (t) =>
-        t.status === "user_confirmed" &&
-        t.direction === "spent" &&
-        t.category === "Food",
-    )
-    .reduce((sum, t) => sum + t.amountPaise, 0);
-  const pending = state.transactions.filter(
-    (t) => t.status !== "user_confirmed",
-  ).length;
+  const facts = ledgerFacts(state);
+  const question = state.chatQuestion ?? "";
   return {
     ...state,
     chatMode: "idle",
     chatSteps: state.chatSteps.map((s) => ({
       ...s,
       state: "done",
-      detail: s.state === "running" ? `${pending} pending` : s.detail,
+      detail:
+        s.state === "running"
+          ? s.tool === "check_unverified"
+            ? `${facts.pendingCount} pending`
+            : "Done"
+          : s.detail,
     })),
     chatMessages: [
       ...state.chatMessages,
       {
         id: `msg_${state.sequence}`,
         role: "assistant",
-        text: `In this synthetic preview, confirmed food entries total ${formatPaise(foodPaise)}. ${pending} entries still need review.`,
+        text: answerQuestion(question, facts),
       },
     ],
     sequence: state.sequence + 1,
@@ -293,45 +380,11 @@ function finishChatThinking(state: AppState): AppState {
 }
 
 function analyzeQuick(state: AppState): AppState {
-  const text = state.quickInput.trim();
-  const proposal = makeProposal(state, text, "quick");
-  if (!proposal)
-    return {
-      ...state,
-      toast: "Include an amount, for example: I spent 299 on Zomato.",
-    };
+  const next = startMessage(state, state.quickInput, "quick");
+  if (!next.chatProposalId) return next;
   return {
-    ...state,
-    transactions: [proposal, ...state.transactions],
-    sequence: state.sequence + 2,
-    quickInput: "",
-    quickRecentIds: [proposal.id, ...state.quickRecentIds].slice(0, 5),
-    screen: "chat",
-    previousScreen: "quick",
-    chatMode: "approval",
-    chatProposalId: proposal.id,
-    chatMessages: [
-      { id: `msg_${state.sequence}`, role: "user", text },
-      {
-        id: `msg_${state.sequence + 1}`,
-        role: "assistant",
-        text: "I drafted this entry. Nothing is saved until you approve it.",
-      },
-    ],
-    chatSteps: [
-      {
-        label: "Read your message",
-        tool: "parse_entry",
-        detail: "Demo parser",
-        state: "done",
-      },
-      {
-        label: "Drafted an entry",
-        tool: "propose_transaction",
-        detail: "Waiting for your approval",
-        state: "waiting",
-      },
-    ],
+    ...next,
+    quickRecentIds: [next.chatProposalId, ...state.quickRecentIds].slice(0, 5),
   };
 }
 
@@ -432,7 +485,9 @@ export function reducer(state: AppState, action: Action): AppState {
     case "set_chat_input":
       return { ...state, chatInput: action.value };
     case "send_chat":
-      return sendChat(state);
+      return startMessage(state, state.chatInput, "chat");
+    case "send_chat_text":
+      return startMessage(state, action.text, "chat");
     case "finish_chat_thinking":
       return finishChatThinking(state);
     case "set_quick_input":
