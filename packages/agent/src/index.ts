@@ -42,3 +42,8 @@ export {
   LangChainQaAgent,
   LangChainAdapterError,
 } from "./langchain_adapter.js";
+export {
+  ValidatedLocalModelTasks,
+  LocalModelTaskError,
+} from "./local_tasks.js";
+export type { LocalTaskErrorCode } from "./local_tasks.js";
