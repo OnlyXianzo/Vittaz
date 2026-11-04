@@ -81,3 +81,5 @@ Python/build step. This supersedes older-driver installation assumptions.
 - Node **24.22.2**, https://nodejs.org/docs/latest-v24.x/api/async_context.html — AsyncLocalStorage.run/getStore for per-store reentrancy detection, isolated to Node adapter.
 - Drizzle **0.45.4**, https://orm.drizzle.team/docs/insert and https://orm.drizzle.team/docs/select — parameterized values and eq selectors; installed stable driver/session source cross-checked.
 - https://orm.drizzle.team/docs/sql-schema-declaration — explicit SQLite table mappings; existing SQL migrations remain authoritative for constraints (no Drizzle-Kit generation used).
+
+- Vitest **5.1.0**, https://vitest.dev/config/alias (2026-11-04): test aliases resolve source imports without requiring compiled workspace outputs. Clean CI caught core package resolution masked by local dist files; reproduced after deleting dist, fixed with an explicit core-source alias, no early build or privacy-job bypass.

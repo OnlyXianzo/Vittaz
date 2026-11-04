@@ -64,3 +64,9 @@ open failure. 35 local tests and 100% implemented core/storage coverage. Remaini
 limits: no Expo device proof before Phase I; caller must await callback work and
 must not perform network work during a transaction. AI receives use-case-only
 capabilities later, never the store or write repositories.
+
+CI correction: final repository head aa31d16 failed privacy bootstrap import on a
+clean checkout because @vittaz/core resolved to absent dist. Reproduced locally
+by removing core/storage dist directories. Added a test-only source alias per
+Vitest docs; no build prerequisite and no privacy job bypass. All subsequent
+checks must start without dist to avoid masking package-resolution regressions.
