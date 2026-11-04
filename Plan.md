@@ -102,7 +102,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 - [x] **S7. Audit log and undo.** One audit row per approved write. Undo restores the previous state exactly.
 - [x] **S8. Accounts and wallet.** Cash and UPI or bank accounts. Cash in hand equals opening balance plus cash in minus cash out.
 - [x] **S9. Backup and restore.** Checksummed backup. Restore reproduces the ledger exactly. Add a backup-encryption decision to `DECISIONS.md`.
-- [ ] **S10. Allowance math.** Budget minus spent minus bills due, divided by days left. Test month ends, leap year and overspending. Use an injectable clock and Indian time zone.
+- [x] **S10. Allowance math.** Budget minus spent minus bills due, divided by days left. Test month ends, leap year and overspending. Use an injectable clock and Indian time zone.
 
 **Gate G1:** all layer 1 equivalents are green in CI.
 
