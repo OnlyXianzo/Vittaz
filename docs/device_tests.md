@@ -18,19 +18,19 @@ or Node tests.
 
 ## Checklist
 
-| Area                  | Test                                                                                                         | Status               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------- |
-| S33 environment       | `adb devices` sees device; blank Expo dev build installs and opens                                           | pending owner/device |
-| S34 wiring            | `apps/mobile` imports `packages/core`; `expo-sqlite` repository adapter passes core contract tests on device | pending              |
-| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage      | pending              |
-| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                     | pending              |
-| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected                    | pending              |
-| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                      | pending              |
-| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                        | pending              |
-| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device                    | pending              |
-| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network      | pending              |
-| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                                | pending              |
-| OCR                   | On-device OCR quality/privacy with synthetic images                                                          | pending              |
+| Area                  | Test                                                                                                         | Status                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| S33 environment       | CI blank Expo debug APK artifact builds; owner installs and opens it on phone; `adb devices` optional proof  | pending owner install/open report |
+| S34 wiring            | `apps/mobile` imports `packages/core`; `expo-sqlite` repository adapter passes core contract tests on device | pending                           |
+| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage      | pending                           |
+| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                     | pending                           |
+| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected                    | pending                           |
+| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                      | pending                           |
+| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                        | pending                           |
+| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device                    | pending                           |
+| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network      | pending                           |
+| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                                | pending                           |
+| OCR                   | On-device OCR quality/privacy with synthetic images                                                          | pending                           |
 
 ## Recording results
 

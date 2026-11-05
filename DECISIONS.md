@@ -608,3 +608,13 @@ or a claim that every possible mutation is detected. No mutation is committed.
   visual shell is not rewritten or promoted in S33; S34–S35 will wire
   `packages/core` through an `expo-sqlite` adapter and replace the preview demo
   reducer.
+
+## S33 CI Android proof workflow (2026-11-05)
+
+Owner requested a manual GitHub Actions workflow for S33 Android proof. The
+workflow is `workflow_dispatch` only, pins actions to commit SHAs, uses minimal
+`contents: read` permissions, and uses no secrets. It builds a blank Expo
+TypeScript development-client debug APK on `ubuntu-24.04` with JDK 17 and Node
+24.22.2, then uploads the APK with 7-day retention. It does not touch
+`apps/mobile/ui/native` and does not claim device behavior. S33 remains open
+until the owner reports that the artifact installed and opened on their phone.

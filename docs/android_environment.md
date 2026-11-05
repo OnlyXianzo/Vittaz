@@ -80,3 +80,60 @@ Record:
 - It does not open `canvas/screens.zip` or implement UI slices.
 - It does not decide license, backup encryption, or the native preview reducer
   replacement.
+
+## CI proof workflow: `s33-android-proof`
+
+The repository includes a manual GitHub Actions workflow at
+`.github/workflows/s33-android-proof.yml`. It is triggered by `workflow_dispatch`
+only. It does not use secrets and does not touch `apps/mobile/ui/native`.
+
+What it builds:
+
+1. A blank Expo TypeScript app in a temporary runner directory.
+2. Adds `expo-dev-client` with `npx expo install expo-dev-client`.
+3. Runs `npx expo prebuild --platform android --clean`.
+4. Builds a debug APK with Gradle `assembleDebug`.
+5. Uploads `app-debug.apk` as artifact `s33-android-proof-apk` with 7-day
+   retention.
+
+### Run the workflow
+
+1. Open the repository on GitHub.
+2. Go to **Actions** → **S33 Android proof**.
+3. Click **Run workflow** and select the branch containing the workflow.
+4. Wait for the job to finish. If it fails, share the failed step/log; do not
+   treat a failed build as device proof.
+
+### Download and install on your phone
+
+On the phone:
+
+1. Open the completed workflow run in GitHub.
+2. Download the artifact named `s33-android-proof-apk`.
+3. Extract the downloaded ZIP and locate `app-debug.apk`.
+4. If Android blocks the install, allow installs from unknown sources for the
+   app you used to open the APK (for example, your browser or file manager):
+   **Settings → Apps → Special app access → Install unknown apps**.
+5. Tap `app-debug.apk` and install it.
+6. Open the installed blank Expo development build.
+
+Alternatively, if the phone is connected to your PC and `adb devices` shows it as
+`device`, you can install the extracted APK with:
+
+```bash
+adb install -r app-debug.apk
+```
+
+### Report the result
+
+Please report:
+
+- phone model and Android version;
+- workflow run URL;
+- whether the APK installed;
+- whether the app opened;
+- any error message or screenshot.
+
+Do not claim device behavior. Mark S33 done only after you report that the app
+opened on your phone. A successful CI build or artifact upload alone is not S33
+acceptance.
