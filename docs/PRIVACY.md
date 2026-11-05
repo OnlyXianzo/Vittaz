@@ -169,3 +169,17 @@ sensitive input before fake/driver invocation, rejects malformed or sensitive
 output, exposes static error codes only. Suggestions do not persist or mutate a
 ledger. Future platform runner must actually be local; no Node interface can
 certify arbitrary trusted callback side effects or real on-device offline status.
+
+### Local conversation persistence
+
+S27a stores ordinary user/assistant text locally with channel source and conversation
+ID. Both use case and storage API reject sensitive-classified content before SQL;
+no history analytics/cloud/model callback is invoked. Runtime input is cloned and
+strictly bounded, errors are constant, and source/role allowlists do not confer
+channel authentication. The host must authenticate/pair channels and filter input
+BEFORE creating a new conversation (service/channel steps pending). A separately
+requested empty conversation is not a sensitive-message persistence side effect.
+
+This is not proof of encrypted storage, secure deletion or outbound-history privacy.
+Raw local names/text require S27d's recent-context privacy policy before any cloud
+request. Ledger JSON exports exclude chats and restore preserves local chats.

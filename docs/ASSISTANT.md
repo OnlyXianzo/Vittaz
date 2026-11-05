@@ -60,3 +60,26 @@ The settings screen calls this Assistant personalization. It has two parts.
 Rules are validated structured settings, not free-form system prompts. A secret phrase in a message is not authentication. Authentication happens before the assistant sees anything.
 
 Every AI proposal already needs approval, so there is no "ask me above a threshold" rule. All proposals ask.
+
+### Implemented local history boundary (S27a)
+
+Core defines ConversationHistoryStore, startConversation and
+recordConversationMessage; storage exposes OperationalStore.history on its existing
+serialized connection. Each message has source app/cli/telegram and a conversation
+ID. Only user/assistant text is accepted; IDs/canonical UTC timestamps come from
+the host, not model tools. Sensitive messages drop before persistence. Raw local
+names/text are not implicitly uploaded/redacted by this persistence API.
+
+Recent reads default50/max100. Messages are ordered by private SQL append sequence,
+not timestamp/random ID, so equal/backward clocks cannot reorder user/assistant
+turns. Sequence is neither supplied nor exposed by the port. Conversation overview
+uses created_at/id. Appending to a missing conversation, duplicate IDs or closed/reentrant access
+fail closed; no SQL/parameter text escapes. No raw connection/write history port
+is added to read-only QA tools. Shared AssistantService/channel/privacy-context
+integration is still S27d/S28, not proved by persistence tests.
+
+History is currently local plain SQLite, without a new encryption, synchronization,
+retention/deletion or backup mechanism. Existing JSON backups remain **ledger-only**
+formatv1/payload schemaVersion2, even though DB schema is3: they exclude chats.
+Restoring one preserves existing chats; moving only that backup does not transfer
+chat history. Do not label it a full application/history backup.

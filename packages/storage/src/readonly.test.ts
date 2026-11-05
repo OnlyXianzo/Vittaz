@@ -1,3 +1,4 @@
+import { LATEST_SCHEMA_VERSION } from "./migrations.js";
 import { afterEach, expect, test, vi } from "vitest";
 import Database from "better-sqlite3";
 import { mkdtempSync, existsSync, rmSync } from "node:fs";
@@ -67,7 +68,7 @@ test("readonly_missing_or_stale_or_future_schema_never_creates_or_migrates_a_fil
   for (const input of ["", ":memory:", path])
     expect(() => openReadOnlyLedgerStore(input)).toThrow();
   expect(existsSync(path)).toBe(false);
-  for (const version of [0, 1, 3]) {
+  for (const version of [0, 1, 2, LATEST_SCHEMA_VERSION + 1]) {
     const db = new Database(path);
     db.pragma(`user_version = ${version}`);
     db.close();

@@ -27,7 +27,7 @@ test("baseline_1_2_empty_upgrade_and_idempotent_migrations", () => {
     applied: [1],
   });
   db.prepare(insert).run("synthetic_legacy", 25000);
-  expect(migrate(db)).toEqual({
+  expect(migrate(db, { targetVersion: 2 })).toEqual({
     previousVersion: 1,
     currentVersion: 2,
     applied: [2],
@@ -45,9 +45,9 @@ test("baseline_1_2_empty_upgrade_and_idempotent_migrations", () => {
     benefit_paise: 0,
     tag: null,
   });
-  expect(migrate(db).applied).toEqual([]);
-  expect(LATEST_SCHEMA_VERSION).toBe(2);
-  expect(migrate(open()).applied).toEqual([1, 2]);
+  expect(migrate(db, { targetVersion: 2 }).applied).toEqual([]);
+  expect(LATEST_SCHEMA_VERSION).toBe(3);
+  expect(migrate(open()).applied).toEqual([1, 2, 3]);
   expect(
     db.prepare("SELECT count(*) AS n FROM schema_migrations").get(),
   ).toEqual({ n: 2 });
@@ -90,7 +90,13 @@ test("baseline_1_1_sql_sum_preserves_1000_integer_amounts", () => {
 });
 test("migration_rejects_invalid_targets_future_versions_and_nested_transaction", () => {
   const db = open();
-  for (const targetVersion of [-1, 0.5, 3, NaN, Infinity])
+  for (const targetVersion of [
+    -1,
+    0.5,
+    LATEST_SCHEMA_VERSION + 1,
+    NaN,
+    Infinity,
+  ])
     expect(() => migrate(db, { targetVersion })).toThrow(
       "invalid_schema_target",
     );
@@ -98,7 +104,7 @@ test("migration_rejects_invalid_targets_future_versions_and_nested_transaction",
   expect(() => migrate(db, { targetVersion: 1 })).toThrow(
     "schema_downgrade_not_supported",
   );
-  db.pragma("user_version = 3");
+  db.pragma("user_version = " + (LATEST_SCHEMA_VERSION + 1));
   expect(() => migrate(db)).toThrow("schema_newer_than_supported");
   db.pragma("user_version = 0");
   db.exec("BEGIN");
@@ -118,5 +124,5 @@ test("migration_failure_rolls_back_schema_and_version_and_allows_retry", () => {
       .some((x) => (x as { name: string }).name === "benefit"),
   ).toBe(false);
   db.exec("DROP TABLE unparsed_messages");
-  expect(migrate(db).applied).toEqual([2]);
+  expect(migrate(db).applied).toEqual([2, 3]);
 });

@@ -429,3 +429,21 @@ S27 publish verified: exactf085c16876044e2a8994d9dcc55195d3c8dd8b47,
 CI41957305957 every required PR/push job SUCCESS; no unresolved threads or
 changes requested, normal protected PR28 merge77df4d33993d820ec9572fe8601380b7edbbaf2f.
 This state-only checkpoint records observed results, not S27a implementation.
+
+## S27a self-review (not independent review)
+
+Correct core missing-module/storage-facade/migration reds preceded implementation.
+An arbitrary port's driver-error leak was reproduced red and fixed to static core
+errors; native SQL errors are also wrapped without params/cause. Snapshot inputs
+before enqueue, no nested connection/queue; reentrant and closed history calls
+fail statically and queue recovers after errors. Sensitive input makes zero store
+calls; direct storage rejects it with zero message rows. Native constraints reject
+orphan/source/role/empty/oversize/NUL data, IDs duplicate globally. SQL write facade
+is not exposed by read-only ledger/QA. Tests restart/cross-channel data and ensure
+no ledger snapshot changes. Explicit legacy v2 backup/restore leaves chat intact.
+
+Review found timestamp/UUID tie ordering could reverse user/assistant turns. Added
+correct red and private integer sequence fix before publish; tests also cover clock
+rollback. Sequence never appears in public rows/input or ledger backups. Existing
+v1->v2 tests remain explicit; latest/stale/future checks updated for additive3.
+Full226tests36files100% metrics; no G3/device/service/channel readiness claim.

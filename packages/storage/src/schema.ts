@@ -143,3 +143,24 @@ export const ai_analytics_log = sqliteTable("ai_analytics_log", {
     .notNull(),
   created_at: text("created_at").notNull(),
 });
+
+export const conversations = sqliteTable("conversations", {
+  id: text("id")
+    .$type<import("@vittaz/core").ConversationRow["id"]>()
+    .notNull()
+    .primaryKey(),
+  created_at: text("created_at").notNull(),
+});
+export const messages = sqliteTable("messages", {
+  sequence: integer("sequence").primaryKey(),
+  id: text("id").notNull().unique(),
+  conversation_id: text("conversation_id").notNull(),
+  source: text("source")
+    .$type<import("@vittaz/core").ConversationMessageRow["source"]>()
+    .notNull(),
+  role: text("role")
+    .$type<import("@vittaz/core").ConversationMessageRow["role"]>()
+    .notNull(),
+  content: text("content").notNull(),
+  created_at: text("created_at").notNull(),
+});

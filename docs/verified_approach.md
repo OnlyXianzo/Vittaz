@@ -644,3 +644,49 @@ bounds/network failures/normal-CI exclusion tests. Real smoke only after safety
 suite green. Public availability may fail; record honestly, never silently switch
 protocol fields to force green. No subagent tool available; sequential review of
 primary docs, provider/key-pool source and test-discovery consumers performed.
+
+## S27a history persistence — 2026-11-05
+
+Scope/done: additive framework-free history rows/async port/start+record use cases,
+SQLite migration3/Drizzle mappings/repository behind existing serialized native
+connection. Each message source app/cli/telegram, conversation FK, user/assistant
+role only. No AI invocation/tool wiring/preferences/rules/channel/UI changes.
+Research: official SQLite foreignkeys and stricttables pages confirm FK must be
+enabled per connection and STRICT alone does not enforce semantic constraints.
+Official Drizzle select docs confirm explicit order/limit and bound eq; installed
+0.45.4 retained (docs also promote1beta, no upgrade). Existing better-sqlite3
+13.0.3/SQLite3.53.4 pinned, no new dependency. Reuse existing enqueue/transaction
+scope; don't create a competing connection/queue or await native transactions.
+
+Design: host supplies bounded IDs/canonical UTC millisecond timestamps; core
+parses/clones exact shapes, content1..8192/no NUL, role/source allowlists. Sensitive
+messages rejected before DB by both use case and repository. Stored raw names
+stay local, no redaction/cloud context building in this step. Read recent max100
+rows, deterministic (created_at,id), latest N messages returned chronologically.
+No delete API, memory/vector learning, automatic retention, or model authority.
+
+Blast radius: new core history module, storage history module and schema3, additive
+OperationalStore.history facade sharing serialized scope, migration tests/docs.
+Read-only QA facade does not gain history/write capability. Existing ledger-only
+backup v1/schemaVersion2 remains byte-contract compatible: DB schema version and
+payload version are different. Backup does NOT include history; restore touches
+only ledger/settings, preserves local conversations. Explicit test/documentation;
+no silent full-DB-backup claim. History backup/encryption/device work remains later.
+
+Red before implementation: missing core history module plus schema3/port/store
+integration. Then minimal green, migration2->3 preserve/idempotence/rollback,
+strict SQL FK/source/role/body checks, cross-channel restart/ordering/limits,
+sensitive zero calls/zero rows, cloned queued input/output, static SQL errors,
+queue/reentrant/closed boundaries, ledger backup compatibility/full original tests.
+No subagent available; primary docs/source/consumer risks reviewed sequentially.
+
+S27a ordering review correction before publish: (created_at,id) can put an
+assistant before its user when timestamps tie or the clock moves backwards.
+Added a correct failing regression. Official https://www.sqlite.org/autoinc.html
+confirms INTEGER PRIMARY KEY aliases a durable ROWID and automatically allocates
+max+1 for our append-only, never-explicit-sequence path. Use an internal sequence
+(not AUTOINCREMENT: no deletion/cursor lifetime reuse requirement). Message IDs
+stay unique externally; sequence is not accepted from callers/exposed in rows or
+backups. Index (conversation_id,sequence), recent N reversed to append order.
+Conversation overview remains bounded (created_at,id). Host timestamps are metadata,
+not ordering authority. No model/host can override sequence through the port.
