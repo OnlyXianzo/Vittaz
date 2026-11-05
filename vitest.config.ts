@@ -7,6 +7,12 @@ export default defineConfig({
       "@vittaz/core": fileURLToPath(
         new URL("./packages/core/src/index.ts", import.meta.url),
       ),
+      "@vittaz/storage": fileURLToPath(
+        new URL("./packages/storage/src/index.ts", import.meta.url),
+      ),
+      "@vittaz/agent": fileURLToPath(
+        new URL("./packages/agent/src/index.ts", import.meta.url),
+      ),
     },
     include: [
       "packages/**/*.test.ts",
@@ -25,7 +31,7 @@ export default defineConfig({
     passWithNoTests: false,
     coverage: {
       provider: "v8",
-      include: ["packages/*/src/**/*.ts"],
+      include: ["packages/*/src/**/*.ts", "apps/cli/src/**/*.ts"],
       exclude: ["**/*.test.ts"],
       reporter: ["text", "lcov"],
       thresholds: {

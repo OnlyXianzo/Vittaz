@@ -324,3 +324,17 @@ limit100/message-only; cursor highest+1; no webhooks.409 latches conflict;429 ob
 retry_after/default60s (no immediate retry). Telegram messages plain4096 chars.
 API calls30s total signal deadline, shared1MiB strict UTF-8 reader reused from S21.
 No actual Telegram API/token used; fake fetch plus real loopback HTTP only.
+
+## S29 snake_case CLI (2026-11-05)
+
+Commander **15.0.0** added only to `apps/cli`. Official source
+https://github.com/tj/commander.js#readme consulted before use; `npm view
+commander version engines` reported 15.0.0 and node `>=22.12.0`, compatible with
+the repository Node 24.22.2 runtime. Existing core/storage/agent APIs reused; no
+new storage, provider, or AI framework dependency. CLI output is JSON with
+snake_case keys, static error codes, and no raw input/exception echo. `--db` or
+`VITTAZ_DB_PATH` opens SQLite lazily through `@vittaz/storage`. `ask` uses the
+shared `AssistantService` port with verified CLI origin; cloud Q&A requires
+explicit `VITTAZ_AI_BASE_URL` and `VITTAZ_AI_API_KEY`, and local draft/note tasks
+fail closed as unavailable until a local model runner is wired. Backup remains
+ledger-only plaintext with mode 0600 and the existing privacy warning.

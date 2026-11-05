@@ -9,6 +9,9 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@vittaz/core": "0.0.1"
+    "@vittaz/core": "0.0.1",
+    "@vittaz/storage": "0.0.1",
+    "@vittaz/agent": "0.0.1",
+    "commander": "15.0.0"
   }
 }
