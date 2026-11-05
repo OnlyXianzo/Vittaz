@@ -258,3 +258,51 @@ The preview still runs the **web demo reducer** through Metro `watchFolders`.
 It is synthetic demo data, not your real ledger. Replacing that reducer with
 `packages/core` behind an `expo-sqlite` adapter is S34–S35. This APK proves the
 native shell runs on your phone; it does not prove persistence or core wiring.
+
+## Recorded preview CI build (build proof only)
+
+- Workflow run: https://github.com/OnlyXianzo/Vittaz/actions/runs/42044273087
+- Job: `preview-apk` — success, `BUILD SUCCESSFUL in 12m 4s`, 1110 Gradle tasks.
+- Commit: `816df5177299bf6ed9ff201c7be52e948d0811f4`.
+- Autolinking assertion: `missing: []`. RN autolinked
+  `react-native-safe-area-context` and `react-native-svg`; Expo autolinked
+  `expo-linear-gradient` and `expo-dev-client`.
+- Gradle compiled 85 `react-native-safe-area-context` tasks and 82
+  `react-native-svg` tasks. `expo-linear-gradient` ships a prebuilt Maven
+  publication (`local-maven-repo`), so it is consumed as a dependency rather than
+  built as a Gradle subproject; its native module is present in the APK.
+- Metro bundled the release JS: `Android Bundled 30732ms index.ts (855 modules)`.
+- Repository-unchanged assertion passed (`git diff --exit-code`,
+  `git status --porcelain` both clean).
+
+Artifacts, both expiring `2026-11-12T14:35Z` (7-day retention):
+
+| Artifact                     | APK size     | ZIP size     | ZIP SHA-256                                                        |
+| ---------------------------- | ------------ | ------------ | ------------------------------------------------------------------ |
+| `s33-preview-standalone-apk` | 42,780,626 B | 22,465,755 B | `245c426b46fd29cea30fd2bae22f5ff2c55712a52e56fc9bbd59f2de627e3954` |
+| `s33-preview-devclient-apk`  | 97,730,790 B | 44,274,104 B | not downloaded                                                     |
+
+### Binary comparison: blank proof APK vs preview standalone APK
+
+Both artifacts were downloaded and inspected directly. This is the objective
+evidence for the crash diagnosis and its fix.
+
+| Check                                  | Blank proof APK | Preview standalone APK                |
+| -------------------------------------- | --------------- | ------------------------------------- |
+| `RNCSafeAreaProvider` in DEX           | absent          | present                               |
+| `SafeAreaProviderManager` in DEX       | absent          | present                               |
+| `SvgViewManager` / `SvgPackage` in DEX | absent          | present                               |
+| `LinearGradientModule` in DEX          | absent          | present                               |
+| `libreact_codegen_safeareacontext.so`  | absent          | present                               |
+| `libreact_codegen_rnsvg.so`            | absent          | present                               |
+| `assets/index.android.bundle`          | absent          | present, 1,889,140 B                  |
+| Bundle format                          | n/a             | Hermes bytecode (magic `c6 1f bc 03`) |
+
+The blank APK contains none of the native code the preview JavaScript requires,
+and no JavaScript at all. The preview APK contains all of it plus an embedded
+Hermes bundle. That is why the blank APK crashed on `RNCSafeAreaProvider` and why
+the standalone preview APK does not need Metro.
+
+Status: **pending owner install/open report**. These are static binary facts and
+a successful build. They are not device behavior. Do not claim device behavior;
+S33 closes only when the owner reports the app opened on their phone.
