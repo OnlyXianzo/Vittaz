@@ -147,7 +147,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 - [x] **S29. CLI.** Commands for add, ledger, inbox (list, approve, reject), undo, balance, import, backup, restore, and ask. JSON output keys in snake_case.
 - [x] **S30. Headless flows.** End-to-end tests for the eight manual flows in the test plan.
-- [ ] **S31. Mutation spot checks.** Turn off six key rules on purpose (name replacement, sensitive filter, approval, dedupe, key fallback, read-only). Each must make a test fail. Record results in `docs/mutation_checks.md`.
+- [x] **S31. Mutation spot checks.** Turn off six key rules on purpose (name replacement, sensitive filter, approval, dedupe, key fallback, read-only). Each must make a test fail. Record results in `docs/mutation_checks.md`.
 - [ ] **S32. Docs complete.** README, `docs/references.md`, `DECISIONS.md` and `docs/device_tests.md` are current.
 
 **Gate G3: backend ready.** All layers 1 to 4 pass in CI, the CLI flows pass, mutation checks pass, docs are complete. You sign off. Only now may anyone open `canvas/screens.zip`.

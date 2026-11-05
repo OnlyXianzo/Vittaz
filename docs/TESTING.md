@@ -86,6 +86,13 @@ assistant service with a fake local model runner:
 Run with `npx vitest run tests/integration/headless_flows.test.ts`. These are
 headless PC/sandbox tests, not Android device proof.
 
+## Mutation spot checks (S31)
+
+Six key rules are deliberately broken one at a time and must fail targeted tests:
+name replacement, sensitive filter, approval, dedupe, key fallback, and read-only.
+The method, mutations, commands, and failing tests are recorded in
+[mutation_checks.md](mutation_checks.md). Mutations are restored before commit.
+
 ## Live tests
 
 Tests tagged `@live` call a real keyless provider with synthetic prompts only. They never block a merge.
