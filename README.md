@@ -4,7 +4,7 @@
 
 The initial target is Android. A command-line interface supports development and headless workflows; desktop support may follow later.
 
-> **Project status:** Early planning. The product name is Vittaz. The software license has not yet been selected.
+> **Project status:** Backend steps S1–S31 are implemented and verified, including S29 full CLI, S30 headless flows, and S31 mutation spot checks; S32 completes the current documentation pass. The G3 backend checkpoint is **report only and awaits owner sign-off**. No Android device behavior has been verified. The product name is Vittaz. The software license has not yet been selected.
 
 ## What Vittaz aims to do
 
@@ -47,6 +47,24 @@ Features may change as implementation and testing reveal practical constraints. 
 - **CLI:** a companion interface for development, testing, imports, and headless use.
 - **Desktop:** a possible later application for Windows and Linux.
 
+## CLI quick start
+
+Use Node `24.22.2` and npm `11.19.1`.
+
+```bash
+npm ci
+npm run build
+node apps/cli/dist/main.js --version
+node apps/cli/dist/main.js --help
+node apps/cli/dist/main.js --db ./ledger.db add '{"kind":"expense","amount_paise":12345,"wallet":"cash","note":"lunch"}'
+node apps/cli/dist/main.js --db ./ledger.db ledger
+```
+
+The CLI prints JSON with snake_case keys. `--db` or `VITTAZ_DB_PATH` selects the
+SQLite ledger. Cloud `ask` requires `VITTAZ_AI_BASE_URL` and `VITTAZ_AI_API_KEY`;
+without them it fails closed. Backups are ledger-only plaintext files written with
+mode `0600`; backup encryption remains an owner decision.
+
 ## Documentation
 
 - [Product overview](docs/PRODUCT.md)
@@ -59,6 +77,9 @@ Features may change as implementation and testing reveal practical constraints. 
 - [Telegram connector](docs/TELEGRAM.md)
 - [Connectors and MCP](docs/CONNECTORS.md)
 - [Testing](docs/TESTING.md)
+- [Mutation spot checks](docs/mutation_checks.md)
+- [Device test checklist](docs/device_tests.md)
+- [G3 backend report](docs/gates/G3_backend_report.md)
 - [Build plan](Plan.md)
 - [Decisions](DECISIONS.md)
 - [Roadmap](docs/ROADMAP.md)
@@ -70,4 +91,4 @@ The project license is **undecided**. Until a license is selected and a correspo
 
 ## Project status
 
-Vittaz is in the planning and foundation stage. The documents describe intended behaviour, not a claim that every listed feature is already implemented. Check the repository and release notes for current implementation status.
+Vittaz has a verified backend through S31 and a completed S32 documentation pass. The native Android UI under `apps/mobile/ui/native` is owner-authored and visual-only; it is not yet wired to `packages/core` through an `expo-sqlite` adapter. G3 is a backend checkpoint report, not device acceptance or frontend authority. Check `STATE.md`, `Plan.md`, and the gate reports for current implementation status.

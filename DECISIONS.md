@@ -578,3 +578,16 @@ mutation must make its targeted existing suite fail; then the file is restored
 and `git diff --exit-code` must be clean. Results are recorded in
 docs/mutation_checks.md. This is a spot-check method, not a full mutation score
 or a claim that every possible mutation is detected. No mutation is committed.
+
+## S32 — documentation completion (2026-11-05)
+
+- README now describes the verified backend through S31, the S32 documentation
+  pass, CLI quick start, and the report-only G3 checkpoint awaiting owner sign-off.
+- Added `docs/device_tests.md` as a pending checklist. No Android device behavior
+  has been verified; the owner must run `adb devices` before S33.
+- Added `docs/gates/G3_backend_report.md` as a report only. It does not grant
+  frontend authority, device acceptance, or owner approval.
+- Owner-owned open questions remain unresolved: the license is still undecided
+  despite the GPL-3.0 LICENSE file; backup encryption is undecided and backups
+  remain plaintext; native preview reuse of the web demo reducer through Metro
+  watchFolders duplicates core logic and must be replaced during core wiring.
