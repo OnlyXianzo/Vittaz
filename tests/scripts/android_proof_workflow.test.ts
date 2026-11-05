@@ -50,3 +50,16 @@ test("android_proof_docs_record_runner_image_and_owner_install_steps", () => {
   expect(guide).toContain("Do not claim device behavior");
   expect(guide).toContain("Mark S33 done only after");
 });
+
+test("android_proof_first_ci_build_is_recorded_but_owner_open_still_pending", () => {
+  const guide = read("docs/android_environment.md");
+  expect(guide).toContain("42031551861");
+  expect(guide).toContain("s33-android-proof-apk");
+  expect(guide).toContain(
+    "bdbb2f62082fb38402cd9ef9e2988f68ebeed8a0fb462e8987ca471565121b8e",
+  );
+  expect(guide).toContain("pending owner install/open report");
+  const state = read("STATE.md");
+  expect(state).toContain("42031551861");
+  expect(state).toContain("owner APK install/open report");
+});

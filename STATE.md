@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
 current_step: "S33"
-current_step_status: "workflow_pr_pending_owner_install_open"
-blocked_on: "S33 CI workflow merge, then owner APK install/open report"
+current_step_status: "ci_build_success_pending_owner_install_open"
+blocked_on: "owner APK install/open report"
 last_updated: "2026-11-05"
-last_green_commit: "66495c107e7c6cae724a7129a18e11acdb11f3ab"
+last_green_commit: "ef030e61ec0af7da092b9d275991e80217539ce2"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "main 66495c1; S33 workflow PR CI pending"
+ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; artifact s33-android-proof-apk"
 ---
 
 # STATE
@@ -21,7 +21,9 @@ ci_proof: "main 66495c1; S33 workflow PR CI pending"
 - G3 backend report finalized (PR #43 -> main `40a00b4`) and evidence corrected (PR #44 -> main `14a77c8`).
 - Owner accepted G3 on 2026-11-05; S33 started.
 - S33 environment checker/docs merged as PR #45 -> main `5aa9e6e`; state update merged as PR #46 -> main `66495c1`.
-- S33 manual CI Android proof workflow added locally; owner APK install/open report still pending.
+- S33 manual CI Android proof workflow merged as PR #47 -> main `ef030e6`.
+- Manual workflow run `42031551861` succeeded and uploaded `s33-android-proof-apk`.
+- Owner APK install/open report still pending; S33 is not done.
 
 ## Current proof
 
@@ -36,10 +38,11 @@ ci_proof: "main 66495c1; S33 workflow PR CI pending"
 
 ## Next actions
 
-1. Merge S33 workflow PR after protected CI is green, then run the manual
-   `S33 Android proof` workflow.
-2. Owner downloads the APK artifact, installs it, opens it, and reports the result.
-   `adb devices` remains optional supporting proof.
+1. Owner downloads `s33-android-proof-apk` from workflow run `42031551861`,
+   installs it, opens it, and reports the result. `adb devices` remains optional
+   supporting proof.
+2. If the artifact expires or a rebuild is needed, run the manual `S33 Android proof`
+   workflow again.
 3. Owner builds/installs a blank Expo development build following
    `docs/android_environment.md`; record actual device/build evidence.
 4. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
