@@ -32,6 +32,9 @@ function validReport() {
 }
 
 test("privacy_ci_requires_actual_passing_primitive_suites", () => {
+  expect(requiredPrivacySuites).toContain(
+    "packages/agent/src/privacy_boundary.test.ts",
+  );
   expect(hasPrivacyEvidence(validReport())).toBe(true);
   for (const value of [
     null,

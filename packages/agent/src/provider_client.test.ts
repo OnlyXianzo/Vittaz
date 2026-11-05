@@ -609,3 +609,59 @@ test("privacy_provider_invalid_stream_or_signal_is_static_before_network", async
   ).rejects.toThrow("Invalid provider request");
   expect(transport).not.toHaveBeenCalled();
 });
+
+test("privacy_provider_transport_redacts_known_names_and_identifiers_even_if_caller_skips_service", async () => {
+  const s = await open();
+  const { PrivacyRedactor } = await import("@vittaz/core");
+  const client = new OpenAICompatibleClient({
+    baseUrl: s.baseUrl,
+    keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
+    redactor: new PrivacyRedactor(["SynthPerson"]),
+  });
+  await client.chatCompletion({
+    messages: [
+      {
+        role: "user",
+        content:
+          "Person_1 SynthPerson UPI Ref 630811112222 Account XX1234 Person_999",
+      },
+    ],
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "get_balance",
+          description: "SynthPerson balance",
+          parameters: { type: "object" },
+        },
+      },
+    ],
+  });
+  const body = s.recordedRequests[0]!.rawBody;
+  expect(body).not.toContain("SynthPerson");
+  expect(body).not.toContain("630811112222");
+  expect(body).not.toContain("XX1234");
+  expect(body).toContain("Person_1");
+  expect(body).toContain("[UPI_REF]");
+  expect(body).toContain("[ACCOUNT]");
+  expect(body).toContain("Person_999");
+});
+
+test("privacy_provider_sanitized_wire_still_enforces_body_limit", async () => {
+  const transport = vi.fn();
+  const client = new OpenAICompatibleClient({
+    baseUrl: "https://example.invalid",
+    keyPool: new KeyPool(configs),
+    fetch: transport,
+  });
+  const chunk = "123456789,".repeat(2222);
+  await expect(
+    client.chatCompletion({
+      messages: [
+        { role: "user", content: chunk },
+        { role: "user", content: chunk },
+      ],
+    }),
+  ).rejects.toThrow("Invalid provider request");
+  expect(transport).not.toHaveBeenCalled();
+});

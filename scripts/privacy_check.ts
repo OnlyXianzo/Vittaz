@@ -12,6 +12,7 @@ export const requiredPrivacySuites = [
   "packages/core/src/privacy/scrubber.test.ts",
   "packages/core/src/privacy/safeTelemetry.test.ts",
   "packages/core/src/privacy/adversarial_names.test.ts",
+  "packages/agent/src/privacy_boundary.test.ts",
 ] as const;
 
 const record = (value: unknown): value is Record<string, unknown> =>
