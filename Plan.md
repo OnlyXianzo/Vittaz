@@ -135,7 +135,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 - [x] **S27. Live smoke tests.** Tagged `@live`, Kilo keyless routes only (section 9).
 - [x] **S27a. Conversations and messages.** Tables, repositories and use cases. Each message has a `source` (`app`, `cli`, `telegram`) and a conversation id.
 - [x] **S27b. Preferences.** Tone, language and detail, stored and added to the assistant context.
-- [ ] **S27c. Custom rules.** Validated structured rules. Message conditions are enforced in code before the assistant.
+- [x] **S27c. Custom rules.** Validated structured rules. Message conditions are enforced in code before the assistant.
 - [ ] **S27d. AssistantService.** The port in core and the implementation in `packages/agent`, using the tool registry. One service for app, CLI and Telegram.
 - [ ] **S27e. Agent policy tests.** The acceptance tests in `docs/AGENT_POLICY.md`, including prompt injection through notifications, imported rows and tool results.
 

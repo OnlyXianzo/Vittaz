@@ -1,3 +1,5 @@
+import { createRulesRepository } from "./rules.js";
+import type { AssistantRulesStore } from "@vittaz/core";
 import { createPreferencesRepository } from "./preferences.js";
 import type { AssistantPreferencesStore } from "@vittaz/core";
 import { createHistoryRepository } from "./conversations.js";
@@ -28,6 +30,7 @@ import {
 } from "./migrations.js";
 
 export interface OperationalStore extends SnapshotStore {
+  rules: AssistantRulesStore;
   preferences: AssistantPreferencesStore;
   history: ConversationHistoryStore;
   appendAnalytics(metadata: AiAnalyticsMetadata): Promise<void>;
@@ -351,6 +354,9 @@ function connect(filename: string, readonly: boolean): OperationalStore {
     }
   }
   return {
+    rules: createRulesRepository(db, (write, work) =>
+      enqueue(() => unit(write, work)),
+    ),
     preferences: createPreferencesRepository(db, (write, work) =>
       enqueue(() => unit(write, work)),
     ),
