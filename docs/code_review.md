@@ -424,3 +424,8 @@ no retry/model fallback and no tool execution. API output is never logged/echoed
 One actual synthetic live reply+tool JSON smoke passed (not skipped), no extra
 inference retry. Only test tooling/config/docs changed; native/device/service
 flows and remaining G3 acceptance remain unverified.
+
+S27 publish verified: exactf085c16876044e2a8994d9dcc55195d3c8dd8b47,
+CI41957305957 every required PR/push job SUCCESS; no unresolved threads or
+changes requested, normal protected PR28 merge77df4d33993d820ec9572fe8601380b7edbbaf2f.
+This state-only checkpoint records observed results, not S27a implementation.
