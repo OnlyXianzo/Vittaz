@@ -407,3 +407,45 @@ and uses no secrets. It creates a blank Expo TypeScript app in the runner temp
 directory, adds `expo-dev-client`, runs `expo prebuild --platform android
 --clean`, builds `assembleDebug` with Gradle, and uploads `app-debug.apk` with
 7-day retention. This is build proof only, not device proof.
+
+## S33 preview APK build (2026-11-05)
+
+`.github/workflows/s33-preview-apk.yml` reuses the runner image and the four
+pinned action SHAs recorded above for `s33-android-proof` (checkout v5.0.0,
+setup-java v4.7.1, setup-node v4.4.0, upload-artifact v4.6.2), on `ubuntu-24.04`
+with JDK 17 and Node 24.22.2. No new action was introduced.
+
+Facts verified locally in a throwaway copy of the owner preview
+(`expo ~58.0.23`, React Native `0.88.1`) before writing the workflow:
+
+- `npx expo-modules-autolinking react-native-config --platform android --json`
+  lists `react-native-safe-area-context` and `react-native-svg` under
+  `dependencies`. Plain React Native native modules are autolinked by the React
+  Native Gradle plugin and do **not** appear in
+  `npx expo-modules-autolinking resolve`, which reports Expo modules only. Both
+  commands are needed to check autolinking completely.
+- `npx expo-modules-autolinking resolve --platform android --json` lists
+  `expo-linear-gradient` and `expo-dev-client` under `modules`.
+- `npx expo install expo-dev-client` resolves to `~58.0.18`, matching the SDK 58
+  bundled version recorded above.
+- `npx expo export --platform android` succeeds for the preview and produces a
+  Hermes bundle of about 2.3 MB, confirming the Metro `watchFolders` layout
+  bundles for Android without the web-only dependencies.
+- The generated `android/app/build.gradle` skips JS bundling for debuggable
+  variants, so `assembleDebug` needs Metro; `assembleRelease` embeds
+  `assets/index.android.bundle`.
+- The generated release variant uses `signingConfig signingConfigs.debug`. This
+  is sideload-only, not production signing.
+- `expo-dev-launcher/android/build.gradle` selects `src/disableInRelease` for the
+  release source set unless `expo.devlauncher.configureInRelease=true`, so the
+  dev launcher is inert in the standalone release APK.
+
+Cause of the earlier owner-side crash, recorded so it is not re-diagnosed: the
+blank `s33-android-proof` APK autolinked no `react-native-safe-area-context`,
+while the preview JavaScript served by Metro rendered `SafeAreaProvider`, so
+Fabric raised `IllegalViewOperationException` for `RNCSafeAreaProvider`. The fix
+is to build the APK from the preview project, not to install JavaScript packages
+into an already-built binary.
+
+This workflow is build proof only. Do not claim device behavior; S33 closes only
+when the owner reports that the app opened on their phone.
