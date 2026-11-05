@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
 current_step: "S33"
-current_step_status: "ci_build_success_pending_owner_install_open"
+current_step_status: "preview_apk_built_pending_owner_install_open"
 blocked_on: "owner APK install/open report"
 last_updated: "2026-11-05"
 last_green_commit: "ef030e61ec0af7da092b9d275991e80217539ce2"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; artifact s33-android-proof-apk; preview APK workflow added, dispatch pending"
+ci_proof: "run 42044273087 success on main 816df51; artifacts s33-preview-standalone-apk + s33-preview-devclient-apk; autolink missing:[]; blank-vs-preview DEX comparison recorded"
 ---
 
 # STATE
@@ -31,13 +31,23 @@ ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; 
 - Confirmed the blank debug APK embeds no JS bundle, so it always needs Metro.
 - Owner reports the Metro **web** preview renders correctly at
   `http://localhost:8081/`. That is browser proof, not device proof.
-- Added manual `s33-preview-apk` workflow that builds the owner preview in a
-  runner temp copy and uploads a standalone release APK (embedded JS, no Metro)
-  plus a dev-client debug APK. `apps/mobile/ui/native` is not modified.
+- Added manual `s33-preview-apk` workflow (PR #49 -> main `f8f0989`) that builds
+  the owner preview in a runner temp copy and uploads a standalone release APK
+  (embedded JS, no Metro) plus a dev-client debug APK.
+- First dispatch failed `422`: `runner` context is invalid in job-level `env`.
+  Fixed at step level via `$GITHUB_ENV` with a regression test (PR #50 -> main
+  `816df51`).
+- Preview build run `42044273087` succeeded: autolink `missing: []`, 85
+  safe-area-context and 82 svg Gradle tasks, Metro bundled 855 modules, embedded
+  Hermes bundle 1,889,140 B, checkout unchanged.
+- Downloaded both APKs and compared DEX/native libs: the blank APK has none of
+  `RNCSafeAreaProvider`, `SvgViewManager`, `LinearGradientModule`, no codegen
+  `.so` for svg/safe-area, and no JS bundle; the preview APK has all of them.
+- `apps/mobile/ui/native` is still not modified.
 
 ## Current proof
 
-- S33 environment checker tests: 6 tests pass locally; full suite now 310 tests / 54 files.
+- S33 environment checker tests: 6 tests pass locally; full suite now 311 tests / 54 files.
 - Sandbox `npm run android:env` reports `ok:false` with static errors:
   `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
   `no_ready_device`. This is expected in the sandbox and is not device proof.
@@ -48,10 +58,10 @@ ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; 
 
 ## Next actions
 
-1. Run the manual `S33 preview APK` workflow, then owner downloads
-   `s33-preview-standalone-apk`, installs `app-release.apk`, opens Vittaz, and
-   reports the result. This APK embeds its JS bundle and does not need Metro.
-   `adb devices` remains optional supporting proof.
+1. Owner downloads `s33-preview-standalone-apk` from run `42044273087`, installs
+   `app-release.apk`, opens Vittaz, and reports the result. This APK embeds its
+   JS bundle and does not need Metro. `adb devices` remains optional supporting
+   proof. Artifact expires 2026-11-12T14:35Z.
 2. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it will crash on `RNCSafeAreaProvider`.
 3. If an artifact expires or a rebuild is needed, re-run the manual workflow.
