@@ -405,3 +405,11 @@ money/split/direction/unknown fields/private getter/sensitive output, static dri
 failure/no retry, abort/non-cooperative timeout/late synchronous result/validation,
 actual unchanged financial ledger and cloned output. Real inference/backend
 notification worker/AssistantService/device behavior not covered or claimed.
+
+## Verified S26 publish checkpoint
+
+After merging owner UI PR25 without editing UI,205tests32files100% metrics and all
+full local checks reran. Exact113c436 CI41876257278 plus every PR/push required
+check succeeded, no review threads, normal protected PR26 merge1aadf51b. Earlier
+405 refusals were respected; no bypass. This checkpoint updates STATE to verified
+facts, not a new implementation step or S27 completion.
