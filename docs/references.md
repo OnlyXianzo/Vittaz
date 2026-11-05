@@ -447,5 +447,15 @@ Fabric raised `IllegalViewOperationException` for `RNCSafeAreaProvider`. The fix
 is to build the APK from the preview project, not to install JavaScript packages
 into an already-built binary.
 
+Workflow-context constraint learned from a real `422` on the first dispatch
+attempt: GitHub exposes the `runner` context only at **step** level. Putting
+`${{ runner.temp }}` in job-level `env` makes the entire workflow file fail to
+parse (`Unrecognized named-value: 'runner'`), and `workflow_dispatch` then
+returns `422` before any job starts. The workflow now derives `PREVIEW_DIR` from
+the `$RUNNER_TEMP` environment variable in a first step and writes it to
+`$GITHUB_ENV`; `${{ runner.temp }}` is used only in step-level `with:` inputs.
+A regression test asserts job-level `env` contains no `runner.` expression.
+See https://docs.github.com/en/actions/reference/workflows-and-actions/contexts.
+
 This workflow is build proof only. Do not claim device behavior; S33 closes only
 when the owner reports that the app opened on their phone.
