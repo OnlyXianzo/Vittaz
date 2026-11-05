@@ -498,3 +498,8 @@ HTTP and invalid token static errors, token text redaction, digest exact integer
 format incl negative, unsafe origins rejected. No real Telegram token/API request.
 262tests46files100% all metrics. Host secure storage/CSPRNG/lifecycle and reply
 failure/exactly-once limitation explicit; no phone/independent-review claim.
+
+S28 publication: owner PR36 independently advanced main with mobile-native UI
+under apps/mobile/ui/native and native workflow. Paused old-head verifier, merged
+main without editing owner files, and re-ran full backend verification before new
+head publication. No UI/device readiness claim and no protection bypass.

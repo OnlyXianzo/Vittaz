@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Vittaz",
+    "slug": "vittaz-native",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "vittaz",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#07120a",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vittaz.preview"
+    },
+    "android": {
+      "package": "com.vittaz.preview",
+      "adaptiveIcon": {
+        "backgroundColor": "#07120a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-font"]
+  }
+}

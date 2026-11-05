@@ -1,0 +1,42 @@
+name: Native app
+
+on:
+  push:
+    paths:
+      - "apps/mobile/ui/native/**"
+      - "apps/mobile/ui/src/**"
+      - ".github/workflows/native.yml"
+  pull_request:
+    paths:
+      - "apps/mobile/ui/native/**"
+      - "apps/mobile/ui/src/**"
+      - ".github/workflows/native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/mobile/ui/native
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: apps/mobile/ui/native/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test -- --ci
+      # Bundle check: proves Metro can resolve the shared domain modules and
+      # build the app for a real target. No device claim is made.
+      - run: npx expo export --platform web --output-dir dist
