@@ -345,3 +345,29 @@ No new runtime dependency was added. Documentation was checked against the
 existing Node **24.22.2**, npm **11.19.1**, Vitest **4.1.10**, Commander
 **15.0.0**, and repository source. `docs/device_tests.md` is intentionally a
 pending checklist: no Android device behavior has been verified.
+
+## S33 Android environment (2026-11-05)
+
+Official documentation consulted before adding the environment checker and owner
+instructions:
+
+- Android Debug Bridge: https://developer.android.com/tools/adb — `adb` is part
+  of Android SDK Platform Tools; `adb devices` lists attached devices and states
+  such as `device`, `offline`, and `unauthorized`.
+- Expo development builds:
+  https://docs.expo.dev/develop/development-builds/introduction/ — local builds
+  use `npx expo install expo-dev-client`, then `npx expo run:android --device`
+  for a physical device, and `npx expo prebuild --clean` when native config or
+  dependencies change.
+- Expo Android Studio/emulator setup:
+  https://docs.expo.dev/workflow/android-studio-emulator/ — JDK 17, Android SDK
+  Platform 36, SDK Build-Tools, platform-tools, and `ANDROID_HOME` are required
+  for local Android builds.
+- Expo DevClient SDK 58: https://docs.expo.dev/versions/v58.0.0/sdk/dev-client/ —
+  recommended `expo-dev-client` version for SDK 58 is `~58.0.18`.
+
+No new repository runtime dependency was added by the checker itself. The
+owner-side blank Expo development build should use the Expo SDK selected by the
+blank template and `npx expo install expo-dev-client` so the dev-client version
+matches that SDK. The checker masks device serials and reports only static error
+codes; it is not device proof.

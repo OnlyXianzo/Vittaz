@@ -53,8 +53,10 @@ Using Node `24.22.2` / npm `11.19.1`:
 6. Cloud/live provider tests, local model device benchmarks, Keystore, notification
    listener, voice, and OCR are not executed here.
 
-## Owner decision requested
+## Owner decision recorded
 
-Please review this report. If you accept G3, reply with explicit sign-off and run
-`adb devices` on your PC for S33. If you require more backend evidence first, keep
-the pause and name the missing scope. Do not interpret this report as approval.
+Owner sign-off was received on 2026-11-05 via the explicit option **“Yes — approve
+G3, start S33.”** This accepts the backend checkpoint only. It does not accept
+Android device behavior, frontend wiring, or the owner-owned open questions.
+S33 now requires the owner to run `adb devices` on their PC and provide the
+output, then build/install a blank Expo development build.
