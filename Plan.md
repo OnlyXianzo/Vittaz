@@ -146,7 +146,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 ### Phase H: CLI and backend sign-off
 
 - [x] **S29. CLI.** Commands for add, ledger, inbox (list, approve, reject), undo, balance, import, backup, restore, and ask. JSON output keys in snake_case.
-- [ ] **S30. Headless flows.** End-to-end tests for the eight manual flows in the test plan.
+- [x] **S30. Headless flows.** End-to-end tests for the eight manual flows in the test plan.
 - [ ] **S31. Mutation spot checks.** Turn off six key rules on purpose (name replacement, sensitive filter, approval, dedupe, key fallback, read-only). Each must make a test fail. Record results in `docs/mutation_checks.md`.
 - [ ] **S32. Docs complete.** README, `docs/references.md`, `DECISIONS.md` and `docs/device_tests.md` are current.
 

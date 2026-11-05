@@ -558,3 +558,14 @@ backup/restore remain explicit user CLI actions, never assistant tools. Cloud
 ask requires explicit provider env; no default public endpoint or key. Local
 draft_entry/improve_note are unavailable without a local model runner, not
 silently sent to cloud. Backup encryption/license remain owner-owned open items.
+
+## S30 — headless eight-flow interpretation (2026-11-05)
+
+docs/TESTING.md does not enumerate eight manual flows; the authoritative list is
+docs/reference_inventory.md `baseline_headless_flows`: manual, split draft,
+approve, improve note, reject, undo, batch approve, export/import. S30 implements
+those eight as `tests/integration/headless_flows.test.ts` through the real CLI,
+native SQLite, core use cases, and SharedAssistantService with a fake local model
+runner. No cloud provider is used for draft/note flows; no Android/device behavior
+is claimed. Export/import means ledger backup/restore plus spreadsheet import
+replay safety. Improve-note remains suggestion-only and never edits a ledger note.

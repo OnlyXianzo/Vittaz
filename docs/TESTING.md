@@ -68,6 +68,24 @@ Blank dev build installs. LangChain bundles, makes a tool call and streams. SQLi
 
 Insert 1,000 entries in a day. Load 365,000 rows and scroll a virtualized list. Month summary and unverified count stay fast with the planned indexes. Batch-approve 200 entries. Set targets after the first measurement.
 
+## Headless manual flows (S30)
+
+`tests/integration/headless_flows.test.ts` covers the eight reference manual
+journeys through the real CLI, native SQLite storage, core use cases, and shared
+assistant service with a fake local model runner:
+
+1. Manual entry updates ledger, balance, and audit.
+2. Split draft creates a pending proposal only.
+3. Approve commits once and is idempotent.
+4. Improve note suggests text without mutating the ledger.
+5. Reject commits nothing and blocks later approval.
+6. Undo restores the previous state and rejects replay.
+7. Batch approve is atomic and idempotent.
+8. Export/import restores the ledger and reimports spreadsheets safely.
+
+Run with `npx vitest run tests/integration/headless_flows.test.ts`. These are
+headless PC/sandbox tests, not Android device proof.
+
 ## Live tests
 
 Tests tagged `@live` call a real keyless provider with synthetic prompts only. They never block a merge.
