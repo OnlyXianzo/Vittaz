@@ -56,3 +56,13 @@ test("preview_apk_docs_explain_native_js_mismatch_and_standalone_install", () =>
   expect(references).toContain("s33-preview-apk");
   expect(references).toContain("react-native-safe-area-context");
 });
+
+test("preview_apk_workflow_does_not_use_runner_context_in_job_level_env", () => {
+  const workflow = read(workflow_path);
+  // GitHub only exposes the `runner` context at step level. Using it in
+  // job-level `env` makes the whole workflow file fail to parse, so
+  // workflow_dispatch returns 422 and the workflow can never run.
+  const job_env = workflow.split(/^\s{4}steps:/m)[0];
+  expect(job_env).not.toMatch(/\$\{\{\s*runner\./);
+  expect(workflow).toContain("GITHUB_ENV");
+});
