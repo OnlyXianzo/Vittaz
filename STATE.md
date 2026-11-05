@@ -1,11 +1,46 @@
-# State
+---
+current_phase: "G3 backend checkpoint report only"
+current_step: "S32"
+current_step_status: "locally_green_pr_pending"
+blocked_on: "owner G3 sign-off after protected S32 merge"
+last_updated: "2026-11-05"
+last_green_commit: "31062926d194c3250842374b9bec41bdc326b137"
+gate_status: "G1 accepted; G2 accepted; G3 report only, owner sign-off pending"
+ci_proof: "PR #41 run 42003542907 all required checks success; S32 PR CI pending"
+---
 
-current_step: S31 mutation checks locally green; protected PR next, then S32 docs
-last_green_commit: 07af6760ee275d49d3797981bc829ecb8dd5399d S30 merged; S31 branch local green pending commit
-gate_status: G1/G2 accepted; G3 owner approved, technical criteria incomplete
-blocked_on: nothing; verified autonomous backend progress only
-next_actions: protected S31 PR/CI/merge; S32 docs complete; G3 report only
-owner_authorization: "Continue and G3 is also approved by me"; no UI/protection/evidence bypass
-ci_proof: S27e exact7b65d62 CI41963012899 all required push/PR checks SUCCESS/reviews clear, protected PR35 mergee79a76b2c93783d79342026ef46ab1650761299a. S27d exactbbb7404 CI41962423912 all required PR/push checks SUCCESS/reviews clear, protected PR34 mergef62a30b4e8f696d13a13fd2c1cd91a184e295e51. S27c exactbdc96b8 CI41961301295 all required PR/push checks SUCCESS/reviews clear, protected PR33 mergeafb0dc4af2bc91f5f77ff8193c39257b5f36160f. S27b exactc6ded3e CI41960719099 all required PR/push checks SUCCESS/reviews clear, protected PR32 mergee392b5fedda4f6fcde94dfc91fbf9bedddaab75f. S27a exactb03d509d CI41959714325 every required PR/push job SUCCESS, review/thread checks clear, protected PR30 merge16989ccb269fd4ea9f275f3f4ac1e0c331daca3d. S27 exactf085c168 CI41957305957 all required PR/push jobs SUCCESS, no unresolved review threads/changes requested; protected PR28 merge77df4d33993d820ec9572fe8601380b7edbbaf2f. S25 exact5392074 CI41874462072 plus PR checks green, protected PR24 mergeddbb90e6. S26 original91ebb3d CI41875662202 green but merge refused after owner UI PR25 advanced main. Merged owner04a59f1 without UI edits, full local recheck; exact113c436 CI41876257278 and all PR/push required jobs SUCCESS, no review threads, protected PR26 merge1aadf51b221c83ac4b6b10df41b9d272d35fbfcb.
-local_proof: S31 six mutation suites failed as expected then restored; S30 294tests50files100%; S29 286tests49files100% (2072/2072 statements, 1480/1480 branches, 506/506 functions, 1868/1868 lines); provider privacy 268tests47files100%; inherited S28 262tests46files100% all implemented-package source metrics including new history modules; S27 test helper tooling remains outside production coverage; separate actual @live1pass and no-opt-in1skip verified; types/lint/format/privacy/build/CLI/audit0/scan0 including postcommit. S25 real framework/HTTP/readonly database integration; S26 fake local task/suggestion-only/unchanged ledger boundary.
-notes: PR27 documentation checkpoint merged7aaa0f5 after all required checks green. S27 actual opt-in test passed (not skipped): public catalog plus synthetic reply and tool JSON, three requests/no key/no fallback; normal CI excluded/manual allowed failure. No production changes. S27a additive history ports/use cases/storage/migration3/local sensitivity gates implemented; private append sequence preserves turn order across tied/backwards clocks; legacy ledger-only backupv2 excludes/preserves chats on restore. Service/preferences/rules/policy/Telegram fake backend complete; CLI/headless/mutation/docs acceptance pending. G3 not technically complete. Owner UI PR25 preserved; no backend edits to UI/.agents.
+# STATE
+
+## Completed this session
+
+- Provider privacy boundary merged as PR #38 -> main `971312b`.
+- S29 full snake_case CLI merged as PR #39 -> main `f605a4a`.
+- S30 eight headless manual flows merged as PR #40 -> main `07af676`.
+- S31 six mutation spot checks merged as PR #41 -> main `3106292`.
+- S32 documentation completed locally: README, references, DECISIONS,
+  `docs/device_tests.md`, and `docs/gates/G3_backend_report.md`.
+
+## Current local proof (S32 branch)
+
+- lint/typecheck/format:check: pass
+- test:coverage: 296 tests / 51 files, 100% coverage
+- test:privacy: pass
+- build + CLI smoke: pass
+- npm audit: 0 vulnerabilities
+- secret:scan: 0 findings
+
+## Next actions
+
+1. Push S32 branch, open protected PR, wait for all five required checks, squash merge.
+2. Present G3 report only and stop for owner sign-off.
+3. After owner sign-off, S33 Android environment; owner must run `adb devices` on their PC.
+4. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
+   an `expo-sqlite` repository adapter, replace preview demo reducer.
+5. Phase J UI vertical slices; prove every slice on a real device.
+
+## Owner-owned open items (do not decide)
+
+- License undecided despite GPL-3.0 LICENSE file.
+- Backups plaintext; backup encryption undecided.
+- Native preview reuses web demo reducer through Metro watchFolders; must be
+  replaced during core wiring.

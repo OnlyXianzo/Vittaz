@@ -338,3 +338,10 @@ shared `AssistantService` port with verified CLI origin; cloud Q&A requires
 explicit `VITTAZ_AI_BASE_URL` and `VITTAZ_AI_API_KEY`, and local draft/note tasks
 fail closed as unavailable until a local model runner is wired. Backup remains
 ledger-only plaintext with mode 0600 and the existing privacy warning.
+
+## S32 documentation completion
+
+No new runtime dependency was added. Documentation was checked against the
+existing Node **24.22.2**, npm **11.19.1**, Vitest **4.1.10**, Commander
+**15.0.0**, and repository source. `docs/device_tests.md` is intentionally a
+pending checklist: no Android device behavior has been verified.
