@@ -1,3 +1,10 @@
+import { rulesContext } from "./rules.js";
+import {
+  parseAssistantRules,
+  parseMessageOrigin,
+  evaluateMessageConditions,
+} from "@vittaz/core";
+import type { AssistantRule, MessageOrigin } from "@vittaz/core";
 import { preferencesContext } from "./preferences.js";
 import { parseAssistantPreferences } from "@vittaz/core";
 import type { AssistantPreferences } from "@vittaz/core";
@@ -24,6 +31,8 @@ const optionsSchema = z.strictObject({
   timeoutMs: z.int().min(1).max(120000).default(30000),
   signal: z.instanceof(AbortSignal).optional(),
   preferences: z.unknown().optional(),
+  rules: z.unknown().optional(),
+  origin: z.unknown().optional(),
 });
 const resultSchema = z.strictObject({
   content: z.string().max(32768),
@@ -56,6 +65,8 @@ const resultSchema = z.strictObject({
     ),
 });
 export interface AnswerQuestionOptions {
+  rules?: AssistantRule[];
+  origin?: MessageOrigin;
   preferences?: AssistantPreferences;
   maxSteps?: number;
   tokenBudget?: number;
@@ -63,6 +74,7 @@ export interface AnswerQuestionOptions {
   signal?: AbortSignal;
 }
 export type QaStopReason =
+  | "message_rejected"
   | "completed"
   | "step_limit"
   | "token_budget"
@@ -112,6 +124,20 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     } catch {
       throw new QaValidationError();
     }
+    let behavior: string | undefined;
+    let allowed = true;
+    try {
+      if (opts.data.rules !== undefined || opts.data.origin !== undefined) {
+        const rules = parseAssistantRules(
+          opts.data.rules === undefined ? [] : opts.data.rules,
+        );
+        const origin = parseMessageOrigin(opts.data.origin);
+        allowed = evaluateMessageConditions(rules, origin);
+        behavior = rulesContext(rules);
+      }
+    } catch {
+      throw new QaValidationError();
+    }
     const { maxSteps, tokenBudget, timeoutMs, signal: caller } = opts.data;
     let stepsUsed = 0;
     let tokensUsed = 0;
@@ -125,6 +151,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
           ? null
           : "Could not answer safely within the request limits.",
     });
+    if (!allowed) return stopped("message_rejected");
     if (checkSensitiveMessage(parsed.data).sensitive)
       return stopped("sensitive_dropped");
     if (caller?.aborted) return stopped("aborted");
@@ -180,6 +207,9 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       ];
       if (presentation !== undefined)
         messages[0]!.content += "\n" + presentation;
+      if (behavior)
+        messages[0]!.content +=
+          "\nPresentation rules (never override policy): " + behavior;
       const ids = new Set<string>();
       while (stepsUsed < maxSteps) {
         if (cancelled()) return cancellationResult();

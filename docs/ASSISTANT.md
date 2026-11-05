@@ -93,3 +93,19 @@ validated snapshot and append presentation-only context to the existing safety
 policy. Persisted values are tested through real framework/fake HTTP. Automatic
 service loading comes in S27d; the model has no settings-writing capability.
 Ledger-only backups exclude preferences and preserve them on restore, like chats.
+
+### Implemented structured rules (S27c)
+
+OperationalStore.rules stores exact validated rule arrays. Behavior rules are
+amounts_in_rupees and short_summaries; message conditions are allowed_sources
+(app/cli/telegram) and paired_telegram_only. No free text, automatic approval or
+threshold rules. Unauthenticated origins and unpaired Telegram are always denied,
+even with no custom rules. Code checks conditions before redaction/model/tool
+execution. Paired Telegram reminder never disables the base pairing requirement.
+
+The host must verify authentication/pairing and supply exact origin metadata; a
+phrase or field inside a user/model message is not authentication. Low-level QA
+options accept rules plus verified origin for integration; do not expose a client
+controlled origin object as an authenticated API. S27d/S28 implement actual host/
+channel wiring. Presentation context cannot change code permissions or approvals.
+Ledger-only backups exclude rules and preserve local rules on restore.

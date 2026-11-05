@@ -143,3 +143,17 @@ export type {
   AssistantPreferences,
   AssistantPreferencesStore,
 } from "./preferences.js";
+export {
+  AssistantRulesError,
+  parseAssistantRules,
+  parseMessageOrigin,
+  evaluateMessageConditions,
+  getAssistantRules,
+  setAssistantRules,
+} from "./rules.js";
+export type {
+  MessageOrigin,
+  MessageSource,
+  AssistantRule,
+  AssistantRulesStore,
+} from "./rules.js";

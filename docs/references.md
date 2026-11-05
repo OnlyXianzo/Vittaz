@@ -280,3 +280,16 @@ JSON/shape/over256chars fails statically rather than silently resetting preferen
 Persist->load->real LangChain/S21 fake HTTP test proves optional presentation
 context actually sent while immutable QA policy/tool/budget authority remains.
 Default no-preference wire unchanged. No live inference or service integration claim.
+
+## S27c structured rules (2026-11-05)
+
+Same-turn official Drizzle insert/upsert and Zod strict-option sources above apply;
+no new dependency/API or migration. Core exact own-field union: amounts_in_rupees,
+short_summaries, allowed_sources and paired_telegram_only. No free text, threshold,
+secret-phrase authentication or automatic approvals. Authentication and Telegram
+pairing mandatory independently of stored rules; rules only restrict. Origin
+booleans are trusted HOST metadata, never proof from a user/model message.
+Inherited fields acceptance reproduced red and fixed with exact own-field checks.
+Persisted behavior through actual LangChain/S21 fake HTTP, unauthorized/unpaired/
+source-rejected requests stop before redactor/provider/tools. Default low-level
+Q&A remains trusted in-process; shared service/channel verification is S27d/S28.

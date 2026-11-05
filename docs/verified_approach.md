@@ -707,3 +707,22 @@ update and strict optional schema supported in installed0.45.4/4.6.7, no new dep
 Scope core/storage/QA options/tests only. Red before code, then defaults/enum
 cross-product/injection/clone/SQL errors/restart/backup/context integration and
 full checks. No independent agents available; docs/source/consumers reviewed.
+
+## S27c structured rules — design/research 2026-11-05
+
+Official Drizzle insert/upsert and Zod strict API reviewed this turn (S27b), retain
+pins/no new libs. Reviewed ASSISTANT/AGENT_POLICY: free text cannot become policy,
+all proposals require approval, authentication precedes model, paired Telegram is
+mandatory even with no custom rule. Implement exact union of two presentation
+behaviors (amounts_in_rupees,short_summaries), allowed_sources condition and
+paired_telegram_only reminder. Max16/unique rule IDs/source enums, no free strings,
+thresholds/auth secret/disable-approval rule. Core parser/async port/use cases and
+code evaluator of trusted origin source/authenticated/paired_telegram. Host—not
+message/LLM—must supply verified origin. Telegram pairing never weakens; explicit
+rules add restrictions only. Existing serialized settings key assistant_rules;
+legacy ledger backup excludes/preserves rules. Optional rules+origin QA context:
+reject conditions BEFORE redactor/provider/tools; presentation context static,
+existing policy remains. Default no rules/origin behavior unchanged. Red per layer,
+real persistence->HTTP plus unauthenticated/unpaired/denied-source zero-call tests;
+then full suite/100% coverage/protected CI. Not channel authentication implementation
+or shared-service completion (S27d/S28 still next), no independent reviewer claim.

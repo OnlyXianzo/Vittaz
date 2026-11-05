@@ -459,3 +459,12 @@ JSON/bounds, restart/upsert and ledger-only backup preservation checked. Actual
 LangChain/S21 fake HTTP sees persisted style while existing policy remains; no
 preferences causes original wire. Sensitive requests still zero-provider calls.
 No production dependency/SQL migration/UI/agents changes or live inference.
+
+S27c: missing modules/storage/context red followed by a reproduced inherited-field
+policy acceptance red. Exact own fields now required in rules and origin. Tested
+allowlists, mandatory independent auth/pairing, words cannot authenticate, zero
+redactor/provider/query calls for rejected origins, no free-form prompt or approval
+settings, static corrupt-JSON/SQL/port failures, restart/upsert/cloned arrays and
+backup preservation. Real stored behavior->LangChain fake HTTP keeps original
+policy. No independent review, channel-authentication or shared-service readiness
+claim. All old checks preserved/default in-process QA behavior unchanged.
