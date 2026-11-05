@@ -1,6 +1,6 @@
 # G3 — Backend readiness report (report only)
 
-Date: 2026-11-05. **This is a report only. It does not grant owner sign-off,
+Date: 2026-11-05. Main at final report: `3ed0a7657d241830e09344f32a0c3214b1620f63`. **This is a report only. It does not grant owner sign-off,
 frontend authority, or device acceptance.** Stop here for owner review.
 
 ## In plain language
@@ -25,7 +25,7 @@ to sign off G3 and run `adb devices` on their PC.
 | Mutation checks pass                     | `docs/mutation_checks.md`: six deliberate breaks, each targeted suite failed, sources restored       | pass                     |
 | Docs complete                            | README, `docs/references.md`, `DECISIONS.md`, `docs/device_tests.md`, this report                    | pass                     |
 
-## Local verification on S32 branch
+## Local verification on S32 branch (also green in protected CI)
 
 Using Node `24.22.2` / npm `11.19.1`:
 
