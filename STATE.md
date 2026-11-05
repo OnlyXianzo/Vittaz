@@ -4,9 +4,9 @@ current_step: "S32"
 current_step_status: "merged"
 blocked_on: "owner G3 sign-off"
 last_updated: "2026-11-05"
-last_green_commit: "3ed0a7657d241830e09344f32a0c3214b1620f63"
+last_green_commit: "40a00b430bb628716e562efd8bc817a7524d3602"
 gate_status: "G1 accepted; G2 accepted; G3 report only, owner sign-off pending"
-ci_proof: "PR #42 run 42004884989 all required checks success; main 3ed0a76"
+ci_proof: "PR #42 run 42004884989 and PR #43 head 6197a6c required checks success; main 40a00b4"
 ---
 
 # STATE
@@ -18,7 +18,7 @@ ci_proof: "PR #42 run 42004884989 all required checks success; main 3ed0a76"
 - S30 eight headless manual flows merged as PR #40 -> main `07af676`.
 - S31 six mutation spot checks merged as PR #41 -> main `3106292`.
 - S32 documentation merged as PR #42 -> main `3ed0a76`.
-- G3 backend report finalized as report only; owner sign-off pending.
+- G3 backend report finalized as report only (PR #43 -> main `40a00b4`); owner sign-off pending.
 
 ## Current proof
 

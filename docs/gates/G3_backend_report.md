@@ -1,6 +1,6 @@
 # G3 — Backend readiness report (report only)
 
-Date: 2026-11-05. Main at final report: `3ed0a7657d241830e09344f32a0c3214b1620f63`. **This is a report only. It does not grant owner sign-off,
+Date: 2026-11-05. S32 merged main `3ed0a7657d241830e09344f32a0c3214b1620f63`; G3 report finalization merged main `40a00b430bb628716e562efd8bc817a7524d3602`. **This is a report only. It does not grant owner sign-off,
 frontend authority, or device acceptance.** Stop here for owner review.
 
 ## In plain language
@@ -13,17 +13,17 @@ to sign off G3 and run `adb devices` on their PC.
 
 ## Technical checklist
 
-| Check                                    | Evidence                                                                                             | Result                   |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------ |
-| Provider privacy boundary before S29–S32 | PR #38, head `39edd53fa94f4ca0c5a3e17890a3644d3d27bea3`, CI run `41997340341`; merged main `971312b` | pass                     |
-| S29 full snake_case CLI                  | PR #39, head `14435064e3efd8113138dfa329418cf6744eea70`, CI run `42000754015`; merged main `f605a4a` | pass                     |
-| S30 eight headless manual flows          | PR #40, head `e6c58d4576c54b5bfa8e808c79a4480a68801a63`, CI run `42002483590`; merged main `07af676` | pass                     |
-| S31 six mutation spot checks             | PR #41, head `5fdfd9dc68bec295306254596131f3ea0de7d539`, CI run `42003542907`; merged main `3106292` | pass                     |
-| S32 documentation completion             | Local full gate green; protected PR CI pending at report creation                                    | pass locally, CI pending |
-| Layers 1–4 in CI                         | `quality`, `privacy`, `test`, `security`, `build` required by ruleset and green on S29–S31 heads     | pass                     |
-| CLI flows pass                           | `tests/integration/headless_flows.test.ts`: eight manual flows through real CLI and native SQLite    | pass                     |
-| Mutation checks pass                     | `docs/mutation_checks.md`: six deliberate breaks, each targeted suite failed, sources restored       | pass                     |
-| Docs complete                            | README, `docs/references.md`, `DECISIONS.md`, `docs/device_tests.md`, this report                    | pass                     |
+| Check                                    | Evidence                                                                                             | Result |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------ |
+| Provider privacy boundary before S29–S32 | PR #38, head `39edd53fa94f4ca0c5a3e17890a3644d3d27bea3`, CI run `41997340341`; merged main `971312b` | pass   |
+| S29 full snake_case CLI                  | PR #39, head `14435064e3efd8113138dfa329418cf6744eea70`, CI run `42000754015`; merged main `f605a4a` | pass   |
+| S30 eight headless manual flows          | PR #40, head `e6c58d4576c54b5bfa8e808c79a4480a68801a63`, CI run `42002483590`; merged main `07af676` | pass   |
+| S31 six mutation spot checks             | PR #41, head `5fdfd9dc68bec295306254596131f3ea0de7d539`, CI run `42003542907`; merged main `3106292` | pass   |
+| S32 documentation completion             | PR #42, head `6c12e9cf133031bb3b3c8023cd9bc682b5db71fd`, CI run `42004884989`; merged main `3ed0a76` | pass   |
+| Layers 1–4 in CI                         | `quality`, `privacy`, `test`, `security`, `build` required by ruleset and green on S29–S31 heads     | pass   |
+| CLI flows pass                           | `tests/integration/headless_flows.test.ts`: eight manual flows through real CLI and native SQLite    | pass   |
+| Mutation checks pass                     | `docs/mutation_checks.md`: six deliberate breaks, each targeted suite failed, sources restored       | pass   |
+| Docs complete                            | README, `docs/references.md`, `DECISIONS.md`, `docs/device_tests.md`, this report                    | pass   |
 
 ## Local verification on S32 branch (also green in protected CI)
 
