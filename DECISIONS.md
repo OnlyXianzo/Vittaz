@@ -591,3 +591,20 @@ or a claim that every possible mutation is detected. No mutation is committed.
   despite the GPL-3.0 LICENSE file; backup encryption is undecided and backups
   remain plaintext; native preview reuse of the web demo reducer through Metro
   watchFolders duplicates core logic and must be replaced during core wiring.
+
+## G3 owner sign-off and S33 environment method (2026-11-05)
+
+- Owner explicitly accepted G3 with “Yes — approve G3, start S33.” This accepts
+  the backend checkpoint only; it does not accept device behavior, frontend
+  wiring, license, backup encryption, or the native preview reducer issue.
+- S33 begins with a sandbox/owner-PC environment checker, `npm run android:env`,
+  and `docs/android_environment.md`. The checker parses `adb devices -l`, masks
+  serials, and reports static errors. It does not claim a device is present unless
+  the owner runs it on their PC with the phone attached.
+- The sandbox has Node 24.22.2 but no Android SDK/adb and only Java 11, so S33
+  device/build evidence must come from the owner PC. No Android device behavior
+  is claimed from sandbox checks.
+- A blank Expo development build is the S33 build target. The owner-owned native
+  visual shell is not rewritten or promoted in S33; S34–S35 will wire
+  `packages/core` through an `expo-sqlite` adapter and replace the preview demo
+  reducer.

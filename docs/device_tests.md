@@ -1,7 +1,8 @@
 # Device test checklist
 
 Status: **not executed**. No Android device behavior has been verified by this
-agent. The owner must run `adb devices` on their PC before S33 can begin.
+agent. G3 is owner-accepted; S33 is in progress. The owner must run `adb devices`
+on their PC and provide the output before any device claim.
 
 This file is the place to record actual device runs only after they happen. Do
 not mark a row complete from emulator assumptions, Expo Go behavior, web preview,
@@ -9,9 +10,10 @@ or Node tests.
 
 ## Preconditions
 
-- Owner signs off G3.
-- S33 installs/configures Android SDK/build tools and a blank Expo dev build.
-- Owner runs `adb devices` and confirms the target device is visible.
+- Owner signs off G3. **Done 2026-11-05.**
+- S33 provides `npm run android:env` and `docs/android_environment.md`.
+- Owner runs `adb devices` and confirms the target device is visible. **Pending.**
+- Owner builds/installs a blank Expo development build. **Pending.**
 - Synthetic data only; no real accounts, messages, or provider keys.
 
 ## Checklist

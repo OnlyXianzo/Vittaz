@@ -1,12 +1,12 @@
 ---
-current_phase: "G3 backend checkpoint report only"
-current_step: "S32"
-current_step_status: "merged"
-blocked_on: "owner G3 sign-off"
+current_phase: "Phase I Android"
+current_step: "S33"
+current_step_status: "in_progress_blocked_owner_device"
+blocked_on: "owner adb devices output and blank Expo development build evidence"
 last_updated: "2026-11-05"
 last_green_commit: "40a00b430bb628716e562efd8bc817a7524d3602"
-gate_status: "G1 accepted; G2 accepted; G3 report only, owner sign-off pending"
-ci_proof: "PR #42 run 42004884989 and PR #43 head 6197a6c required checks success; main 40a00b4"
+gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
+ci_proof: "main 14a77c8; S33 branch CI pending"
 ---
 
 # STATE
@@ -18,22 +18,29 @@ ci_proof: "PR #42 run 42004884989 and PR #43 head 6197a6c required checks succes
 - S30 eight headless manual flows merged as PR #40 -> main `07af676`.
 - S31 six mutation spot checks merged as PR #41 -> main `3106292`.
 - S32 documentation merged as PR #42 -> main `3ed0a76`.
-- G3 backend report finalized as report only (PR #43 -> main `40a00b4`); owner sign-off pending.
+- G3 backend report finalized (PR #43 -> main `40a00b4`) and evidence corrected (PR #44 -> main `14a77c8`).
+- Owner accepted G3 on 2026-11-05; S33 started.
 
 ## Current proof
 
-- Protected CI on S32 head `6c12e9c`: quality, privacy, test, security, build all success.
-- Local full gate: lint/typecheck/format:check pass; 296 tests / 51 files; 100% coverage;
+- S33 environment checker tests: 6 tests pass locally; full suite 302 tests / 52 files.
+- Sandbox `npm run android:env` reports `ok:false` with static errors:
+  `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
+  `no_ready_device`. This is expected in the sandbox and is not device proof.
+- Full local gate: lint/typecheck/format:check pass; 302 tests / 52 files; 100% coverage;
   privacy_checks_passed; build + CLI smoke pass; npm audit 0 vulnerabilities;
   secret:scan 0 findings.
 
 ## Next actions
 
-1. Stop for owner G3 sign-off. Do not start S33 without explicit approval.
-2. After owner sign-off, S33 Android environment; owner must run `adb devices` on their PC.
-3. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
+1. Merge S33 environment checker/docs after protected CI is green.
+2. Owner runs `adb devices` on their PC and provides output; then runs
+   `npm run android:env` on that PC if convenient.
+3. Owner builds/installs a blank Expo development build following
+   `docs/android_environment.md`; record actual device/build evidence.
+4. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
    an `expo-sqlite` repository adapter, replace preview demo reducer.
-4. Phase J UI vertical slices; prove every slice on a real device.
+5. Phase J UI vertical slices; prove every slice on a real device.
 
 ## Owner-owned open items (do not decide)
 

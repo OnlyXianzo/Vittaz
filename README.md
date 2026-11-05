@@ -4,7 +4,7 @@
 
 The initial target is Android. A command-line interface supports development and headless workflows; desktop support may follow later.
 
-> **Project status:** Backend steps S1–S31 are implemented and verified, including S29 full CLI, S30 headless flows, and S31 mutation spot checks; S32 completes the current documentation pass. The G3 backend checkpoint is **report only and awaits owner sign-off**. No Android device behavior has been verified. The product name is Vittaz. The software license has not yet been selected.
+> **Project status:** Backend steps S1–S31 are implemented and verified, including S29 full CLI, S30 headless flows, and S31 mutation spot checks; S32 completes the current documentation pass. The G3 backend checkpoint is **accepted by the owner**; S33 Android environment work is in progress and awaits owner device evidence. No Android device behavior has been verified. The product name is Vittaz. The software license has not yet been selected.
 
 ## What Vittaz aims to do
 
@@ -91,4 +91,4 @@ The project license is **undecided**. Until a license is selected and a correspo
 
 ## Project status
 
-Vittaz has a verified backend through S31 and a completed S32 documentation pass. The native Android UI under `apps/mobile/ui/native` is owner-authored and visual-only; it is not yet wired to `packages/core` through an `expo-sqlite` adapter. G3 is a backend checkpoint report, not device acceptance or frontend authority. Check `STATE.md`, `Plan.md`, and the gate reports for current implementation status.
+Vittaz has a verified backend through S31 and a completed S32 documentation pass. The native Android UI under `apps/mobile/ui/native` is owner-authored and visual-only; it is not yet wired to `packages/core` through an `expo-sqlite` adapter. G3 is accepted as a backend checkpoint, not device acceptance or frontend authority. Check `STATE.md`, `Plan.md`, and the gate reports for current implementation status.
