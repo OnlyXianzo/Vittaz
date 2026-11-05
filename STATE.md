@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
 current_step: "S33"
-current_step_status: "environment_prep_merged_blocked_owner_device"
-blocked_on: "owner adb devices output and blank Expo development build evidence"
+current_step_status: "workflow_pr_pending_owner_install_open"
+blocked_on: "S33 CI workflow merge, then owner APK install/open report"
 last_updated: "2026-11-05"
-last_green_commit: "40a00b430bb628716e562efd8bc817a7524d3602"
+last_green_commit: "66495c107e7c6cae724a7129a18e11acdb11f3ab"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #45 head d91bcd1 required checks success; main 5aa9e6e"
+ci_proof: "main 66495c1; S33 workflow PR CI pending"
 ---
 
 # STATE
@@ -20,7 +20,8 @@ ci_proof: "PR #45 head d91bcd1 required checks success; main 5aa9e6e"
 - S32 documentation merged as PR #42 -> main `3ed0a76`.
 - G3 backend report finalized (PR #43 -> main `40a00b4`) and evidence corrected (PR #44 -> main `14a77c8`).
 - Owner accepted G3 on 2026-11-05; S33 started.
-- S33 environment checker/docs merged as PR #45 -> main `5aa9e6e`; device/build evidence still pending owner.
+- S33 environment checker/docs merged as PR #45 -> main `5aa9e6e`; state update merged as PR #46 -> main `66495c1`.
+- S33 manual CI Android proof workflow added locally; owner APK install/open report still pending.
 
 ## Current proof
 
@@ -35,13 +36,15 @@ ci_proof: "PR #45 head d91bcd1 required checks success; main 5aa9e6e"
 
 ## Next actions
 
-1. Owner runs `adb devices` on their PC and provides output; then runs
-   `npm run android:env` on that PC if convenient.
-2. Owner builds/installs a blank Expo development build following
+1. Merge S33 workflow PR after protected CI is green, then run the manual
+   `S33 Android proof` workflow.
+2. Owner downloads the APK artifact, installs it, opens it, and reports the result.
+   `adb devices` remains optional supporting proof.
+3. Owner builds/installs a blank Expo development build following
    `docs/android_environment.md`; record actual device/build evidence.
-3. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
+4. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
    an `expo-sqlite` repository adapter, replace preview demo reducer.
-4. Phase J UI vertical slices; prove every slice on a real device.
+5. Phase J UI vertical slices; prove every slice on a real device.
 
 ## Owner-owned open items (do not decide)
 

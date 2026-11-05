@@ -371,3 +371,39 @@ owner-side blank Expo development build should use the Expo SDK selected by the
 blank template and `npx expo install expo-dev-client` so the dev-client version
 matches that SDK. The checker masks device serials and reports only static error
 codes; it is not device proof.
+
+## S33 GitHub Actions Android proof runner image (2026-11-05)
+
+Official GitHub-hosted Ubuntu 24.04 runner image documentation consulted:
+https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+(raw: https://raw.githubusercontent.com/actions/runner-images/main/images/ubuntu/Ubuntu2404-Readme.md).
+The recorded image version is **20261026.354.1**, OS **24.04.5 LTS**. The
+workflow pins `ubuntu-24.04` because the image announcement says `ubuntu-latest`
+will move to Ubuntu 26.04 in November 2026.
+
+Relevant installed software recorded from that Ubuntu 24.04 runner image:
+
+- **JDK 17**: `17.0.21+9` is the default Java version (`JAVA_HOME_17_X64`).
+  The workflow still uses `actions/setup-java` to select JDK 17 explicitly.
+- **Node**: default Node.js is `22.23.4`; cached Node versions include
+  `24.22.1`, not the exact repository runtime. The workflow therefore uses
+  `actions/setup-node` to install **Node 24.22.2** explicitly.
+- **Android SDK Platform 36** is present (`android-36` rev 2), along with
+  `android-36.1`, `android-35`, `android-34`, and Android 37 preview platforms.
+- Android SDK Build-tools include `36.0.0`, `36.1.0`, and `37.0.0`.
+- Android SDK Platform-Tools is `37.0.1`; Android Command Line Tools is `12.0`.
+- Android NDK default is `27.3.13750724`; CMake includes `3.31.5` and `4.1.2`.
+- `ANDROID_HOME` and `ANDROID_SDK_ROOT` point to `/usr/local/lib/android/sdk`.
+
+Pinned actions used by `.github/workflows/s33-android-proof.yml`:
+
+- `actions/checkout` v5.0.0 → `08c6903cd8c0fde910a37f88322edcfb5dd907a8`
+- `actions/setup-java` v4.7.1 → `c5195efecf7bdfc987ee8bae7a71cb8b11521c00`
+- `actions/setup-node` v4.4.0 → `49933ea5288caeca8642d1e84afbd3f7d6820020`
+- `actions/upload-artifact` v4.6.2 → `ea165f8d65b6e75b540449e92b4886f43607fa02`
+
+The workflow is `workflow_dispatch` only, uses `permissions: contents: read`,
+and uses no secrets. It creates a blank Expo TypeScript app in the runner temp
+directory, adds `expo-dev-client`, runs `expo prebuild --platform android
+--clean`, builds `assembleDebug` with Gradle, and uploads `app-debug.apk` with
+7-day retention. This is build proof only, not device proof.
