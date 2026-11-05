@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
 current_step: "S33"
-current_step_status: "in_progress_blocked_owner_device"
+current_step_status: "environment_prep_merged_blocked_owner_device"
 blocked_on: "owner adb devices output and blank Expo development build evidence"
 last_updated: "2026-11-05"
 last_green_commit: "40a00b430bb628716e562efd8bc817a7524d3602"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "main 14a77c8; S33 branch CI pending"
+ci_proof: "PR #45 head d91bcd1 required checks success; main 5aa9e6e"
 ---
 
 # STATE
@@ -20,6 +20,7 @@ ci_proof: "main 14a77c8; S33 branch CI pending"
 - S32 documentation merged as PR #42 -> main `3ed0a76`.
 - G3 backend report finalized (PR #43 -> main `40a00b4`) and evidence corrected (PR #44 -> main `14a77c8`).
 - Owner accepted G3 on 2026-11-05; S33 started.
+- S33 environment checker/docs merged as PR #45 -> main `5aa9e6e`; device/build evidence still pending owner.
 
 ## Current proof
 
@@ -27,20 +28,20 @@ ci_proof: "main 14a77c8; S33 branch CI pending"
 - Sandbox `npm run android:env` reports `ok:false` with static errors:
   `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
   `no_ready_device`. This is expected in the sandbox and is not device proof.
-- Full local gate: lint/typecheck/format:check pass; 302 tests / 52 files; 100% coverage;
+- Protected CI on S33 head `d91bcd1`: quality, privacy, test, security, build all success.
+- Local full gate: lint/typecheck/format:check pass; 302 tests / 52 files; 100% coverage;
   privacy_checks_passed; build + CLI smoke pass; npm audit 0 vulnerabilities;
   secret:scan 0 findings.
 
 ## Next actions
 
-1. Merge S33 environment checker/docs after protected CI is green.
-2. Owner runs `adb devices` on their PC and provides output; then runs
+1. Owner runs `adb devices` on their PC and provides output; then runs
    `npm run android:env` on that PC if convenient.
-3. Owner builds/installs a blank Expo development build following
+2. Owner builds/installs a blank Expo development build following
    `docs/android_environment.md`; record actual device/build evidence.
-4. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
+3. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
    an `expo-sqlite` repository adapter, replace preview demo reducer.
-5. Phase J UI vertical slices; prove every slice on a real device.
+4. Phase J UI vertical slices; prove every slice on a real device.
 
 ## Owner-owned open items (do not decide)
 
