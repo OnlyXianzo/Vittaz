@@ -760,3 +760,25 @@ No fabricated behavior red: already-implemented safety is expected green; malici
 model outputs explicitly request forbidden actions. S31 will separately mutate six
 production rules to prove regressions detect disabling. No prompt-only security,
 independent-review or full injection-resistance certification claim.
+
+## S28 Telegram connector design — 2026-11-05
+
+Official https://core.telegram.org/bots/api fetched successfully via Node fetch
+(HTTP200; fetch_page itself403). Read making-requests/getUpdates/sendMessage/
+Update/ResponseParameters: HTTPS bot-token path + JSON POST; Boolean ok/result;
+getUpdates limit1..100/positive long poll/offset highest+1/message-only updates;
+409 conflict halts for operator, 429 retry_after requires waiting; sendMessage
+plain text max4096, no parse_mode. No Telegram SDK/new dependency. Node24 fetch,
+existing pinned Zod4.6.7 retained. Official tdlib/telegram-bot-api README also read.
+
+Token and metadata supplied by explicit secure-host port, never app_settings,
+backup/history/analytics. Platform Keystore implementation remains Android work,
+not a backend encryption claim. Host supplies cryptographic one-time code generator
+(test deterministic), 5-minute expiry/max5 attempts. Private-chat lock from verified
+getUpdates only; no public unauthenticated update handler. Other chats ignored;
+sensitive before assistant/content storage, cursor-only transport bookkeeping.
+Primary-device gate, one in-flight poll;409 latches conflict (no retry),429 caller
+must respect returned retry delay; no busy retry loop. Token/URL/server body errors
+never escape. Signal and whole-response30s bound/1MiB. Shared bounded HTTP reader
+reused without changing existing provider behavior. Replies plain text/truncated,
+only exact paired chat. Digest is deterministic count/paise, no notes/names/AI.

@@ -497,3 +497,18 @@ that sorting turns by host time/random IDs can reorder user/assistant context.
 Message windows therefore use a private SQLite INTEGER PRIMARY KEY sequence,
 allocated by the database for the append-only API. No AUTOINCREMENT or exposed
 numeric sequence/cursor, no caller-supplied ordering key. Host time is metadata.
+
+## S28 — headless Telegram capabilities, no SDK (2026-11-05)
+
+Use official HTTP Bot API with fetch/Zod; no new SDK or package. Keep connector in
+agent package, consuming only core AssistantService port. Extract existing S21
+bounded UTF-8 response reader/ProtocolError into internal http_body shared module;
+existing provider semantics and100% regressions unchanged. Token/cursor/chat lock
+secure-host port is deliberately not app_settings/ledger backup. Platform storage,
+CSPRNG generator and polling lifecycle remain explicit host responsibilities, not
+fake encryption/background-service claims.409 requires operator resolution;429
+cooldown enforced, no automatic retries/force takeover. Plain text only to paired
+private chat. Cursor metadata advances for ignored messages without storing body.
+No exactly-once reply delivery promise; stable request IDs prevent repeated AI
+writes on replay. Fake transport and real loopback HTTP/native shared-history
+integration tests only; no live Telegram credentials or device claim.

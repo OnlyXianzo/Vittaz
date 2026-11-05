@@ -1,3 +1,4 @@
+import { readText, ProtocolError } from "./http_body.js";
 import { z } from "zod";
 import { checkSensitiveMessage } from "@vittaz/core";
 import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
@@ -124,11 +125,7 @@ export function validateCompletionRequest(params: ChatCompletionParams) {
     throw new Error("Sensitive provider input rejected");
   return { wire, callerSignal };
 }
-class ProtocolError extends Error {
-  constructor() {
-    super("Invalid provider response");
-  }
-}
+
 class CallbackError extends Error {
   constructor() {
     super("Provider callback failed");
@@ -173,25 +170,7 @@ function retryAfter(value: string | null, now: number): number | undefined {
     ? Math.min(86400000, Math.max(0, date - now))
     : undefined;
 }
-async function* readText(response: Response): AsyncGenerator<string> {
-  if (!response.body) throw new ProtocolError();
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  let size = 0;
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > 1048576) throw new ProtocolError();
-      yield decoder.decode(value, { stream: true });
-    }
-    decoder.decode(); // Fatal UTF-8 flush validates truncation; no replacement text is emitted.
-  } finally {
-    await reader.cancel().catch(() => undefined);
-    reader.releaseLock();
-  }
-}
+
 async function parseResponse(
   response: Response,
   stream: boolean,

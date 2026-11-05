@@ -487,3 +487,14 @@ No approval/write capability, no outbound notes/names/ref/account digits, identi
 permissions all3 sources, unpaired zero-effect. Evidence report existence red;
 functional protections already existed, no fabricated implementation red claimed.
 253tests45files100% metrics. S31 mutation proof still separate/pending.
+
+S28 missing-module red saved s28-red.log;9 targeted tests with actual loopback
+HTTP, actual shared AssistantService/LangChain/S21/native writable+read-only SQLite
+history integration. Pairing private-chat/code TTL5min/attemptcap5/one-use/chatlock,
+stranger/sensitive zero assistant/content effects, primary false, stable IDs/offset
+replay, ignored unsupported/old updates, no answer to failed assistant, busy/abort
+recovery,409 latch,429 cooldown/default/elapsed recovery, malformed/error/oversized
+HTTP and invalid token static errors, token text redaction, digest exact integer
+format incl negative, unsafe origins rejected. No real Telegram token/API request.
+262tests46files100% all metrics. Host secure storage/CSPRNG/lifecycle and reply
+failure/exactly-once limitation explicit; no phone/independent-review claim.
