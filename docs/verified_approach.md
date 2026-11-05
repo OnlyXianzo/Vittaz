@@ -726,3 +726,26 @@ existing policy remains. Default no rules/origin behavior unchanged. Red per lay
 real persistence->HTTP plus unauthenticated/unpaired/denied-source zero-call tests;
 then full suite/100% coverage/protected CI. Not channel authentication implementation
 or shared-service completion (S27d/S28 still next), no independent reviewer claim.
+
+## S27d shared service — 2026-11-05
+
+Core port with explicit question/draft_entry/improve_note fixed workflows; verified
+transport origin separate from untrusted request. Reject auth/pairing/sensitive
+before ALL storage/model effects, then stored conditions before history/preferences
+context. No guessing auto-routing/cloud fallback. One serialized service queue,
+whole-request elapsed/abort bounds, strict request/results, static failures.
+History needs additive ensureConversation (idempotent, no metadata overwrite),
+then globally unique request IDs reject replays before inference. Recent6 turns
+only, each re-filtered/redacted/scrubbed as untrusted data by QA; not arbitrary
+system roles. Existing policy/preferences/rules/limits remain authoritative.
+Draft uses validated local task + existing propose_transaction registry validator
+and core createProposal pending only. Guard inside native queued transaction
+before/after work prevents late cancelled proposal commit; no approve capability
+enters model/tool surface. A recorded accepted user turn may remain after a failed
+or cancelled computation; no rollback/SQL preemption/privacy-certification claim.
+Note suggestions remain local and never overwrite a ledger note. Native provider/
+LangChain/local/SQLite APIs already documented/pinned; Node AbortSignal.any docs
+consulted inS26. Tests must use actual ports/adapters, not only isolated helpers.
+Notification worker uses deterministic existing parser first, invokes local parser
+only on explicit unknown route, and can create pending proposal only, never an
+AI-confirmed ledger transaction. No notification-to-cloud route. No new library.

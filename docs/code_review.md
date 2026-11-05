@@ -468,3 +468,14 @@ settings, static corrupt-JSON/SQL/port failures, restart/upsert/cloned arrays an
 backup preservation. Real stored behavior->LangChain fake HTTP keeps original
 policy. No independent review, channel-authentication or shared-service readiness
 claim. All old checks preserved/default in-process QA behavior unchanged.
+
+S27d: real shared-source persistence/framework/fake HTTP tests, only pending drafts,
+local notes with unchanged ledger, zero-effect auth/sensitive/rule rejection, replay
+zero extra inference, untrusted/redacted history, local-null/no-cloud fallback,
+unsafe/oversized/null QA output rejection, whole-request pre/mid/queued abort and
+CPU elapsed deadlines, queue recovery. Native pending transaction pre/post guard
+rollback and queued cancellation verified directly. Worker known0local/unknown1local,
+no cloud, pending-only, insensitive storage/auth boundary/conditions/null/expiry/
+invalid branches tested. Initial worker test used an unallowed synthetic package;
+corrected fixture to the existing allowed com.synthbank.mobile, not the allowlist.
+248tests44files100% all source metrics; no independent review or device readiness.

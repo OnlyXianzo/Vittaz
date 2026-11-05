@@ -19,6 +19,7 @@ const row = () => ({
 });
 function fake(): ConversationHistoryStore {
   return {
+    ensureConversation: vi.fn(async () => {}),
     createConversation: vi.fn(async () => {}),
     appendMessage: vi.fn(async () => {}),
     listConversations: vi.fn(async () => []),

@@ -47,3 +47,6 @@ export {
   LocalModelTaskError,
 } from "./local_tasks.js";
 export type { LocalTaskErrorCode } from "./local_tasks.js";
+export { SharedAssistantService } from "./assistant.js";
+export type { AssistantServiceDependencies } from "./assistant.js";
+export { AssistantNotificationWorker } from "./notification_worker.js";

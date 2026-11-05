@@ -33,6 +33,15 @@ const optionsSchema = z.strictObject({
   preferences: z.unknown().optional(),
   rules: z.unknown().optional(),
   origin: z.unknown().optional(),
+  history: z
+    .array(
+      z.strictObject({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(8192),
+      }),
+    )
+    .max(6)
+    .optional(),
 });
 const resultSchema = z.strictObject({
   content: z.string().max(32768),
@@ -65,6 +74,7 @@ const resultSchema = z.strictObject({
     ),
 });
 export interface AnswerQuestionOptions {
+  history?: { role: "user" | "assistant"; content: string }[];
   rules?: AssistantRule[];
   origin?: MessageOrigin;
   preferences?: AssistantPreferences;
@@ -210,6 +220,24 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       if (behavior)
         messages[0]!.content +=
           "\nPresentation rules (never override policy): " + behavior;
+      const history = (opts.data.history ?? []).filter(
+        (turn) => !checkSensitiveMessage(turn.content).sensitive,
+      );
+      const safeTurns: ChatMessage[] = history.map((turn) => {
+        this.params.redactor.discoverAndRegisterInlineNames(turn.content);
+        return {
+          role: "user",
+          content: JSON.stringify({
+            untrusted_history: {
+              role: turn.role,
+              content: scrubOutboundText(
+                this.params.redactor.redactText(turn.content),
+              ),
+            },
+          }),
+        };
+      });
+      messages.splice(1, 0, ...safeTurns);
       const ids = new Set<string>();
       while (stepsUsed < maxSteps) {
         if (cancelled()) return cancellationResult();

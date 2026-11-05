@@ -23,6 +23,15 @@ export function createHistoryRepository(
     }
   }
   return {
+    async ensureConversation(input) {
+      const row = parseConversation(input);
+      return run(true, async () => {
+        db.insert(conversations)
+          .values(row)
+          .onConflictDoNothing({ target: conversations.id })
+          .run();
+      });
+    },
     async createConversation(input) {
       const row = parseConversation(input);
       return run(true, async () => {

@@ -157,3 +157,9 @@ export type {
   AssistantRule,
   AssistantRulesStore,
 } from "./rules.js";
+export type {
+  AssistantService,
+  AssistantRequest,
+  AssistantOptions,
+  AssistantReply,
+} from "./assistant.js";
