@@ -109,3 +109,27 @@ options accept rules plus verified origin for integration; do not expose a clien
 controlled origin object as an authenticated API. S27d/S28 implement actual host/
 channel wiring. Presentation context cannot change code permissions or approvals.
 Ledger-only backups exclude rules and preserve local rules on restore.
+
+### Shared service and notification worker (S27d)
+
+SharedAssistantService implements the core AssistantService.handle port. Channels
+supply VERIFIED origin separately from the strict body (request_id, conversation_id,
+action, text). Explicit actions question/draft_entry/improve_note keep workflows
+fixed. Questions use the bounded read-only agent and only six recent privacy-
+filtered untrusted turns; drafts use one validated local parse and the existing
+propose_transaction validator to create pending only; note improvements are local
+suggestions and never applied to a ledger note. No fallback to cloud parsing.
+
+Sensitive or unauthenticated/unpaired inputs have zero storage/model effects.
+Stored conditions apply before history creation; accepted user history can remain
+after computation fails/cancels. Request IDs prevent duplicate inference. Native
+pending writes check cancellation inside the serialized transaction, both before
+and after writes (rollback on expiry). SQL/JS cannot be forcibly preempted; trusted
+adapters remain responsible for honoring their capabilities/signals.
+
+AssistantNotificationWorker uses existing deterministic allowed-app ingestion
+first (zero model calls for known formats), then local parsing only for an unknown
+route. Unknown results can create pending only, never automatically commit AI
+interpretation. It has no cloud client. Conversational rules gate unknown inference,
+not already authorized deterministic ingestion. Android/channel adapters still
+need permission/authentication/worker wiring; backend tests are not device proof.

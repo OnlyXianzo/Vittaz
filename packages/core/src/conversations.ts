@@ -12,6 +12,7 @@ export interface ConversationMessageRow {
   created_at: string;
 }
 export interface ConversationHistoryStore {
+  ensureConversation(row: ConversationRow): Promise<void>;
   createConversation(row: ConversationRow): Promise<void>;
   appendMessage(row: ConversationMessageRow): Promise<void>;
   listConversations(limit?: number): Promise<ConversationRow[]>;

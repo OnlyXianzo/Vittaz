@@ -293,3 +293,22 @@ Inherited fields acceptance reproduced red and fixed with exact own-field checks
 Persisted behavior through actual LangChain/S21 fake HTTP, unauthorized/unpaired/
 source-rejected requests stop before redactor/provider/tools. Default low-level
 Q&A remains trusted in-process; shared service/channel verification is S27d/S28.
+
+## S27d actual shared service (2026-11-05)
+
+Existing official Zod strict API, Node24 AbortSignal.any (S26), SQLite transaction/
+Drizzle upsert references retained; no new SDK/dependency. SharedAssistantService
+implements core port; explicit question/draft_entry/improve_note, no guessing or
+cloud fallback. Host origin separate from raw body. Auth/pairing/sensitive gates
+before all effects; stored rules before preferences/history/model. History6 turns
+only, re-filtered/redacted/scrubbed into untrusted_history user data (never system
+roles). Actual framework/HTTP/native read-only integration across all3 sources.
+Private ensureConversation idempotent without overwrite; user/reply IDs derive
+from globally unique request ID, replay fails before inference. One service queue,
+whole-request abort/elapsed guard; native pending-proposal transaction guarded
+inside queue before+after core writes. Tests prove rollback/no late pending write.
+Accepted user history may remain when computation fails/cancels; no SQL preemption.
+AssistantNotificationWorker first deterministic ingestion, unknown only invokes
+validated local task once then existing proposal validator, never cloud/AI commit.
+Stored conditions gate unknown-model invocation, not authorized deterministic
+notification capture. Sensitive/unallowed/unauthenticated never invoke local model.
