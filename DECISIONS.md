@@ -512,3 +512,33 @@ private chat. Cursor metadata advances for ignored messages without storing body
 No exactly-once reply delivery promise; stable request IDs prevent repeated AI
 writes on replay. Fake transport and real loopback HTTP/native shared-history
 integration tests only; no live Telegram credentials or device claim.
+
+## Verification take-over and provider privacy boundary (2026-11-05)
+
+Independent verification on Node v24.22.2 / npm 11.19.1 reproduced the inherited
+S28 backend green: 262 tests / 46 files, 100% implemented-package coverage,
+lint/typecheck/format/privacy/build/CLI/audit 0/secret scan 0. Remote main
+a12b239ebbff946362a0dbfcce78a737579630dd CI 41964578966 success. S1-S28 and the
+owner-owned native visual shell are not redone.
+
+Provider outbound boundary is now enforced at the shared completion-request
+preflight, not only in the QA service. `validateCompletionRequest` rejects
+sensitive wires before network, sanitizes string leaves with the shared
+`PrivacyRedactor.redactOutboundText` / outbound scrubber, re-parses the wire, and
+re-checks the 64512-byte body budget because redaction can expand text.
+`redactOutboundText` preserves all `Person_N` placeholders so an already-redacted
+tool protocol is not destroyed by a second transport pass; impersonation masking
+remains on raw-input `redactText`, and tool execution still rejects unmapped
+tokens. JSON string leaves are sanitized structurally; numeric JSON values and
+tool names/keys are not string-scrubbed. `OpenAICompatibleClient` and
+`LangChainCompletionClient` accept the host redactor; the agent privacy CI suite
+pins a fake-provider + native-SQLite composition test as required evidence.
+
+Known owner-owned issues remain open, not decided by AI: repository contains a
+GPL-3.0 LICENSE file but the project license is still undecided; backups are
+plaintext and backup encryption is undecided; the owner-owned native preview
+reuses the web demo reducer through Metro watchFolders, duplicating core logic,
+and must be replaced when packages/core is wired through expo-sqlite. Telegram
+outbound reply text currently redacts only the bot token; reply privacy beyond
+the existing assistant redaction remains a reported gap, not silently rewritten
+S28 scope.

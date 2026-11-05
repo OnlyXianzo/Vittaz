@@ -5,7 +5,7 @@ import {
 } from "@langchain/core/messages";
 import { CallbackManager } from "@langchain/core/callbacks/manager";
 import type { ChatResult } from "@langchain/core/outputs";
-import type { PrivacyRedactor } from "@vittaz/core";
+import { PrivacyRedactor } from "@vittaz/core";
 import { validateCompletionRequest } from "./provider_client.js";
 import type {
   ChatCompletionParams,
@@ -100,14 +100,19 @@ class CompletionBridge extends BaseChatModel {
 /** Buffered CompletionClient contract; original validated wire is never rewritten by the framework. */
 export class LangChainCompletionClient implements CompletionClient {
   #client: CompletionClient;
-  constructor(client: CompletionClient) {
+  #redactor: PrivacyRedactor;
+  constructor(client: CompletionClient, redactor?: PrivacyRedactor) {
     this.#client = client;
+    this.#redactor = redactor ?? new PrivacyRedactor();
   }
   async chatCompletion(
     params: ChatCompletionParams,
   ): Promise<ChatCompletionResult> {
     try {
-      const { wire, callerSignal } = validateCompletionRequest(params);
+      const { wire, callerSignal } = validateCompletionRequest(
+        params,
+        this.#redactor,
+      );
       if (
         wire.stream ||
         params.onStreamDelta != null ||
@@ -163,7 +168,7 @@ export class LangChainQaAgent implements QuestionAnsweringAgent {
   }) {
     this.#loop = new ReadOnlyQaLoop({
       ...params,
-      client: new LangChainCompletionClient(params.client),
+      client: new LangChainCompletionClient(params.client, params.redactor),
     });
   }
   answerQuestion(

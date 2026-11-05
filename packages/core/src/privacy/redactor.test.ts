@@ -88,3 +88,14 @@ test("privacy_name_invalid_inputs_are_not_coerced_or_registered", () => {
   expect(redactor.unredactText("ordinary words")).toBe("ordinary words");
   expect(redactor.getAllMappings()).toEqual([]);
 });
+
+test("privacy_redactor_outbound_copy_preserves_known_placeholders_and_redacts_raw_names", () => {
+  const redactor = new PrivacyRedactor(["SynthPerson"]);
+  expect(
+    redactor.redactOutboundText(
+      "Person_1 and SynthPerson UPI Ref 630811112222 Account XX1234 Person_999",
+    ),
+  ).toBe("Person_1 and Person_1 [UPI_REF] [ACCOUNT] Person_999");
+  expect(redactor.redactOutboundText("Your OTP is 123456")).toBe("");
+  expect(redactor.redactOutboundText(null)).toBe("");
+});

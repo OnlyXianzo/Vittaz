@@ -1,6 +1,6 @@
 import { readText, ProtocolError } from "./http_body.js";
 import { z } from "zod";
-import { checkSensitiveMessage } from "@vittaz/core";
+import { checkSensitiveMessage, PrivacyRedactor } from "@vittaz/core";
 import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
 import type { KeyFailureRecord, KeyPool } from "./key_pool.js";
 const toolCall = z.object({
@@ -103,10 +103,75 @@ export interface ChatCompletionParams {
 export interface CompletionClient {
   chatCompletion(params: ChatCompletionParams): Promise<ChatCompletionResult>;
 }
+function sanitizeJsonText(text: string, redactor: PrivacyRedactor): string {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed !== null && typeof parsed === "object")
+      return JSON.stringify(sanitizeValue(parsed, redactor));
+  } catch {
+    /* not JSON; sanitize as plain text */
+  }
+  return redactor.redactOutboundText(text);
+}
+function sanitizeValue(value: unknown, redactor: PrivacyRedactor): unknown {
+  if (typeof value === "string") return redactor.redactOutboundText(value);
+  if (Array.isArray(value))
+    return value.map((item) => sanitizeValue(item, redactor));
+  if (value !== null && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        sanitizeValue(item, redactor),
+      ]),
+    );
+  return value;
+}
+function sanitizeWire(
+  wire: z.infer<typeof request>,
+  redactor: PrivacyRedactor,
+): z.infer<typeof request> {
+  return {
+    ...wire,
+    messages: wire.messages.map((message) => ({
+      ...message,
+      content:
+        message.content === null
+          ? null
+          : sanitizeJsonText(message.content, redactor),
+      ...(message.tool_calls
+        ? {
+            tool_calls: message.tool_calls.map((call) => ({
+              ...call,
+              function: {
+                ...call.function,
+                arguments: sanitizeJsonText(call.function.arguments, redactor),
+              },
+            })),
+          }
+        : {}),
+    })),
+    ...(wire.tools
+      ? {
+          tools: wire.tools.map((tool) => ({
+            ...tool,
+            function: {
+              ...tool.function,
+              description: redactor.redactOutboundText(
+                tool.function.description,
+              ),
+              parameters: tool.function.parameters,
+            },
+          })),
+        }
+      : {}),
+  };
+}
 /** Shared preflight before framework callbacks or HTTP. Owns a cloned wire snapshot. */
-export function validateCompletionRequest(params: ChatCompletionParams) {
+export function validateCompletionRequest(
+  params: ChatCompletionParams,
+  redactor: PrivacyRedactor = new PrivacyRedactor(),
+) {
   let wire: z.infer<typeof request>;
-  let bodySize: number;
   let callerSignal: AbortSignal | undefined;
   try {
     callerSignal = z.instanceof(AbortSignal).optional().parse(params.signal);
@@ -116,13 +181,18 @@ export function validateCompletionRequest(params: ChatCompletionParams) {
       tools: params.tools,
       maxCompletionTokens: params.maxCompletionTokens,
     });
-    bodySize = new TextEncoder().encode(JSON.stringify(wire)).byteLength;
-    if (bodySize > 64512) throw new Error();
   } catch {
     throw new Error("Invalid provider request");
   }
   if (checkSensitiveMessage(JSON.stringify(wire)).sensitive)
     throw new Error("Sensitive provider input rejected");
+  try {
+    wire = request.parse(sanitizeWire(wire, redactor));
+    const bodySize = new TextEncoder().encode(JSON.stringify(wire)).byteLength;
+    if (bodySize > 64512) throw new Error();
+  } catch {
+    throw new Error("Invalid provider request");
+  }
   return { wire, callerSignal };
 }
 
@@ -261,12 +331,14 @@ export class OpenAICompatibleClient {
   #fetch: typeof fetch;
   #timeout: number;
   #now: () => number;
+  #redactor: PrivacyRedactor;
   constructor(params: {
     baseUrl: string;
     keyPool: KeyPool;
     fetch?: typeof fetch;
     timeoutMs?: number;
     nowFn?: () => number;
+    redactor?: PrivacyRedactor;
   }) {
     try {
       const url = new URL(params.baseUrl);
@@ -294,11 +366,15 @@ export class OpenAICompatibleClient {
     this.#pool = params.keyPool;
     this.#fetch = params.fetch ?? fetch;
     this.#now = params.nowFn ?? (() => Date.now());
+    this.#redactor = params.redactor ?? new PrivacyRedactor();
   }
   async chatCompletion(
     params: ChatCompletionParams,
   ): Promise<ChatCompletionResult> {
-    const { wire, callerSignal } = validateCompletionRequest(params);
+    const { wire, callerSignal } = validateCompletionRequest(
+      params,
+      this.#redactor,
+    );
     const deadline = AbortSignal.timeout(this.#timeout);
     const signal = callerSignal
       ? AbortSignal.any([callerSignal, deadline])

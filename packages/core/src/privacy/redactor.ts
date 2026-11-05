@@ -142,4 +142,28 @@ export class PrivacyRedactor {
       (token) => byPlaceholder.get(token) ?? token,
     );
   }
+
+  /**
+   * Final outbound-copy pass. Unlike raw-input redactText, this preserves
+   * Person_N placeholders already issued upstream so a second pass cannot turn
+   * Person_1 into [PERSON_TOKEN]. Raw-input impersonation masking still happens
+   * in redactText before a placeholder is trusted.
+   */
+  redactOutboundText(input: unknown): string {
+    if (typeof input !== "string" || checkSensitiveMessage(input).sensitive)
+      return "";
+    let result = scrubOutboundText(input).normalize("NFC");
+    this.discoverAndRegisterInlineNames(result);
+    const longestFirst = this.getAllMappings().sort(
+      (a, b) => b.name.length - a.name.length,
+    );
+    for (const { name, placeholder } of longestFirst) {
+      const pattern = new RegExp(
+        String.raw`(?<![\p{L}\p{M}\p{N}_])${escapePattern(name)}(?![\p{L}\p{M}\p{N}_])`,
+        "giu",
+      );
+      result = result.replace(pattern, () => placeholder);
+    }
+    return result;
+  }
 }
