@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { VERSION } from "@vittaz/core";
+import { runCli } from "./cli.js";
 
-console.log(`vittaz v${VERSION}`);
+process.exitCode = await runCli(process.argv.slice(2));

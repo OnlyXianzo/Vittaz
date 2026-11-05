@@ -542,3 +542,19 @@ and must be replaced when packages/core is wired through expo-sqlite. Telegram
 outbound reply text currently redacts only the bot token; reply privacy beyond
 the existing assistant redaction remains a reported gap, not silently rewritten
 S28 scope.
+
+## S29 — snake_case CLI in apps/cli (2026-11-05)
+
+Keep the CLI at `apps/cli`, matching docs/ARCHITECTURE.md and the existing
+workspace/build/CI smoke path. Plan.md's `packages/cli` wording is treated as a
+plan-location discrepancy, not a reason to move the app or duplicate a package.
+Commander 15.0.0 is the only new dependency. Commands: add, ledger, inbox
+list/approve/reject, undo, balance, import, backup, restore, ask. All stdout JSON
+keys are snake_case; errors are static codes without raw input echo. The CLI is a
+trusted host: it opens the native store, seeds the redactor from ledger
+counterparty names, and calls the same core use cases/AssistantService as other
+channels. AI still creates only pending proposals; approve/reject/undo/import/
+backup/restore remain explicit user CLI actions, never assistant tools. Cloud
+ask requires explicit provider env; no default public endpoint or key. Local
+draft_entry/improve_note are unavailable without a local model runner, not
+silently sent to cloud. Backup encryption/license remain owner-owned open items.

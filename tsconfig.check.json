@@ -4,7 +4,9 @@
     "rootDir": ".",
     "noEmit": true,
     "paths": {
-      "@vittaz/core": ["./packages/core/src/index.ts"]
+      "@vittaz/core": ["./packages/core/src/index.ts"],
+      "@vittaz/storage": ["./packages/storage/src/index.ts"],
+      "@vittaz/agent": ["./packages/agent/src/index.ts"]
     }
   },
   "include": [
