@@ -1,3 +1,5 @@
+import { createPreferencesRepository } from "./preferences.js";
+import type { AssistantPreferencesStore } from "@vittaz/core";
 import { createHistoryRepository } from "./conversations.js";
 import type { ConversationHistoryStore } from "@vittaz/core";
 import { randomUUID } from "node:crypto";
@@ -26,6 +28,7 @@ import {
 } from "./migrations.js";
 
 export interface OperationalStore extends SnapshotStore {
+  preferences: AssistantPreferencesStore;
   history: ConversationHistoryStore;
   appendAnalytics(metadata: AiAnalyticsMetadata): Promise<void>;
   listAnalytics(): Promise<AiAnalyticsRow[]>;
@@ -348,6 +351,9 @@ function connect(filename: string, readonly: boolean): OperationalStore {
     }
   }
   return {
+    preferences: createPreferencesRepository(db, (write, work) =>
+      enqueue(() => unit(write, work)),
+    ),
     history: createHistoryRepository(db, (write, work) =>
       enqueue(() => unit(write, work)),
     ),
