@@ -312,3 +312,15 @@ AssistantNotificationWorker first deterministic ingestion, unknown only invokes
 validated local task once then existing proposal validator, never cloud/AI commit.
 Stored conditions gate unknown-model invocation, not authorized deterministic
 notification capture. Sensitive/unallowed/unauthenticated never invoke local model.
+
+## S28 Telegram backend (2026-11-05)
+
+Official https://core.telegram.org/bots/api sections making-requests, getUpdates,
+sendMessage, Update and ResponseParameters read from HTTP200 via Node fetch
+(fetch_page403). Official https://github.com/tdlib/telegram-bot-api README also read.
+HTTP JSON protocol only, no SDK/version upgrade; Node24.22.2/Zod4.6.7 retained.
+HTTPS bot-token path; POST JSON; validate ok/result; positive long polling25s,
+limit100/message-only; cursor highest+1; no webhooks.409 latches conflict;429 obeys
+retry_after/default60s (no immediate retry). Telegram messages plain4096 chars.
+API calls30s total signal deadline, shared1MiB strict UTF-8 reader reused from S21.
+No actual Telegram API/token used; fake fetch plus real loopback HTTP only.

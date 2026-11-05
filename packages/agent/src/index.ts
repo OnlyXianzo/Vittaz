@@ -50,3 +50,14 @@ export type { LocalTaskErrorCode } from "./local_tasks.js";
 export { SharedAssistantService } from "./assistant.js";
 export type { AssistantServiceDependencies } from "./assistant.js";
 export { AssistantNotificationWorker } from "./notification_worker.js";
+export {
+  TelegramConnector,
+  TelegramHttpApi,
+  TelegramHttpError,
+  buildTelegramDigest,
+} from "./telegram.js";
+export type {
+  TelegramSettingsPort,
+  TelegramConnectorDependencies,
+  TelegramResult,
+} from "./telegram.js";

@@ -133,3 +133,32 @@ route. Unknown results can create pending only, never automatically commit AI
 interpretation. It has no cloud client. Conversational rules gate unknown inference,
 not already authorized deterministic ingestion. Android/channel adapters still
 need permission/authentication/worker wiring; backend tests are not device proof.
+
+### Telegram backend (S28)
+
+TelegramConnector consumes only verified getUpdates from TelegramHttpApi. Token,
+primary_device, paired_chat_id and durable offset come from TelegramSettingsPort,
+which the trusted host MUST implement using secure platform settings (not generic
+app_settings). No token write API/backup/history/analytics/logging. No actual Android
+Keystore or foreground-service implementation is claimed by this backend port.
+Host generate_pairing_code MUST be cryptographically random six digits and now
+returns trusted integer milliseconds. beginPairing is a local owner API, never an
+AI tool. Code is memory-only, five-minute expiry, five failed attempts maximum,
+consumed once; existing paired chat cannot be replaced by a message. Private chats
+only; everyone else gets no response and no ledger/history/model processing.
+Sensitive messages likewise drop before AssistantService. Cursor-only bookkeeping
+is maintained even for ignored updates (no content retention). Accepted paired
+messages use source telegram, trusted origin and shared conversation main; stable
+bot/update request IDs prevent duplicate inference. Questions only, not approvals
+or admin commands. Safe replies only to paired chat, plain text/truncated4096.
+
+Primary-device false disables transport. One in-flight poll/digest per instance;
+409 latches until operator resolves the other poller/webhook and recreates instance.
+429 returns retry delay and blocks both poll/digest until elapsed. Caller owns
+poll scheduling/lifecycle (no implicit background loop); must inspect status and
+not busy-spin on errors. Offset durable via host secure port. Network delivery is
+not exactly-once: a send failure after accepted history can lose a reply; replay
+cannot duplicate inference/proposals. Android service/restart delivery remains
+phase I testing. No Telegram live call was made. Digest input is validated integer
+unverified_count/daily_allowance_paise, formatted deterministically with BigInt
+(no AI, names or notes); caller computes counts/allowance with core query/calculator.

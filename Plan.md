@@ -141,7 +141,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 ### Phase G: Telegram, headless
 
-- [ ] **S28. Telegram connector with a fake API.** Token from secure settings, one-time pairing code, ignore every other chat, sensitive-word drop, messages go to `AssistantService` with source `telegram`, shared history, poller-conflict handling, primary-device flag, and a digest builder for unverified entries and the daily allowance.
+- [x] **S28. Telegram connector with a fake API.** Token from secure settings, one-time pairing code, ignore every other chat, sensitive-word drop, messages go to `AssistantService` with source `telegram`, shared history, poller-conflict handling, primary-device flag, and a digest builder for unverified entries and the daily allowance.
 
 ### Phase H: CLI and backend sign-off
 
