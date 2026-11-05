@@ -6,7 +6,7 @@ blocked_on: "owner APK install/open report"
 last_updated: "2026-11-05"
 last_green_commit: "ef030e61ec0af7da092b9d275991e80217539ce2"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; artifact s33-android-proof-apk"
+ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; artifact s33-android-proof-apk; preview APK workflow added, dispatch pending"
 ---
 
 # STATE
@@ -24,10 +24,20 @@ ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; 
 - S33 manual CI Android proof workflow merged as PR #47 -> main `ef030e6`.
 - Manual workflow run `42031551861` succeeded and uploaded `s33-android-proof-apk`.
 - Owner APK install/open report still pending; S33 is not done.
+- Diagnosed owner-side crash: the blank proof APK autolinked no
+  `react-native-safe-area-context`, but the Metro preview bundle rendered
+  `SafeAreaProvider`, so Fabric raised `IllegalViewOperationException` for
+  `RNCSafeAreaProvider`. Binary/bundle mismatch, not a UI or build defect.
+- Confirmed the blank debug APK embeds no JS bundle, so it always needs Metro.
+- Owner reports the Metro **web** preview renders correctly at
+  `http://localhost:8081/`. That is browser proof, not device proof.
+- Added manual `s33-preview-apk` workflow that builds the owner preview in a
+  runner temp copy and uploads a standalone release APK (embedded JS, no Metro)
+  plus a dev-client debug APK. `apps/mobile/ui/native` is not modified.
 
 ## Current proof
 
-- S33 environment checker tests: 6 tests pass locally; full suite 302 tests / 52 files.
+- S33 environment checker tests: 6 tests pass locally; full suite now 310 tests / 54 files.
 - Sandbox `npm run android:env` reports `ok:false` with static errors:
   `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
   `no_ready_device`. This is expected in the sandbox and is not device proof.
@@ -38,13 +48,13 @@ ci_proof: "PR #47 merged main ef030e6; manual workflow run 42031551861 success; 
 
 ## Next actions
 
-1. Owner downloads `s33-android-proof-apk` from workflow run `42031551861`,
-   installs it, opens it, and reports the result. `adb devices` remains optional
-   supporting proof.
-2. If the artifact expires or a rebuild is needed, run the manual `S33 Android proof`
-   workflow again.
-3. Owner builds/installs a blank Expo development build following
-   `docs/android_environment.md`; record actual device/build evidence.
+1. Run the manual `S33 preview APK` workflow, then owner downloads
+   `s33-preview-standalone-apk`, installs `app-release.apk`, opens Vittaz, and
+   reports the result. This APK embeds its JS bundle and does not need Metro.
+   `adb devices` remains optional supporting proof.
+2. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+   the native modules do not match and it will crash on `RNCSafeAreaProvider`.
+3. If an artifact expires or a rebuild is needed, re-run the manual workflow.
 4. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
    an `expo-sqlite` repository adapter, replace preview demo reducer.
 5. Phase J UI vertical slices; prove every slice on a real device.

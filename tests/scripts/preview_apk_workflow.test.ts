@@ -1,0 +1,58 @@
+import { readFileSync } from "node:fs";
+import { expect, test } from "vitest";
+
+function read(path: string) {
+  return readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+}
+
+const workflow_path = ".github/workflows/s33-preview-apk.yml";
+
+test("preview_apk_workflow_is_manual_minimal_pinned_and_secretless", () => {
+  const workflow = read(workflow_path);
+  expect(workflow).toContain("workflow_dispatch:");
+  expect(workflow).not.toMatch(/^\s*push:/m);
+  expect(workflow).not.toMatch(/^\s*pull_request:/m);
+  expect(workflow).toContain("permissions:\n  contents: read");
+  expect(workflow).toContain("runs-on: ubuntu-24.04");
+  expect(workflow).not.toContain("secrets.");
+  const uses = [...workflow.matchAll(/uses:\s*([^\s]+)/g)].map((m) => m[1]);
+  expect(uses.length).toBeGreaterThanOrEqual(4);
+  for (const action of uses) {
+    expect(action).toMatch(/^actions\/[a-z-]+@[0-9a-f]{40}$/);
+  }
+});
+
+test("preview_apk_workflow_copies_owner_preview_without_mutating_repo", () => {
+  const workflow = read(workflow_path);
+  expect(workflow).toContain("apps/mobile/ui/native");
+  expect(workflow).toContain("apps/mobile/ui/src");
+  expect(workflow).toContain("RUNNER_TEMP");
+  expect(workflow).toContain("git diff --exit-code");
+  expect(workflow).toContain("expo install expo-dev-client");
+  expect(workflow).toContain("expo prebuild --platform android --clean");
+});
+
+test("preview_apk_workflow_builds_standalone_and_devclient_apks_with_jdk17_node24", () => {
+  const workflow = read(workflow_path);
+  expect(workflow).toContain('java-version: "17"');
+  expect(workflow).toContain('node-version: "24.22.2"');
+  expect(workflow).toContain("assembleDebug");
+  expect(workflow).toContain("assembleRelease");
+  expect(workflow).toContain("retention-days: 7");
+  expect(workflow).toContain("if-no-files-found: error");
+  expect(workflow).toContain("app-debug.apk");
+  expect(workflow).toContain("app-release.apk");
+  expect(workflow).toContain("react-native-safe-area-context");
+});
+
+test("preview_apk_docs_explain_native_js_mismatch_and_standalone_install", () => {
+  const guide = read("docs/android_environment.md");
+  expect(guide).toContain("s33-preview-apk");
+  expect(guide).toContain("RNCSafeAreaProvider");
+  expect(guide).toContain("standalone");
+  expect(guide).toContain("does not need Metro");
+  expect(guide).toContain("Do not claim device behavior");
+  const references = read("docs/references.md");
+  expect(references).toContain("s33-preview-apk");
+  expect(references).toContain("react-native-safe-area-context");
+});

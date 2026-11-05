@@ -156,3 +156,105 @@ Status: **pending owner install/open report**. This CI run proves the blank Expo
 debug APK built and uploaded. It does not prove the APK installed or opened on a
 phone. Do not claim device behavior. Mark S33 done only after the owner reports
 that the app opened on their phone.
+
+## Why the blank proof APK crashed on the preview bundle
+
+The blank `s33-android-proof` APK and the Metro preview are **two different native
+apps**. A development build contains only the native modules that were compiled
+into it. The blank Expo template autolinks `expo-*` modules only; it contains no
+`react-native-safe-area-context`, no `react-native-svg`, and no
+`expo-linear-gradient`.
+
+The owner preview at `apps/mobile/ui/native` declares all three, and its
+`App.tsx` wraps the tree in `SafeAreaProvider`. When the blank APK loaded the
+preview's JavaScript from Metro, the Fabric renderer could not find the native
+view manager and threw:
+
+```
+IllegalViewOperationException: Enqueueing view tag ... RNCSafeAreaProvider
+```
+
+This is a **binary/bundle mismatch**, not a defect in the preview UI and not a
+defect in the blank build. Two consequences:
+
+- `npx expo install react-native-safe-area-context` in
+  `apps/mobile/ui/native` cannot fix it. The preview already declares the correct
+  SDK 58 version (`~5.11.1`), and installing JavaScript never adds native code to
+  an APK that is already built.
+- The APK must be rebuilt from a project that contains those native modules.
+
+The blank debug APK also has a second limitation: `assembleDebug` does not embed
+a JavaScript bundle (the generated Gradle config skips bundling for debuggable
+variants), so it always needs a reachable Metro server.
+
+## CI preview workflow: `s33-preview-apk`
+
+`.github/workflows/s33-preview-apk.yml` builds the **owner preview itself**, so
+the native binary and the JavaScript bundle match. It is `workflow_dispatch`
+only, uses `permissions: contents: read`, uses no secrets, and pins every action
+to a commit SHA.
+
+It never modifies `apps/mobile/ui/native`. It copies `apps/mobile/ui/native` and
+`apps/mobile/ui/src` into the runner temp directory as siblings (the Metro
+`watchFolders` layout), and all mutation happens in that copy:
+
+1. `npm ci` from the owner's lockfile.
+2. `npx expo install expo-dev-client` — **in the temp copy only**.
+3. `npx expo prebuild --platform android --clean`.
+4. An assertion step that fails the build unless
+   `react-native-safe-area-context`, `react-native-svg`, `expo-linear-gradient`,
+   and `expo-dev-client` are all autolinked. This is the check that would have
+   caught the original mismatch before shipping an APK.
+5. Gradle `assembleRelease assembleDebug` for `arm64-v8a,armeabi-v7a`, with R8
+   minification disabled to keep the preview build conservative.
+6. An assertion that the release APK really contains `assets/index.android.bundle`.
+7. `git diff --exit-code` and `git status --porcelain` to prove the checkout was
+   not modified.
+
+### Which artifact to install
+
+| Artifact                     | File              | Needs Metro? | Use                                       |
+| ---------------------------- | ----------------- | ------------ | ----------------------------------------- |
+| `s33-preview-standalone-apk` | `app-release.apk` | No           | **Install this one.** Bundle is embedded. |
+| `s33-preview-devclient-apk`  | `app-debug.apk`   | Yes          | Live reload against your own Metro.       |
+
+The **standalone** artifact is a release-variant build with the JavaScript bundle
+embedded by Metro at build time. It **does not need Metro**, does not need your
+PC, and does not need the phone and PC to share a network. `expo-dev-launcher`
+compiles to a no-op in release, so the dev menu is not present.
+
+The generated Expo Gradle config signs the release variant with the debug
+keystore. That is fine for sideloaded device proof and is **not** a production
+signing setup; a real keystore is a later, owner-owned decision.
+
+The dev-client artifact is the debug variant. Use it only when you want live
+reload, and only against a Metro server started from
+`apps/mobile/ui/native` — not against the blank proof app.
+
+### Run it
+
+1. GitHub → **Actions** → **S33 preview APK** → **Run workflow**.
+2. Wait for the `preview-apk` job.
+3. Download `s33-preview-standalone-apk`, extract the ZIP, tap `app-release.apk`.
+4. Allow unknown-source installs for the app opening the APK
+   (**Settings → Apps → Special app access → Install unknown apps**).
+5. Open **Vittaz**. It installs as package `com.vittaz.preview`, separate from the
+   blank proof app, so both can coexist.
+
+If a previous preview APK was signed with a different key, Android will refuse
+the update; uninstall the old Vittaz preview first.
+
+### Report the result
+
+Report phone model, Android version, the workflow run URL, whether it installed,
+whether it opened, and what the first screen showed. A screenshot is ideal.
+
+Do not claim device behavior. S33 closes only on your report that the app opened
+on your phone. A green CI run and an uploaded artifact are build proof only.
+
+### What this build still is not
+
+The preview still runs the **web demo reducer** through Metro `watchFolders`.
+It is synthetic demo data, not your real ledger. Replacing that reducer with
+`packages/core` behind an `expo-sqlite` adapter is S34–S35. This APK proves the
+native shell runs on your phone; it does not prove persistence or core wiring.
