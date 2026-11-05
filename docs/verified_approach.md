@@ -690,3 +690,20 @@ stay unique externally; sequence is not accepted from callers/exposed in rows or
 backups. Index (conversation_id,sequence), recent N reversed to append order.
 Conversation overview remains bounded (created_at,id). Host timestamps are metadata,
 not ordering authority. No model/host can override sequence through the port.
+
+## S27b preferences — 2026-11-05
+
+Implement structured tone neutral/friendly/formal, language english/hindi/hinglish,
+detail concise/balanced/detailed. Defaults neutral/english/balanced. No free-form
+system prompts or permission settings. Core async preference port/use cases;
+existing serialized app_settings key assistant_preferences (no schema bump),
+strict bounded JSON on read; missing defaults, corrupt fails closed. Backup remains
+ledger-only and preserves/excludes this key. Add OPTIONAL validated preferences to
+Q&A options; static presentation context appended after immutable safety policy.
+Persist->read->real fake-HTTP LangChain QA test must show actual system context,
+not merely formatting. Default wire remains unchanged. Service later reads prefs.
+Official Drizzle insert/upsert and Zod API docs re-fetched; bound values/conflict
+update and strict optional schema supported in installed0.45.4/4.6.7, no new deps.
+Scope core/storage/QA options/tests only. Red before code, then defaults/enum
+cross-product/injection/clone/SQL errors/restart/backup/context integration and
+full checks. No independent agents available; docs/source/consumers reviewed.

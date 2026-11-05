@@ -83,3 +83,13 @@ retention/deletion or backup mechanism. Existing JSON backups remain **ledger-on
 formatv1/payload schemaVersion2, even though DB schema is3: they exclude chats.
 Restoring one preserves existing chats; moving only that backup does not transfer
 chat history. Do not label it a full application/history backup.
+
+### Implemented preferences (S27b)
+
+OperationalStore.preferences persists strict tone neutral/friendly/formal, language
+english/hindi/hinglish and detail concise/balanced/detailed. Defaults are neutral,
+English and balanced; no free-form system instructions. Q&A options accept a
+validated snapshot and append presentation-only context to the existing safety
+policy. Persisted values are tested through real framework/fake HTTP. Automatic
+service loading comes in S27d; the model has no settings-writing capability.
+Ledger-only backups exclude preferences and preserve them on restore, like chats.

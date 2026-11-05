@@ -132,3 +132,14 @@ export type {
   ConversationMessageRow,
   ConversationHistoryStore,
 } from "./conversations.js";
+export {
+  defaultAssistantPreferences,
+  parseAssistantPreferences,
+  getAssistantPreferences,
+  setAssistantPreferences,
+  AssistantPreferencesError,
+} from "./preferences.js";
+export type {
+  AssistantPreferences,
+  AssistantPreferencesStore,
+} from "./preferences.js";

@@ -452,3 +452,10 @@ S27a publish observed: exactb03d509d8a61233ff15216507a06ec558a9caf3d,
 CI41959714325 all required PR/push jobs SUCCESS, review/thread checks clear,
 normal protected PR30 merge16989ccb269fd4ea9f275f3f4ac1e0c331daca3d. This
 checkpoint updates STATE to observed evidence; S27b not implemented, G3 incomplete.
+
+S27b: missing-core/storage/context reds before code. Strict enum cross-product,
+invalid injection/extra keys, cloned defaults, static port/SQL failures, corrupt
+JSON/bounds, restart/upsert and ledger-only backup preservation checked. Actual
+LangChain/S21 fake HTTP sees persisted style while existing policy remains; no
+preferences causes original wire. Sensitive requests still zero-provider calls.
+No production dependency/SQL migration/UI/agents changes or live inference.

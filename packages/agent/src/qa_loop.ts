@@ -1,3 +1,6 @@
+import { preferencesContext } from "./preferences.js";
+import { parseAssistantPreferences } from "@vittaz/core";
+import type { AssistantPreferences } from "@vittaz/core";
 import { z } from "zod";
 import { checkSensitiveMessage, scrubOutboundText } from "@vittaz/core";
 import type { PrivacyRedactor } from "@vittaz/core";
@@ -20,6 +23,7 @@ const optionsSchema = z.strictObject({
   tokenBudget: z.int().min(1).max(100000).default(12000),
   timeoutMs: z.int().min(1).max(120000).default(30000),
   signal: z.instanceof(AbortSignal).optional(),
+  preferences: z.unknown().optional(),
 });
 const resultSchema = z.strictObject({
   content: z.string().max(32768),
@@ -52,6 +56,7 @@ const resultSchema = z.strictObject({
     ),
 });
 export interface AnswerQuestionOptions {
+  preferences?: AssistantPreferences;
   maxSteps?: number;
   tokenBudget?: number;
   timeoutMs?: number;
@@ -98,6 +103,15 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     const parsed = z.string().trim().min(1).max(8192).safeParse(question);
     const opts = optionsSchema.safeParse(rawOptions);
     if (!parsed.success || !opts.success) throw new QaValidationError();
+    let presentation: string | undefined;
+    try {
+      if (opts.data.preferences !== undefined)
+        presentation = preferencesContext(
+          parseAssistantPreferences(opts.data.preferences),
+        );
+    } catch {
+      throw new QaValidationError();
+    }
     const { maxSteps, tokenBudget, timeoutMs, signal: caller } = opts.data;
     let stepsUsed = 0;
     let tokensUsed = 0;
@@ -164,6 +178,8 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
           content: JSON.stringify({ untrusted_user_data: user }),
         },
       ];
+      if (presentation !== undefined)
+        messages[0]!.content += "\n" + presentation;
       const ids = new Set<string>();
       while (stepsUsed < maxSteps) {
         if (cancelled()) return cancellationResult();

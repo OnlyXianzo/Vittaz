@@ -267,3 +267,16 @@ stale2. No removed original tests, disabled checks, lower thresholds or referenc
 edits. Missing-module/storage reds, static-driver-leak red, and clock/tie-order red
 are saved under /home/user/s27a-*.log. Full226tests36files100% all implemented-source
 metrics including both new history modules. No live inference run for this step.
+
+## S27b preferences (2026-11-05)
+
+Re-fetched https://orm.drizzle.team/docs/insert (parameterized values and
+onConflictDoUpdate) and https://zod.dev/api (strict optional validation). Existing
+Drizzle0.45.4/Zod4.6.7 retained. Core remains dependency-free. Tone neutral/friendly/
+formal; language english/hindi/hinglish; detail concise/balanced/detailed. Defaults
+neutral/english/balanced, strict complete snapshots, no free-form instructions.
+Persistence uses existing serialized app_settings key, no migration. Read invalid
+JSON/shape/over256chars fails statically rather than silently resetting preferences.
+Persist->load->real LangChain/S21 fake HTTP test proves optional presentation
+context actually sent while immutable QA policy/tool/budget authority remains.
+Default no-preference wire unchanged. No live inference or service integration claim.
