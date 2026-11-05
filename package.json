@@ -16,7 +16,8 @@
     "typecheck": "tsc -p tsconfig.check.json --noEmit",
     "test:coverage": "vitest run --coverage",
     "test:privacy": "node scripts/privacy_check.ts",
-    "secret:scan": "python3 .agents/skills/secret-scan/scripts/deep_git_scan.py ."
+    "secret:scan": "python3 .agents/skills/secret-scan/scripts/deep_git_scan.py .",
+    "test:live": "vitest run --config vitest.live.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
