@@ -137,3 +137,22 @@ Please report:
 Do not claim device behavior. Mark S33 done only after you report that the app
 opened on your phone. A successful CI build or artifact upload alone is not S33
 acceptance.
+
+## First recorded CI build (build proof only)
+
+- Workflow run: https://github.com/OnlyXianzo/Vittaz/actions/runs/42031551861
+- Job: `blank-expo-debug-apk` — success.
+- Commit: `ef030e61ec0af7da092b9d275991e80217539ce2`.
+- Artifact: `s33-android-proof-apk`.
+- Artifact ZIP SHA-256:
+  `bdbb2f62082fb38402cd9ef9e2988f68ebeed8a0fb462e8987ca471565121b8e`.
+- Artifact size: 68,974,001 bytes.
+- Artifact expires: 2026-11-12T13:06:00Z (7-day retention).
+- Built versions reported by the workflow: Expo `~58.0.23`,
+  `expo-dev-client` `~58.0.18`, React Native `0.88.1`.
+- Gradle result: `BUILD SUCCESSFUL in 7m 35s`.
+
+Status: **pending owner install/open report**. This CI run proves the blank Expo
+debug APK built and uploaded. It does not prove the APK installed or opened on a
+phone. Do not claim device behavior. Mark S33 done only after the owner reports
+that the app opened on their phone.
