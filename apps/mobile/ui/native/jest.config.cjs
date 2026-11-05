@@ -15,6 +15,10 @@ module.exports = {
   roots: ["<rootDir>", "<rootDir>/../src"],
   testMatch: ["<rootDir>/src/**/*.test.ts", "<rootDir>/src/**/*.test.tsx"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  // The shared modules in `../src` are transformed by this project's Babel, so
+  // their helper imports must resolve here, not in the preview's node_modules
+  // (which does not exist in this job).
+  modulePaths: ["<rootDir>/node_modules"],
   transformIgnorePatterns,
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
