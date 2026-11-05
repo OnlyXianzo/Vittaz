@@ -569,3 +569,12 @@ native SQLite, core use cases, and SharedAssistantService with a fake local mode
 runner. No cloud provider is used for draft/note flows; no Android/device behavior
 is claimed. Export/import means ledger backup/restore plus spreadsheet import
 replay safety. Improve-note remains suggestion-only and never edits a ledger note.
+
+## S31 — mutation spot-check method (2026-11-05)
+
+S31 uses six deliberate working-tree mutations, one per key rule: name
+replacement, sensitive filter, approval, dedupe, key fallback, read-only. Each
+mutation must make its targeted existing suite fail; then the file is restored
+and `git diff --exit-code` must be clean. Results are recorded in
+docs/mutation_checks.md. This is a spot-check method, not a full mutation score
+or a claim that every possible mutation is detected. No mutation is committed.
