@@ -447,3 +447,8 @@ correct red and private integer sequence fix before publish; tests also cover cl
 rollback. Sequence never appears in public rows/input or ledger backups. Existing
 v1->v2 tests remain explicit; latest/stale/future checks updated for additive3.
 Full226tests36files100% metrics; no G3/device/service/channel readiness claim.
+
+S27a publish observed: exactb03d509d8a61233ff15216507a06ec558a9caf3d,
+CI41959714325 all required PR/push jobs SUCCESS, review/thread checks clear,
+normal protected PR30 merge16989ccb269fd4ea9f275f3f4ac1e0c331daca3d. This
+checkpoint updates STATE to observed evidence; S27b not implemented, G3 incomplete.
