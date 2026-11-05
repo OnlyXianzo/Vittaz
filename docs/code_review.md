@@ -479,3 +479,11 @@ no cloud, pending-only, insensitive storage/auth boundary/conditions/null/expiry
 invalid branches tested. Initial worker test used an unallowed synthetic package;
 corrected fixture to the existing allowed com.synthbank.mobile, not the allowlist.
 248tests44files100% all source metrics; no independent review or device readiness.
+
+S27e test-only acceptance maps PA01..PA06 in docs/policy_acceptance.md. Actual
+notification parser/local draft, grid importer, native read-only DB, shared service,
+LangChain/fake HTTP exercise a fully fooled model requesting approve_proposal.
+No approval/write capability, no outbound notes/names/ref/account digits, identical
+permissions all3 sources, unpaired zero-effect. Evidence report existence red;
+functional protections already existed, no fabricated implementation red claimed.
+253tests45files100% metrics. S31 mutation proof still separate/pending.

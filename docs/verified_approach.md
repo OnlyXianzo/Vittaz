@@ -749,3 +749,14 @@ consulted inS26. Tests must use actual ports/adapters, not only isolated helpers
 Notification worker uses deterministic existing parser first, invokes local parser
 only on explicit unknown route, and can create pending proposal only, never an
 AI-confirmed ledger transaction. No notification-to-cloud route. No new library.
+
+## S27e policy acceptance — 2026-11-05
+
+Test-only conformance of existing permissions, not a new model workflow. Review
+six AGENT_POLICY acceptance bullets and real importer/notification/shared-service/
+read-only registry paths. No new dependency/library API. Add PA01..PA06 real native
+DB/fake HTTP assertions plus evidence-map existence regression (missing doc red).
+No fabricated behavior red: already-implemented safety is expected green; malicious
+model outputs explicitly request forbidden actions. S31 will separately mutate six
+production rules to prove regressions detect disabling. No prompt-only security,
+independent-review or full injection-resistance certification claim.
