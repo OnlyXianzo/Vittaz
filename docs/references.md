@@ -244,3 +244,26 @@ requests, no authorization, synthetic data, no tool execution. Log
 max_completion_tokens512 was accepted for this run; no max_tokens rewrite or
 alternate/paid fallback. This is smoke interoperability proof, not correctness,
 privacy certification, production availability or device inference evidence.
+
+## S27a local history (2026-11-05)
+
+- https://www.sqlite.org/foreignkeys.html — per-connection foreign_keys=ON;
+  non-null child FK prevents orphan messages; index child lookup columns.
+- https://www.sqlite.org/stricttables.html — STRICT enforces storage types, not
+  all semantic input policy. Runtime exact shapes/IDs/times/sensitivity remain
+  required, SQL adds source/role/body constraints. SQLite3.53.4 retained.
+- https://www.sqlite.org/autoinc.html — INTEGER PRIMARY KEY aliases durable ROWID;
+  automatic max+1 suffices for this append-only API, no AUTOINCREMENT overhead or
+  deletion/cursor-lifetime guarantee claimed. Sequence stays inside SQL.
+- https://orm.drizzle.team/docs/select — explicit bound filters/order/limits and
+  selected fields; installed0.45.4 remains pinned, no1beta upgrade/dependency added.
+- Read-only reference packages searched for conversation/chat_history: no existing
+  history module/baseline contract to port. S27a is the approved additive plan step;
+  existing ledger migrations1/2 and backup payloadv2 remain compatibility tests.
+
+Tests preserve explicit v1->v2 behavior while adding latest3 migration checks;
+future/stale version sentinels now relative to LATEST_SCHEMA_VERSION, including
+stale2. No removed original tests, disabled checks, lower thresholds or reference
+edits. Missing-module/storage reds, static-driver-leak red, and clock/tie-order red
+are saved under /home/user/s27a-*.log. Full226tests36files100% all implemented-source
+metrics including both new history modules. No live inference run for this step.

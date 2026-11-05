@@ -1,3 +1,4 @@
+import { LATEST_SCHEMA_VERSION } from "./migrations.js";
 import { afterEach, expect, test } from "vitest";
 import { openLedgerStore } from "./repositories.js";
 import type { LedgerRepositories, WalletRow } from "@vittaz/core";
@@ -266,7 +267,7 @@ test("repository_open_rejects_future_schema_and_automatic_rollback_recovers", as
   try {
     const path = join(dir, "synthetic.sqlite");
     const native = new Database(path);
-    native.pragma("user_version = 3");
+    native.pragma("user_version = " + (LATEST_SCHEMA_VERSION + 1));
     native.close();
     expect(() => openLedgerStore(path)).toThrow("schema_newer_than_supported");
     const reset = new Database(path);

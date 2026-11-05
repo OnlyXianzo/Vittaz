@@ -133,7 +133,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 - [x] **S25. LangChain adapter.** Implement the agent interface with LangChain. Read the current docs first. Core must not import it.
 - [x] **S26. Local-model interfaces.** `parse_entry` and `improve_note` behind interfaces, with fakes. Real local models come in phase I.
 - [x] **S27. Live smoke tests.** Tagged `@live`, Kilo keyless routes only (section 9).
-- [ ] **S27a. Conversations and messages.** Tables, repositories and use cases. Each message has a `source` (`app`, `cli`, `telegram`) and a conversation id.
+- [x] **S27a. Conversations and messages.** Tables, repositories and use cases. Each message has a `source` (`app`, `cli`, `telegram`) and a conversation id.
 - [ ] **S27b. Preferences.** Tone, language and detail, stored and added to the assistant context.
 - [ ] **S27c. Custom rules.** Validated structured rules. Message conditions are enforced in code before the assistant.
 - [ ] **S27d. AssistantService.** The port in core and the implementation in `packages/agent`, using the tool registry. One service for app, CLI and Telegram.

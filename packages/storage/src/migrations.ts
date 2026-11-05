@@ -7,7 +7,7 @@ export interface MigrateResult {
   currentVersion: number;
   applied: number[];
 }
-export const LATEST_SCHEMA_VERSION = 2;
+export const LATEST_SCHEMA_VERSION = 3;
 const steps = [
   {
     version: 1,
@@ -18,6 +18,27 @@ const steps = [
     version: 2,
     name: "002_v1_spec_tags_imports_analytics_indexes",
     sql: "\n        ALTER TABLE transactions ADD COLUMN benefit TEXT NOT NULL DEFAULT 'self';\n        ALTER TABLE transactions ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]';\n        ALTER TABLE transactions ADD COLUMN import_fingerprint TEXT;\n        ALTER TABLE transactions ADD COLUMN split_owed_paise INTEGER NOT NULL DEFAULT 0 CHECK (typeof(split_owed_paise) = 'integer' AND split_owed_paise BETWEEN 0 AND 9007199254740991);\n\n        ALTER TABLE proposals ADD COLUMN benefit TEXT NOT NULL DEFAULT 'self';\n        ALTER TABLE proposals ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]';\n        ALTER TABLE proposals ADD COLUMN split_owed_paise INTEGER NOT NULL DEFAULT 0 CHECK (typeof(split_owed_paise) = 'integer' AND split_owed_paise BETWEEN 0 AND 9007199254740991);\n\n        CREATE UNIQUE INDEX idx_tx_import_fingerprint\n          ON transactions(import_fingerprint)\n          WHERE import_fingerprint IS NOT NULL;\n\n        CREATE INDEX idx_tx_occurred_at\n          ON transactions(occurred_at);\n\n        CREATE INDEX idx_tx_status\n          ON transactions(status);\n\n        CREATE INDEX idx_tx_month_dir_event\n          ON transactions(occurred_at, direction, event_type);\n\n        CREATE TABLE unparsed_messages (\n          id TEXT PRIMARY KEY,\n          app_package TEXT NOT NULL,\n          sanitized_text TEXT NOT NULL,\n          post_time TEXT NOT NULL,\n          reason TEXT NOT NULL,\n          routed_to TEXT NOT NULL CHECK (routed_to IN ('local_parser', 'unparsed_list')),\n          created_at TEXT NOT NULL\n        ) STRICT;\n\n        CREATE TABLE ai_analytics_log (\n          id TEXT PRIMARY KEY,\n          provider TEXT NOT NULL,\n          model TEXT NOT NULL,\n          key_nickname TEXT NOT NULL,\n          prompt_tokens INTEGER NOT NULL CHECK (typeof(prompt_tokens) = 'integer'),\n          completion_tokens INTEGER NOT NULL CHECK (typeof(completion_tokens) = 'integer'),\n          total_tokens INTEGER NOT NULL CHECK (typeof(total_tokens) = 'integer'),\n          latency_ms INTEGER NOT NULL CHECK (typeof(latency_ms) = 'integer'),\n          cost_estimate_micros INTEGER NOT NULL CHECK (typeof(cost_estimate_micros) = 'integer'),\n          outcome TEXT NOT NULL,\n          created_at TEXT NOT NULL\n        ) STRICT;\n\n        CREATE TABLE app_settings (\n          key TEXT PRIMARY KEY,\n          value_json TEXT NOT NULL\n        ) STRICT;\n\n        INSERT OR IGNORE INTO app_settings (key, value_json)\n        VALUES ('send_notes_to_cloud', 'false');\n      \nALTER TABLE transactions ADD COLUMN benefit_paise INTEGER NOT NULL DEFAULT 0 CHECK (benefit_paise BETWEEN 0 AND 9007199254740991);\nALTER TABLE transactions ADD COLUMN tag TEXT;\nALTER TABLE proposals ADD COLUMN benefit_paise INTEGER NOT NULL DEFAULT 0 CHECK (benefit_paise BETWEEN 0 AND 9007199254740991);\nALTER TABLE proposals ADD COLUMN tag TEXT;\n",
+  },
+  {
+    version: 3,
+    name: "003_conversation_history",
+    sql: `
+      CREATE TABLE conversations (
+        id TEXT PRIMARY KEY NOT NULL CHECK (length(id) BETWEEN 1 AND 128),
+        created_at TEXT NOT NULL CHECK (length(created_at) = 24)
+      ) STRICT;
+      CREATE TABLE messages (
+        sequence INTEGER PRIMARY KEY,
+        id TEXT NOT NULL UNIQUE CHECK (length(id) BETWEEN 1 AND 128),
+        conversation_id TEXT NOT NULL REFERENCES conversations(id),
+        source TEXT NOT NULL CHECK (source IN ('app', 'cli', 'telegram')),
+        role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+        content TEXT NOT NULL CHECK (length(trim(content)) BETWEEN 1 AND 8192 AND instr(content, char(0)) = 0),
+        created_at TEXT NOT NULL CHECK (length(created_at) = 24)
+      ) STRICT;
+      CREATE INDEX idx_conversations_recent ON conversations(created_at, id);
+      CREATE INDEX idx_messages_conversation_recent ON messages(conversation_id, sequence);
+    `,
   },
 ] as const;
 export function getCurrentSchemaVersion(db: Database.Database): number {

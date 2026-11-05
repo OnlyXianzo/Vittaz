@@ -117,3 +117,18 @@ export type {
   LocalModelTasks,
   LocalModelRunner,
 } from "./local_model.js";
+
+export {
+  ConversationHistoryError,
+  parseConversation,
+  parseConversationMessage,
+  parseHistoryId,
+  parseHistoryLimit,
+  startConversation,
+  recordConversationMessage,
+} from "./conversations.js";
+export type {
+  ConversationRow,
+  ConversationMessageRow,
+  ConversationHistoryStore,
+} from "./conversations.js";

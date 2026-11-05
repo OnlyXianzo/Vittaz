@@ -483,3 +483,17 @@ S26 publish reconciliation: required CI41875662202 succeeded on91ebb3d, but norm
 merge was refused because owner main advanced with UI PR25/04a59f1. Merge owner
 main into this step without editing its UI; re-run full local checks and exact-head
 CI before retrying protected merge. No force push or branch-protection bypass.
+
+S27a: history is local append-only user/assistant text with source app/cli/telegram,
+not an AI tool or ledger write capability. Host creates IDs/timestamps. Repository
+uses the existing native connection/serialization boundary. Histories do not use
+ledger wallet IDs, and ledger-only backup format/schemaVersion2 stays unchanged
+when DB schema advances to3. Such backups do not export chats; restoring them
+preserves existing local chats. No new full-database backup or cross-device sync
+is proposed by this step. Recent reads bounded100, no automatic retention/deletion.
+
+S27a ordering refinement: a failing same-clock/backward-clock regression proved
+that sorting turns by host time/random IDs can reorder user/assistant context.
+Message windows therefore use a private SQLite INTEGER PRIMARY KEY sequence,
+allocated by the database for the append-only API. No AUTOINCREMENT or exposed
+numeric sequence/cursor, no caller-supplied ordering key. Host time is metadata.
