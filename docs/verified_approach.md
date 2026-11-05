@@ -618,3 +618,29 @@ not accepted after elapsed deadline. UI/model catalog/native runtime not selecte
 Tests first missing-module red, fake raw local names/no network/no writes, strict
 invalid money/split/field/output, unknown/null, cancellation/timeout/getter/failure
 privacy; full suite and protected per-step CI before progression.
+
+## S27 isolated live smoke — 2026-11-05
+
+Scope/done: test tooling only, actual S21 adapter, public Kilo anonymous/free
+reply and tool-JSON shape. No app/core behavior or new dependency. Official Kilo
+authentication/API docs re-fetched; anonymous :free and current ai-gateway host
+agree with previous catalog observation. Vitest include docs re-fetched: separate
+include/exclude/config is required because CLI selectors override some filters.
+Pinned Vitest5.1.0 remains. Existing normal config already excludes live files
+and @live names. Dedicated manual workflow allowed to fail, never a required job.
+
+Blast radius: tests/helpers/keyless_smoke.ts plus deterministic fake-fetch tests,
+one .live.test.ts, separate live config, package script and typecheck include,
+manual workflow and documentation. No production code or key/environment loading.
+Safety: one discovery + at most two completions per invocation, hardcoded origin,
+no redirects/credentials/auth, discover zero-price :free AND advertised tool
+capability, fixed synthetic payloads, bounded response/time, no retries/alternate
+model or paid fallback.429 exits cleanly before any more requests. Independent
+invocations/IP users cannot share an in-process rate counter; respect actual429.
+
+Red: missing helper/config/workflow before implementation. Then deterministic
+success/shape/catalog eligibility/no auth/exact endpoint/429 at every stage/body
+bounds/network failures/normal-CI exclusion tests. Real smoke only after safety
+suite green. Public availability may fail; record honestly, never silently switch
+protocol fields to force green. No subagent tool available; sequential review of
+primary docs, provider/key-pool source and test-discovery consumers performed.

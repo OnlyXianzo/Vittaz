@@ -71,3 +71,26 @@ Insert 1,000 entries in a day. Load 365,000 rows and scroll a virtualized list. 
 ## Live tests
 
 Tests tagged `@live` call a real keyless provider with synthetic prompts only. They never block a merge.
+
+## Keyless opt-in smoke (S27)
+
+Normal `npm test`/coverage excludes `*.live.test.ts` and @live. To explicitly send
+three or fewer synthetic requests to the documented public Kilo gateway:
+
+```sh
+VITTAZ_RUN_KEYLESS_LIVE=1 npm run test:live
+```
+
+Without that exact opt-in the separate suite skips and makes no network request.
+The manual **Keyless live smoke** workflow has no secrets, read-only permissions,
+pinned actions, serialized runs and an allowed-to-fail job; it is not a required
+merge check. It dynamically chooses an advertised tool-capable :free model with
+explicit zero prompt/completion pricing. No key, application/ledger data, paid
+fallback, retries or wording assertions. Actual S21 adapter checks response and
+one synthetic tool call JSON shape; the tool is never executed. A429 skips the
+remaining smoke cleanly. Public/network/schema failures fail this optional suite
+with a constant message; they do not weaken normal CI. At most3 requests per
+invocation,20s/request and bounded bodies (4MiB catalog/64KiB replies). This
+in-process budget cannot coordinate other clients behind a shared IP; do not
+repeat runs rapidly. Free public services may collect prompts. Do not put real
+names, notes, identifiers, credentials or financial history in this harness.

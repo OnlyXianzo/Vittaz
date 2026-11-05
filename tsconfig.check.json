@@ -12,7 +12,8 @@
     "apps/**/*.ts",
     "tests/**/*.ts",
     "vitest.config.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "vitest.live.config.ts"
   ],
   "exclude": [
     "**/dist/**",

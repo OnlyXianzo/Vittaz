@@ -413,3 +413,14 @@ full local checks reran. Exact113c436 CI41876257278 plus every PR/push required
 check succeeded, no review threads, normal protected PR26 merge1aadf51b. Earlier
 405 refusals were respected; no bypass. This checkpoint updates STATE to verified
 facts, not a new implementation step or S27 completion.
+
+## S27 self-review (no independent reviewer claim)
+
+Correct missing-helper red and missing-script isolation red before implementation.
+Rechecked normal test discovery, actual adapter/key-pool wire and empty-key path,
+strict suffix/zero-price/tool capability selection, exact URL/no redirects/auth,
+per-invocation budget, bounded read/abort cleanup, immediate429 stop at each stage,
+no retry/model fallback and no tool execution. API output is never logged/echoed.
+One actual synthetic live reply+tool JSON smoke passed (not skipped), no extra
+inference retry. Only test tooling/config/docs changed; native/device/service
+flows and remaining G3 acceptance remain unverified.

@@ -228,3 +228,19 @@ request budget and bounded body/time; current :free plus explicit zero pricing a
 tool capability; stop immediately on429, never fallback to another/paid route.
 Deterministic fake-fetch tests before actual synthetic shape-only smoke. No code
 or workflow added by this research checkpoint.
+
+## S27 implementation verification (2026-11-05)
+
+Re-fetched official https://kilo.ai/docs/gateway/authentication and
+https://kilo.ai/docs/gateway/api-reference; current official host and anonymous
+:free eligibility unchanged. https://vitest.dev/config/include confirms explicit
+include replaces defaults and is used for separate live discovery (pinned5.1.0).
+No dependency added or changed. Existing exact pinned action SHAs reused.
+
+Actual opt-in `VITTAZ_RUN_KEYLESS_LIVE=1 npm run test:live`: one test PASSED,
+not skipped, catalog plus reply plus tool-JSON via actual S21 adapter; three
+requests, no authorization, synthetic data, no tool execution. Log
+`/home/user/s27-live.log`. Public availability and catalog may change. Native
+max_completion_tokens512 was accepted for this run; no max_tokens rewrite or
+alternate/paid fallback. This is smoke interoperability proof, not correctness,
+privacy certification, production availability or device inference evidence.
