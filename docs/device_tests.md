@@ -98,25 +98,27 @@ or Node tests.
 
 ## S36 APK owner test flow (pending)
 
-**Build evidence only (2026-11-07).** Manual workflow run
-[42273678939](https://github.com/OnlyXianzo/Vittaz/actions/runs/42273678939)
-(run #9) succeeded on branch head `2d94697347e2807d17543a29609ac0748a03fd82`.
-It bundled 1,411 modules and completed Gradle in 10m 5s with Node 24.22.2,
-npm 11.19.1 and OpenJDK 17.0.21. Artifact `s33-preview-standalone-apk`
-(`app-release.apk`) expires `2026-11-13T18:57:31Z`; APK size is 48,634,494 bytes
+**Build evidence only (2026-11-07).** Final merged-head manual workflow run
+[42279488717](https://github.com/OnlyXianzo/Vittaz/actions/runs/42279488717)
+(run #11) succeeded on `main` commit
+`10e31794dbec8653b165959104d0bc703c1b578b`. It bundled 1,411 modules and
+completed Gradle in 12m 43s with Node 24.22.2, npm 11.19.1, Temurin JDK
+17.0.21 and Gradle 9.4.1. Artifact `s33-preview-standalone-apk`
+(`app-release.apk`) expires `2026-11-13T19:39:41Z`; APK size is 48,634,494 bytes
 and SHA-256 is
-`c9fd11be3b6faab4d663da552b99850ea5fed5bcb1f935abc9deba9a33005d78`. A copy
-is archived outside the repository at `../S36-builds/s36-preview-standalone.apk`.
-Static inspection found the embedded JS bundle, Kilo Auto Free/key strings and
-SecureStore DEX class. This build predates the TypeScript-only path-resolution
-fix in commit `8d8ec53`; bundled application source is unchanged, but the APK
-workflow does not validate the separate native typecheck failure.
+`37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35`. A copy
+is archived outside the repository at
+`../S36-builds/s36-final-merged-standalone.apk`. Static inspection found the
+embedded `assets/index.android.bundle`, Kilo Auto Free/read-only tool markers,
+and SecureStore DEX class. This is build/package evidence only, not device or
+runtime proof. Earlier run #9 (`42273678939`) is a pre-fix historical build and
+is superseded by this merged-head artifact.
 
 The owner has reported they cannot install or test the app at present. This is
 not device evidence. Leave all S36 device checks pending; do not infer behavior
-or mark any row passed. If testing becomes possible, install the archived
-standalone artifact (it has an embedded JavaScript bundle and does not need
-Metro). Use synthetic data. First use Kilo Auto Free without a key; it is
+or mark any row passed. If testing becomes possible, install
+`../S36-builds/s36-final-merged-standalone.apk` (it has an embedded JavaScript
+bundle and does not need Metro). Use synthetic data. First use Kilo Auto Free without a key; it is
 keyless but may route prompts to upstream providers that log them. Do not enter
 a key unless testing with the owner's own Kilo key. Any entered key should be
 checked only for save/remove/reopen status; never copy the value into a report.
