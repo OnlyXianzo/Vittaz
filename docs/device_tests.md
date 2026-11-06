@@ -19,20 +19,20 @@ or Node tests.
 
 ## Checklist
 
-| Area                  | Test                                                                                                    | Status                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05** |
-| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending       |
-| S35 SQLite            | `expo-sqlite` post-S35 APK installs; synthetic manual entry survives close/reopen                       | pending owner device report          |
-| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                              |
-| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                | pending                              |
-| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                              |
-| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                              |
-| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                              |
-| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                              |
-| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                              |
-| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                              |
-| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                              |
+| Area                  | Test                                                                                                    | Status                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05**                                                   |
+| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending                                                         |
+| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **blocked — UUID runtime error on original post-S35 APK; corrected APK retry pending** |
+| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                                                                                |
+| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                | pending                                                                                |
+| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                                                                                |
+| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                                                                                |
+| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                                                                                |
+| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                                                                                |
+| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                                                                                |
+| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                                                                                |
+| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                                                                                |
 
 ## S33 device record (owner-reported)
 
@@ -52,6 +52,26 @@ or Node tests.
 - Earlier attempt with the blank `s33-android-proof-apk` **crashed** on
   `RNCSafeAreaProvider`. That failure is retained in
   `docs/android_environment.md` with the binary comparison that explains it.
+
+## S35 save-error report (owner-reported)
+
+- Date: 2026-11-06.
+- Reporter: owner; screenshot supplied after trying the post-S35 APK. The agent
+  did not run or observe the phone.
+- Build: post-S35 standalone APK from run `42215554135` (embedded JS; no Metro
+  server required).
+- Owner observed the Add transaction screen, then Save displayed
+  `Cannot read property 'randomUUID' of undefined`.
+- Diagnosis: the app reached core but relied on `globalThis.crypto.randomUUID`,
+  which is absent in the target Android Hermes runtime. The error occurs before
+  the transaction insert; the failed attempt was not saved. It is a runtime
+  compatibility issue, not missing Metro or a blank-screen failure.
+- Corrective change: app now injects SDK-matched Expo Crypto UUID generation for
+  manual saves and proposal approval. This is covered by tests with
+  `globalThis.crypto` removed, but device behavior remains **unverified**.
+- Required retest: install the corrected APK, save synthetic data, close/reopen
+  the app, and confirm the row remains. Leave this row blocked until the owner
+  reports the result; do not start S36 before this blocker is cleared.
 
 ## Recording results
 

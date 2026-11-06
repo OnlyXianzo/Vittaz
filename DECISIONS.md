@@ -732,3 +732,23 @@ Known scope limit: the adapter rejects _direct_ synchronous re-entry from within
 a store callback, matching the tested core case. As with the Expo transaction
 API, repository handles passed to the callback must be used for all work; do not
 call the outer store from inside a callback. Core use cases follow this rule.
+
+## 2026-11-06 — S35 Android UUID compatibility repair
+
+Owner's post-S35 phone screenshot showed Add transaction failing with
+`Cannot read property 'randomUUID' of undefined`. The app had relied on
+`packages/core`'s default `globalThis.crypto.randomUUID`; Android Hermes on the
+target device does not expose that Web Crypto global. The operation errors while
+building the transaction row before its insert, and the SQLite unit rolls back,
+so the failed manual entry was not saved. The standalone APK already embeds its
+JS bundle; no Metro server is required.
+
+After a failing UI regression reproduced both manual save and proposal approval
+with `globalThis.crypto` absent, the app now injects SDK-matched
+`expo-crypto@58.0.7` `randomUUID()` for those two core calls. Core's default
+runtime and public behavior are unchanged; no fallback to `Math.random` is
+introduced. The tests assert Expo's UUID function is used, with synthetic IDs.
+The Expo SDK 58 official docs and version are recorded in `docs/references.md`.
+The repair does not establish device persistence; owner must retry the corrected
+APK and confirm a synthetic entry survives app close/reopen before S35 device
+verification is accepted or S36 begins.

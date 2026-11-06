@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
-current_step: "S36"
-current_step_status: "not_started"
-blocked_on: "none"
+current_step: "S35 corrective Android UUID runtime fix"
+current_step_status: "in_progress"
+blocked_on: "owner retry on corrected APK; no S36 until synthetic save survives close/reopen"
 last_updated: "2026-11-06"
-last_green_commit: "a533288fe375eb21abe023c53b5e121de17366b5"
+last_green_commit: "5014d32c11dd9974acfe4c82dfe4e0d0a232a866"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "S33 owner accepted pre-promotion APK; S34 merged; S35 PR #56 merged a533288 with all six checks green; post-S35 APK run 42215554135 success (904 modules, core symbols + SQLiteModule statically present), owner device persistence report pending"
+ci_proof: "S35 PR #56 and APK run 42215554135 are build proof only; owner reported Save failure: crypto.randomUUID unavailable in Android Hermes. Corrective expo-crypto fix passes local app/root tests and exports; PR CI, corrected APK, and owner persistence retry are pending."
 ---
 
 # STATE
@@ -69,8 +69,27 @@ ci_proof: "S33 owner accepted pre-promotion APK; S34 merged; S35 PR #56 merged a
   security, build and native checks all green. Root: 344 tests / 56 files, 100%.
   App: Jest 11/11, typecheck/lint/format; Android and web exports pass.
 - Post-S35 APK run `42215554135` success: 904 modules bundled, APK ZIP sha256
-  `115e44a0…`, core and SQLiteModule statically present. This is build proof
-  only; owner has not installed it. No SQLite/device behavior claimed.
+  `115e44a0…`, core and SQLiteModule statically present. Owner later installed/
+  tried it and reported the UUID save error; no SQLite/device persistence claim.
+
+## S35 corrective follow-up — 2026-11-06
+
+- Owner's post-S35 phone test shows Add transaction but Save errors with
+  `Cannot read property 'randomUUID' of undefined`. This is an Android Hermes
+  runtime issue, not missing Metro; the standalone APK embeds JavaScript.
+- The failure occurs before the transaction insert; do not count this entry as
+  saved and do not mark device persistence passed.
+- SDK 58 Expo Crypto docs were consulted. Failing regressions reproduced the
+  same missing-Web-Crypto behavior in both manual Save and user proposal
+  approval. The mobile app now injects `expo-crypto@58.0.7` UUID generation into
+  those core calls; core's default runtime is unchanged. Local regression tests
+  pass with `globalThis.crypto` removed.
+- Local corrective branch gates pass: root 344 tests / 56 files at 100% coverage,
+  privacy/lint/format/typecheck/build/audit/secret scan; mobile Jest 11/11,
+  lint/format/typecheck, Android export (912 modules) and web export pass.
+- The fix is not yet merged or device-verified. S36 stays blocked until the
+  corrected standalone APK is installed and the owner confirms a synthetic
+  entry survives close/reopen.
 
 ## Current proof
 
@@ -87,20 +106,24 @@ ci_proof: "S33 owner accepted pre-promotion APK; S34 merged; S35 PR #56 merged a
   `BUILD SUCCESSFUL in 12m 25s`; embedded bundle contains core symbols; SQLite
   module strings present in DEX. ZIP SHA-256 `115e44a0672a715132c65ecaf0617327256bb8b7d895e097a194d5d2197da62a`,
   expires `2026-11-13T12:23:47Z`.
-- This is build proof only. Owner has not installed this APK. S33 owner acceptance
-  covers only the pre-promotion APK opening; no S35 SQLite/device behavior claim.
+- Owner did install/try this post-S35 APK, but Save failed before insert with the
+  UUID runtime error documented above. No S35 persistence proof; S33 acceptance
+  still covers only the earlier APK opening.
 - Sandbox `npm run android:env` remains `ok:false` (no Java 17/Android SDK/adb/device).
 
 ## Next actions
 
-1. S36: LangChain check (bundle, one tool call, streaming, force-close/reopen).
-2. Ask owner to install post-S35 artifact `s33-preview-standalone-apk` from run
-   `42215554135` and verify a synthetic entry survives app close/reopen.
-3. S37/G4: persistence, Keystore, local model/benchmark, Telegram, voice and OCR
+1. Finish the Expo Crypto runtime repair; run app and root gates; update this
+   state with exact PR/check/build evidence and push.
+2. Build a corrected standalone APK and ask the owner to save a synthetic entry,
+   close/reopen, and report whether it remains. Keep S35 persistence pending until
+   that report.
+3. Hold S36 LangChain check until that owner verification passes.
+4. S37/G4: persistence, Keystore, local model/benchmark, Telegram, voice and OCR
    device checklist. Each row needs its own owner report.
-4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+5. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
-5. Phase J UI vertical slices; prove every slice on a real device.
+6. Phase J UI vertical slices; prove every slice on a real device.
 
 ## Owner-owned open items (do not decide)
 

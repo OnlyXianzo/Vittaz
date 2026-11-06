@@ -15,6 +15,7 @@ import {
 } from "@vittaz/core";
 import type { LedgerStore, ProposalRow, TransactionRow } from "@vittaz/core";
 import type { Action, AppState, Transaction } from "./domain";
+import { mobileLedgerRuntime } from "./ledger_runtime";
 import { openMobileLedgerStore } from "./storage/open_ledger_store";
 
 interface Store {
@@ -325,15 +326,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const amount_paise = parseRupeesToPaise(draft.amount);
           if (draft.direction === "lent" && !draft.person.trim())
             throw new Error("person_required_for_lent_entry");
-          await createManualTransaction(store, {
-            amountPaise: amount_paise,
-            direction: draft.direction === "received" ? "credit" : "debit",
-            splitOwedPaise: draft.direction === "lent" ? amount_paise : 0,
-            category: draft.category,
-            counterpartyName: draft.person.trim() || null,
-            note: draft.note.trim() || null,
-            walletId: draft.mode === "Cash" ? "cash" : "bank_default",
-          });
+          await createManualTransaction(
+            store,
+            {
+              amountPaise: amount_paise,
+              direction: draft.direction === "received" ? "credit" : "debit",
+              splitOwedPaise: draft.direction === "lent" ? amount_paise : 0,
+              category: draft.category,
+              counterpartyName: draft.person.trim() || null,
+              note: draft.note.trim() || null,
+              walletId: draft.mode === "Cash" ? "cash" : "bank_default",
+            },
+            mobileLedgerRuntime,
+          );
           await refresh(store);
           if (mounted_ref.current) {
             setState((current) => ({
@@ -360,7 +365,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         void (async () => {
           if (action.type === "approve")
-            await approveProposal(store, action.id);
+            await approveProposal(store, action.id, {}, mobileLedgerRuntime);
           else await rejectProposal(store, action.id);
           await refresh(store);
           if (mounted_ref.current) {

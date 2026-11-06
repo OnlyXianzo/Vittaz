@@ -597,3 +597,10 @@ CI while local execution passed. The checker now runs only its six declared
 privacy suites instead of discovering and importing every repository test
 file, and emits bounded failure-class diagnostics without assertion messages or
 payloads. The root CI `test:coverage` command still runs the complete suite.
+
+### S35 Android UUID runtime repair (2026-11-06)
+
+- Expo SDK 58 Crypto documentation: https://docs.expo.dev/versions/v58.0.0/sdk/crypto/ — recommended `expo-crypto` version `~58.0.7`; `Crypto.randomUUID()` is synchronous, supported on Android/iOS/web, and returns an RFC 4122 version-4 UUID using cryptographically secure random values. Consulted 2026-11-06.
+- Installed through the documented SDK-aware command `npx expo install expo-crypto`; resolved package `expo-crypto@58.0.7` and dependency range `~58.0.7` in `apps/mobile/package.json` / `package-lock.json`.
+- Native app composition injects this platform ID source into both manual transaction creation and user proposal approval. The framework-free core default is unchanged. Jest regressions remove `globalThis.crypto` during both UI flows and assert the Expo API supplies IDs.
+- This is an ID-generation compatibility fix, not a change to storage, ledger semantics, or security guarantees beyond Expo Crypto's documented UUIDv4 source. It does not by itself establish physical-device persistence; the corrected APK must still be retried by the owner.
