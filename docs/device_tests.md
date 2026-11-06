@@ -23,7 +23,7 @@ or Node tests.
 | --------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05**                              |
 | S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending                                    |
-| S35 SQLite            | Corrected APK; synthetic manual entry survives close/reopen                                             | **pending owner retry — corrected APK run 42228039226 available** |
+| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **pending owner retry — corrected APK run 42228039226 available** |
 | S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                                                           |
 | LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                | pending                                                           |
 | Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                                                           |
