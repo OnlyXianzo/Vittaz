@@ -114,6 +114,13 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
       const file = process.argv.find(value => value.startsWith("--outputFile=")).slice("--outputFile=".length);
       const report = ${JSON.stringify(validReport())};
       if (mode === "empty") report.numPassedTests = 0;
+      if (mode === "failed") {
+        report.success = false;
+        report.numFailedTests = 1;
+        report.testResults[0].status = "failed";
+        report.testResults[0].assertionResults[0].status = "failed";
+        report.testResults[0].assertionResults[0].fullName = "privacy_synthetic_failure";
+      }
       writeFileSync(file, mode === "malformed" ? "not_json" : JSON.stringify(report));
     `,
     );
@@ -123,6 +130,7 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
       "missing",
       "malformed",
       "empty",
+      "failed",
     ]) {
       const result = spawnSync(process.execPath, [runner], {
         encoding: "utf8",
@@ -143,8 +151,10 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
         expect(result.stderr).toContain("privacy_child_failed");
       if (mode === "missing" || mode === "malformed")
         expect(result.stderr).toContain("privacy_report_invalid");
-      if (mode === "empty")
+      if (mode === "empty" || mode === "failed")
         expect(result.stderr).toContain("privacy_evidence_missing");
+      if (mode === "failed")
+        expect(result.stderr).toContain("privacy_synthetic_failure");
       expect(readdirSync(scratch)).toEqual([]);
     }
   } finally {

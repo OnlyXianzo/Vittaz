@@ -49,6 +49,29 @@ export function hasPrivacyEvidence(value: unknown): boolean {
   );
 }
 
+function readFailedAssertionNames(reportPath: string): string[] {
+  try {
+    const report: unknown = JSON.parse(readFileSync(reportPath, "utf8"));
+    if (!record(report) || !Array.isArray(report.testResults)) return [];
+    return report.testResults.flatMap((suite: unknown) => {
+      if (!record(suite) || !Array.isArray(suite.assertionResults)) return [];
+      return suite.assertionResults
+        .filter(
+          (assertion: unknown) =>
+            record(assertion) && assertion.status === "failed",
+        )
+        .map((assertion: Record<string, unknown>) =>
+          typeof assertion.fullName === "string"
+            ? assertion.fullName.slice(0, 120)
+            : "unnamed_test",
+        )
+        .slice(0, 20);
+    });
+  } catch {
+    return [];
+  }
+}
+
 export function runPrivacyCheck(): boolean {
   const directory = mkdtempSync(join(tmpdir(), "vittaz-privacy-"));
   try {
@@ -70,13 +93,15 @@ export function runPrivacyCheck(): boolean {
         maxBuffer: 16 * 1024 * 1024,
       },
     );
+    const report_path = join(directory, "report.json");
     if (result.error || result.status !== 0) {
       const error_code =
         result.error && "code" in result.error
           ? String(result.error.code)
           : "none";
+      const failed_names = readFailedAssertionNames(report_path);
       console.error(
-        `privacy_child_failed status=${result.status ?? "null"} signal=${result.signal ?? "none"} error_code=${error_code}`,
+        `privacy_child_failed status=${result.status ?? "null"} signal=${result.signal ?? "none"} error_code=${error_code} failed_tests=${failed_names.join("|") || "unavailable"}`,
       );
       return false;
     }
@@ -88,7 +113,10 @@ export function runPrivacyCheck(): boolean {
       return false;
     }
     if (!hasPrivacyEvidence(report)) {
-      console.error("privacy_evidence_missing");
+      const failed_names = readFailedAssertionNames(report_path);
+      console.error(
+        `privacy_evidence_missing failed_tests=${failed_names.join("|") || "none"}`,
+      );
       return false;
     }
     return true;
