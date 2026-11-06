@@ -19,19 +19,20 @@ or Node tests.
 
 ## Checklist
 
-| Area                  | Test                                                                                                         | Status                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
-| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                        | **passed — owner report 2026-11-05** |
-| S34 wiring            | `apps/mobile` imports `packages/core`; `expo-sqlite` repository adapter passes core contract tests on device | pending                              |
-| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage      | pending                              |
-| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                     | pending                              |
-| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected                    | pending                              |
-| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                      | pending                              |
-| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                        | pending                              |
-| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device                    | pending                              |
-| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network      | pending                              |
-| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                                | pending                              |
-| OCR                   | On-device OCR quality/privacy with synthetic images                                                          | pending                              |
+| Area                  | Test                                                                                                    | Status                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05** |
+| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending       |
+| S35 SQLite            | `expo-sqlite` post-S35 APK installs; synthetic manual entry survives close/reopen                       | pending owner device report          |
+| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                              |
+| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                | pending                              |
+| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                              |
+| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                              |
+| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                              |
+| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                              |
+| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                              |
+| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                              |
+| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                              |
 
 ## S33 device record (owner-reported)
 

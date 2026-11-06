@@ -348,3 +348,37 @@ Status: **build proof only**. This APK has not been installed or opened by the
 owner. The S33 owner acceptance covers the pre-promotion APK opening; it does not
 extend to this build, to core wiring, or to persistence. S35 still owes the
 `expo-sqlite` adapter and replacement of the preview demo reducer.
+
+## S35 post-wiring APK build (build proof only)
+
+After S35 replaced the native demo reducer and added `expo-sqlite`, the manual
+preview workflow was re-run on main to verify the promoted app, shared core and
+storage adapter bundle together.
+
+- Workflow run: https://github.com/OnlyXianzo/Vittaz/actions/runs/42215554135
+- Commit: `a533288fe375eb21abe023c53b5e121de17366b5`.
+- Job `preview-apk`: success; `BUILD SUCCESSFUL in 12m 25s`.
+- Autolinking assertion: `missing: []`.
+- Metro: `Android Bundled 35298ms index.ts (904 modules)`.
+- Repository-unchanged assertion passed.
+- Downloaded standalone artifact ZIP SHA-256:
+  `115e44a0672a715132c65ecaf0617327256bb8b7d895e097a194d5d2197da62a`.
+- APK size: 46,015,238 B. ZIP size: 24,268,384 B.
+- Artifact expires `2026-11-13T12:23:47Z` (7-day retention).
+- Static inspection found `MoneyValidationError` and
+  `createManualTransaction` in the embedded Hermes bundle, and `SQLiteModule`
+  strings in DEX. This proves a bundle was built, not that SQLite opened or ran
+  on a device.
+
+**Not device proof.** The owner has not installed this post-S35 APK. S33's
+owner-reported open applies only to the earlier pre-promotion artifact. Do not
+claim persistence, transaction saving, or SQLite runtime behavior until the
+owner installs this build and reports the actual result.
+
+### Install and report
+
+Follow the download/unknown-source/install steps above, using run
+`42215554135` and artifact `s33-preview-standalone-apk`. Open Vittaz, add one
+synthetic manual transaction, close/reopen the app, and report whether the row
+is still present. This is supporting device evidence for S35; do not use real
+financial data in the test.

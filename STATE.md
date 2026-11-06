@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
-current_step: "S35"
-current_step_status: "in_progress"
+current_step: "S36"
+current_step_status: "not_started"
 blocked_on: "none"
 last_updated: "2026-11-06"
-last_green_commit: "37c6263e926a0c68f3133d27dfd7b8ea6ff0d1c1"
+last_green_commit: "a533288fe375eb21abe023c53b5e121de17366b5"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "S33 device proof accepted by owner (pre-promotion APK); S34 promotion merged b19e181 + fix 37c6263; APK run 42204863019 success, 873 modules, core symbols verified inside the shipped APK bundle"
+ci_proof: "S33 owner accepted pre-promotion APK; S34 merged; S35 PR #56 merged a533288 with all six checks green; post-S35 APK run 42215554135 success (904 modules, core symbols + SQLiteModule statically present), owner device persistence report pending"
 ---
 
 # STATE
@@ -65,47 +65,42 @@ ci_proof: "S33 device proof accepted by owner (pre-promotion APK); S34 promotion
   fixed; bundle grew 2.3 MB -> 2.5 MB and now contains core symbols.
 - `dependencies_are_exactly_pinned` no longer covers `apps/mobile` (Expo owns
   those ranges); replaced by a lockfile-reproducibility test, not weakened.
-- S35 implementation in progress on `feat/s35-expo-sqlite-adapter` (not merged).
-  Local gates are green: shared adapter contract cases, core-backed manual entry
-  and proposal review, demo reducer/seeded rows removed. See current proof.
+- **S35 done 2026-11-06.** PR #56 merged as `a533288`; quality, privacy, test,
+  security, build and native checks all green. Root: 344 tests / 56 files, 100%.
+  App: Jest 11/11, typecheck/lint/format; Android and web exports pass.
+- Post-S35 APK run `42215554135` success: 904 modules bundled, APK ZIP sha256
+  `115e44a0…`, core and SQLiteModule statically present. This is build proof
+  only; owner has not installed it. No SQLite/device behavior claimed.
 
 ## Current proof
 
-- S35 local root gate green: **344 tests / 56 files, 100% coverage**. Root
-  format/lint/typecheck/privacy/audit/build/secret scan all pass; root audit 0.
-- App: `npm ci`, format/lint/typecheck pass; **Jest 11/11**. Android export
-  succeeds (2.6 MB Hermes). Web export succeeds (502 modules + 641 KB WASM) with
-  Metro wasm/COEP/COOP setup. Native workflow now exports both targets.
-- App audit: 33 advisories (1 low, 32 moderate, 0 high/critical). Forced
-  remediation downgrades Expo 58/Jest 30, so not applied; see references.
-- Protected CI and post-S35 APK run pending.
-- App `npm audit` is not clean: 33 advisories (1 low, 32 moderate, no
-  high/critical). Forced fix downgrades Expo 58 -> 53 and Jest 30 -> 29; not
-  applied. Root backend audit remains 0. See `docs/references.md`.
-- Post-promotion APK run `42204863019` succeeded on main `37c6263`: autolink
-  `missing: []`, 873 modules bundled, `BUILD SUCCESSFUL in 9m 55s`. Downloaded the
-  standalone APK and confirmed core symbols inside its embedded bundle.
-- An earlier APK run on `b19e181` failed: the workflow copied only `apps/mobile`
-  while Metro watches `../../packages/core/src`. Fixed in PR #54 by copying
-  `packages/core` too; verified by reproducing the CI temp layout locally.
-- This APK is build proof only. The owner has not installed it. S33 acceptance
-  covers the pre-promotion APK opening and does not extend to this build.
-- Sandbox `npm run android:env` reports `ok:false` with static errors:
-  `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
-  `no_ready_device`. This is expected in the sandbox and is not device proof.
-- Protected CI on S33 head `d91bcd1`: quality, privacy, test, security, build all success.
-- Older S33 gate was 302 tests / 52 files; superseded by the S35 local gate above.
+- Protected CI for PR #56: quality, privacy, test, security, build, native all
+  success. S35 merged as `a533288`.
+- Root gate: **344 tests / 56 files, 100% coverage**; format/lint/typecheck,
+  privacy, build, secret scan pass; root audit 0.
+- Native app: `npm ci`, format/lint/typecheck, **Jest 11/11**, Android export
+  (2.6 MB Hermes) and web export (502 modules + 641 KB WASM) pass.
+- App `npm audit`: 33 advisories (1 low, 32 moderate, none high/critical).
+  Forced remediation downgrades Expo 58/Jest 30 and was not applied; see
+  `docs/references.md`.
+- Post-S35 APK run `42215554135` success: 904 modules bundled, `missing: []`,
+  `BUILD SUCCESSFUL in 12m 25s`; embedded bundle contains core symbols; SQLite
+  module strings present in DEX. ZIP SHA-256 `115e44a0672a715132c65ecaf0617327256bb8b7d895e097a194d5d2197da62a`,
+  expires `2026-11-13T12:23:47Z`.
+- This is build proof only. Owner has not installed this APK. S33 owner acceptance
+  covers only the pre-promotion APK opening; no S35 SQLite/device behavior claim.
+- Sandbox `npm run android:env` remains `ok:false` (no Java 17/Android SDK/adb/device).
 
 ## Next actions
 
-1. Finish S35: push the current branch, pass protected CI, merge, then run the
-   manual preview APK workflow. The owner has not installed that post-S35 APK;
-   no S35 device behavior is claimed.
-2. Every later device row needs its own owner report. Do not reuse the S33 report
-   as evidence for persistence, SQLite, Keystore, Telegram or local model.
-3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+1. S36: LangChain check (bundle, one tool call, streaming, force-close/reopen).
+2. Ask owner to install post-S35 artifact `s33-preview-standalone-apk` from run
+   `42215554135` and verify a synthetic entry survives app close/reopen.
+3. S37/G4: persistence, Keystore, local model/benchmark, Telegram, voice and OCR
+   device checklist. Each row needs its own owner report.
+4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
-4. Phase J UI vertical slices; prove every slice on a real device.
+5. Phase J UI vertical slices; prove every slice on a real device.
 
 ## Owner-owned open items (do not decide)
 
