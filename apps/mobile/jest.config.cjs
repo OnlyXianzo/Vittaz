@@ -28,6 +28,7 @@ module.exports = {
       "<rootDir>/node_modules/@langchain/core/dist/messages/index.cjs",
     "^@langchain/core/(.*)$":
       "<rootDir>/node_modules/@langchain/core/dist/$1.cjs",
+    "^zod$": "<rootDir>/node_modules/zod/index.cjs",
     // Core uses NodeNext ".js" specifiers over ".ts" sources.
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },

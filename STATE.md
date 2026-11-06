@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "PR #62 typecheck fix 8d8ec53 passed typecheck but native Jest then failed loading LangChain ESM; Jest CJS mapping/regression fix is prepared for fresh CI. APK run 42273678939 succeeded and is archived. Owner cannot test now."
+blocked_on: "PR #62 latest native test exposed Zod ESM selection after the LangChain CJS mapping. A red-first Zod CJS mapping now passes local mobile tests/typecheck/lint/format; commit and fresh CI remain pending. APK run 42273678939 is archived. Owner cannot test now."
 last_updated: "2026-11-07"
 last_green_commit: "ee274c51b654ddd04d98efce25ba23442cfd570b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #62 head 8d8ec53 passed mobile typecheck after the first fix, but native Jest failed because it selected LangChain ESM .js under its CommonJS runner. A second regression-first fix maps Jest to the package's versioned CommonJS dist exports; fresh CI is pending. Manual APK run 42273678939 succeeded on pre-fix config, bundled 1,411 modules, and its 48,634,494-byte APK is archived at ../S36-builds/s36-preview-standalone.apk (SHA-256 c9fd11be3b6faab4d663da552b99850ea5fed5bcb1f935abc9deba9a33005d78). Owner cannot test now; no device behavior is claimed."
+ci_proof: "PR #62 head 02afd8b typechecked, but native Jest then failed selecting Zod's ESM declaration entry under its CommonJS runner after LangChain was routed to CJS. The red-first `zod` -> `index.cjs` Jest mapping now passes local mobile tests (19/19), typecheck, lint and format under Node 24.22.2; it is awaiting commit and fresh CI. Manual APK run 42273678939 succeeded on pre-fix config, bundled 1,411 modules, and its 48,634,494-byte APK is archived at ../S36-builds/s36-preview-standalone.apk (SHA-256 c9fd11be3b6faab4d663da552b99850ea5fed5bcb1f935abc9deba9a33005d78). Owner cannot test now; no device behavior is claimed."}
 ---
 
 # STATE
@@ -130,7 +130,7 @@ ci_proof: "PR #62 head 8d8ec53 passed mobile typecheck after the first fix, but 
 - PR #60 protected CI: quality, privacy, test, security, build, and native all
   succeeded. Grouping update merged as `ee274c5`; S35 core work merged earlier as
   PR #56 (`a533288`).
-- Reconstructed S36 local validation: **351 tests / 56 files; statements,
+- Reconstructed S36 local validation: **353 tests / 56 files; statements,
   branches, functions, and lines all 100%**. Root test, typecheck, lint, format,
   build, privacy, audit, and secret scan pass; root audit has 0 findings.
 - Native app S36: **19 tests / 4 suites**, typecheck, lint, and format pass. The
@@ -158,19 +158,19 @@ ci_proof: "PR #62 head 8d8ec53 passed mobile typecheck after the first fix, but 
 
 ## Next actions
 
-1. Push the Jest CommonJS mapping/regression fix and wait for fresh PR #62
-   checks. APK run `42273678939` succeeded from pre-fix config and is archived.
-   If required CI passes, merge only through the normal protected path and
-   dispatch a fresh APK from the final head. The owner says they cannot test now:
-   keep device checks pending, make no device claims, and archive this as the
-   remaining owner/device obstacle.
+1. Commit and push the Zod CommonJS mapping plus regression, then wait for fresh
+   PR #62 checks. The existing APK run `42273678939` succeeded from pre-fix
+   config and is archived. If required CI passes, merge only through the normal
+   protected path and dispatch a fresh APK from the final head. Owner cannot test
+   now: keep device checks pending, make no device claims, and archive this as
+   the remaining owner/device obstacle.
 2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
 3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
 4. Continue Phase J UI vertical slices and prove each slice on a real device.
 
-## S36 current work — 2026-11-06
+## S36 current work — 2026-11-07
 
 - Recovery note: after cleanup, the earlier uncommitted S36 worktree disappeared.
   This branch was recreated from upstream `744602e` and the implementation was
@@ -195,7 +195,7 @@ ci_proof: "PR #62 head 8d8ec53 passed mobile typecheck after the first fix, but 
 - Final independent validation used Node 24.22.2 / npm 11.19.1, as required.
   An initial shell invocation accidentally used system Node 20.20.2, which caused
   Node-24-specific privacy/test-runner failures; no code was changed for that
-  mismatch, and all gates were rerun under Node 24. Root coverage passed 351
+  mismatch, and all gates were rerun under Node 24. Root coverage passed 353
   tests / 56 files at 100%; typecheck, build, lint, format, privacy, workflow
   regression, secret scan and root audit passed (0 vulnerabilities). Mobile
   passed 19 tests / 4 suites plus typecheck, lint and format. Mobile audit still
@@ -211,13 +211,14 @@ ci_proof: "PR #62 head 8d8ec53 passed mobile typecheck after the first fix, but 
   safety toggles with an accurate read-only/privacy scope notice.
 - PR #62 is open against `main`. On `ae4e865`, root quality/privacy/test/build
   passed while native typecheck failed because the isolated mobile install could
-  not resolve copied agent declarations. Commit `8d8ec53` mapped `@langchain/core`
-  and Zod to app-local type declarations; CI then passed typecheck but Jest failed
-  loading the package's ESM entry in its CommonJS runner. A second red-first
-  regression now requires Jest to use the pinned package's `.cjs` exports; config
-  and direct assertions pass in the workspace. Local Jest could not be rerun
-  because node_modules was absent after resume. Push this fix and let fresh CI
-  validate root/mobile tests, typecheck, formatting and export.
+  not resolve copied agent declarations. Commit `8d8ec53` mapped LangChain/Zod
+  type declarations; typecheck then passed but Jest selected ESM entries. A second
+  red-first mapping uses the pinned `.cjs` exports. The first local Jest rerun
+  then exposed Zod's ESM entry; a third red-first mapping now routes `zod` to
+  `index.cjs`. Under downloaded Node 24.22.2/npm 11.19.1 and a clean app `npm ci`,
+  mobile tests pass 19/19, typecheck, lint and format pass. Root Vitest regression
+  for these mappings awaits fresh CI; the direct config assertions pass locally.
+  The new fix still needs committing/pushing and fresh root/native CI validation.
 - Manual APK workflow run `42273678939` (run #9) succeeded on the pre-fix
   TypeScript/Jest config: JDK 17, Node 24.22.2, npm 11.19.1; 1,411 modules;
   Gradle `BUILD SUCCESSFUL in 10m 5s`. The standalone artifact was copied to
