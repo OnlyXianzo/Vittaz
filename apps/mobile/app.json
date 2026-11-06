@@ -27,6 +27,6 @@
       "output": "single",
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-font", "expo-sqlite"]
+    "plugins": ["expo-font", "expo-sqlite", "expo-secure-store"]
   }
 }

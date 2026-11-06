@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
-current_step_status: "not_started"
-blocked_on: "owner phone run required for S36; S35 is accepted. Visual review of the updated Add form is also pending."
+current_step_status: "in_progress"
+blocked_on: "Local S36 gates are green. Commit/push and manual standalone APK build plus owner device report remain pending."
 last_updated: "2026-11-06"
 last_green_commit: "ee274c51b654ddd04d98efce25ba23442cfd570b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #60 merged as ee274c5 with required CI green. Updated standalone APK run 42237936656 succeeded on attempt 1; artifact expires 2026-11-13T15:07:16Z. Owner-confirmed synthetic save survived close/reopen on 2026-11-06; S35 basic persistence accepted. S36 is unblocked and next; no S36 device check has started."
+ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded. Reconstructed S36 branch currently passes 351 root tests with 100% coverage, 19 mobile tests, type/lint/format/privacy/build/audit/secret gates, and Android JS export (1,411 modules). Changes are not committed/pushed; S36 APK and owner device checks remain pending."
 ---
 
 # STATE
@@ -121,22 +121,29 @@ ci_proof: "PR #60 merged as ee274c5 with required CI green. Updated standalone A
   SHA-256 is `9940af8fd4f31f6b1fa03a277474b74b5727a349cbc2425789a18743a808d8f3`.
   Static bundle inspection confirms the Direction/Category label strings are
   packaged; this is not device execution.
-- Owner visual confirmation on the updated APK is pending. S36 remains unblocked
-  by the accepted S35 save/reopen report and has not started.
+- The owner visually confirmed the updated layout looks right on-device on
+  2026-11-06. The agent did not observe the phone; model/version were not supplied.
+  S36 is unblocked by the accepted S35 save/reopen report.
 
 ## Current proof
 
 - PR #60 protected CI: quality, privacy, test, security, build, and native all
   succeeded. Grouping update merged as `ee274c5`; S35 core work merged earlier as
   PR #56 (`a533288`).
-- Root gate: **344 tests / 56 files, 100% coverage**; format/lint/typecheck,
-  privacy, build, secret scan pass; root audit 0.
-- Native app for PR #60: format/lint/typecheck, **Jest 12/12**; Android export
-  (912 modules) and web export (510 modules + 641 KB WASM) pass. PR CI also
-  passed after merge.
-- App `npm audit`: 33 advisories (1 low, 32 moderate, none high/critical).
-  Forced remediation downgrades Expo 58/Jest 30 and was not applied; see
-  `docs/references.md`.
+- Reconstructed S36 local validation: **351 tests / 56 files; statements,
+  branches, functions, and lines all 100%**. Root test, typecheck, lint, format,
+  build, privacy, audit, and secret scan pass; root audit has 0 findings.
+- Native app S36: **19 tests / 4 suites**, typecheck, lint, and format pass. The
+  standalone Android JS export succeeds (1,411 modules; SHA-256
+  `7835ded50eb7a7121072b3dd214883d3cdf3c3230059837b4664defa0084b085`,
+  5,581,887 bytes). Bundle contains Kilo Auto Free, read-only tool, secure-key
+  identifier and SecureStore methods. Expo autolinking reports SecureStore,
+  SQLite and LinearGradient present. The S36 Settings screen does not present
+  inert approval/name-replacement/note-sharing toggles as active controls; it
+  states the actual read-only cloud boundary and the limits of name replacement.
+- Mobile `npm audit --audit-level=moderate`: 33 advisories (1 low, 32 moderate,
+  none high/critical). Forced remediation downgrades Expo/Jest/ESLint and was
+  not applied; see `docs/references.md`.
 - Post-S35 APK run `42215554135` success: 904 modules bundled, `missing: []`,
   `BUILD SUCCESSFUL in 12m 25s`; embedded bundle contains core symbols; SQLite
   module strings present in DEX. ZIP SHA-256 `115e44a0672a715132c65ecaf0617327256bb8b7d895e097a194d5d2197da62a`,
@@ -151,15 +158,59 @@ ci_proof: "PR #60 merged as ee274c5 with required CI green. Updated standalone A
 
 ## Next actions
 
-1. Ask the owner to install the updated standalone APK, visually confirm the
-   Direction and Category grouping, and then run the S36 phone checks: LangChain
-   bundle, one tool call, streaming, and force-close/reopen. S36 is unblocked by
-   the accepted S35 persistence report; no S36 device check has started.
+1. Review the recovered S36 diff, commit and push this single feature branch,
+   then dispatch the manual standalone APK workflow. Ask the owner to install
+   that new artifact and report keyless Kilo read-only tool use, validated
+   answer-chunk display, and force-stop/reopen. Device evidence is still pending.
 2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
 3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
 4. Continue Phase J UI vertical slices and prove each slice on a real device.
+
+## S36 current work — 2026-11-06
+
+- Recovery note: after cleanup, the earlier uncommitted S36 worktree disappeared.
+  This branch was recreated from upstream `744602e` and the implementation was
+  reconstructed; every gate reported below was rerun against this clone. Older
+  pre-recovery test and export results are not evidence for this source tree.
+- Added a Quick-screen Ask Assistant path into the native Chat screen and wired
+  Kilo Auto Free to Vittaz's existing read-only QA agent. The agent can call
+  only the existing read-only query tools; no proposal or ledger write handles
+  are reachable from this assistant path. The UI shows completed tool names and
+  releases only final-answer-validated chunks after the provider response is
+  buffered. This is safe progressive reveal, not raw live token streaming.
+- Added an optional Kilo Gateway key form backed by Expo SecureStore. The key is
+  never written to SQLite, backup, logs, source or test output. Keyless calls
+  omit Authorization; the optional synthetic test key appears only in that
+  header. UI tells the user Auto Free may route/log upstream and to use synthetic
+  data.
+- Documentation consulted and recorded in `docs/references.md`: LangChain
+  models/tool/stream docs; Expo SDK 58 SecureStore (`expo-secure-store@58.0.2`);
+  Kilo Gateway v1 models/API docs and live unauthenticated catalog; Ollama local
+  API auth docs as an alternative. No live inference request or real provider
+  key was used in development.
+- Final independent validation used Node 24.22.2 / npm 11.19.1, as required.
+  An initial shell invocation accidentally used system Node 20.20.2, which caused
+  Node-24-specific privacy/test-runner failures; no code was changed for that
+  mismatch, and all gates were rerun under Node 24. Root coverage passed 351
+  tests / 56 files at 100%; typecheck, build, lint, format, privacy, workflow
+  regression, secret scan and root audit passed (0 vulnerabilities). Mobile
+  passed 19 tests / 4 suites plus typecheck, lint and format. Mobile audit still
+  reports 33 advisories (1 low, 32 moderate; 0 high/critical); no forced
+  downgrade applied.
+- Final Android JS export bundled 1,411 modules. Hermes bundle SHA-256
+  `7835ded50eb7a7121072b3dd214883d3cdf3c3230059837b4664defa0084b085`
+  (5,581,887 bytes) contains `kilo-auto/free`, `get_month_summary`, the secure
+  key identifier and SecureStore methods. Expo autolinking independently
+  confirms SecureStore, SQLite and LinearGradient. S33 workflow regression
+  passes with package-agent copying, SecureStore autolinking assertion and
+  runner software reporting. The settings UI also replaces unimplemented
+  safety toggles with an accurate read-only/privacy scope notice.
+- No S36 APK or device report exists yet. `npm run android:env` confirms Node
+  24.22.2 is available but Java is 11, Android SDK/adb are absent, and no device
+  is connected. Push the reviewed S36 branch, dispatch the manual GitHub Actions
+  APK workflow, then await the owner's synthetic-data device report.
 
 ## Owner-owned open items (do not decide)
 

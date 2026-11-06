@@ -28,7 +28,7 @@ import {
 } from "../ui";
 
 const MODEL_LABEL: Record<AppState["model"], string> = {
-  auto: "Auto, Qwen 1.5B",
+  auto: "Auto, Kilo Auto Free",
   "qwen-1.5b": "Qwen 1.5B",
   "qwen-3b": "Qwen 3B",
   claude: "Auto, Claude",
@@ -105,9 +105,14 @@ export function ChatScreen() {
           {state.chatMessages.length === 0 ? (
             <EmptyState
               title="Ask or add by message"
-              copy="Assistant capture is not connected yet. Use Add transaction from Ledger to save an entry to this device."
+              copy="Ask read-only questions about your ledger. The assistant cannot add or approve entries."
             />
           ) : null}
+
+          <M size={12} style={{ lineHeight: 17 }}>
+            Kilo Auto Free may route prompts to providers that log them. Do not
+            enter personal or confidential data; use synthetic data only.
+          </M>
 
           {state.chatMessages.map((m) =>
             m.role === "user" ? (
@@ -228,7 +233,7 @@ export function ChatScreen() {
           ) : null}
 
           {state.chatMode === "thinking" ? (
-            <M size={12}>Demo steps only. No cloud model is called.</M>
+            <M size={12}>Asking Kilo Auto Free…</M>
           ) : null}
 
           {proposal && state.chatMode === "approval" ? (
@@ -288,6 +293,7 @@ export function ChatScreen() {
               key={chip.label}
               accessibilityRole="button"
               accessibilityLabel={chip.label}
+              disabled={state.chatMode === "thinking"}
               onPress={() =>
                 dispatch({ type: "send_chat_text", text: chip.text })
               }
@@ -353,6 +359,8 @@ export function ChatScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Send"
+            accessibilityState={{ disabled: state.chatMode === "thinking" }}
+            disabled={state.chatMode === "thinking"}
             onPress={() => dispatch({ type: "send_chat" })}
             style={[styles.round, { backgroundColor: colors.lime }]}
           >

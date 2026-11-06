@@ -59,6 +59,20 @@ test("preview_apk_docs_explain_native_js_mismatch_and_standalone_install", () =>
   expect(references).toContain("react-native-safe-area-context");
 });
 
+test("preview_apk_workflow_copies_agent_and_records_runner_and_secure_store_versions", () => {
+  const workflow = read(workflow_path);
+  expect(workflow).toContain(
+    'cp -R packages/agent "$PREVIEW_DIR/../packages/agent"',
+  );
+  expect(workflow).toContain("$PREVIEW_DIR/../packages/agent/src/qa_loop.ts");
+  expect(workflow).toContain("uname -a");
+  expect(workflow).toContain("node --version");
+  expect(workflow).toContain("npm --version");
+  expect(workflow).toContain("java -version");
+  expect(workflow).toContain("secure_store:");
+  expect(workflow).toContain('["expo-secure-store", expoDeps]');
+});
+
 test("preview_apk_workflow_does_not_use_runner_context_in_job_level_env", () => {
   const workflow = read(workflow_path);
   // GitHub only exposes the `runner` context at step level. Using it in

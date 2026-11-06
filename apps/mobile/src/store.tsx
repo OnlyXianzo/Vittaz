@@ -14,6 +14,9 @@ import {
   rejectProposal,
 } from "@vittaz/core";
 import type { LedgerStore, ProposalRow, TransactionRow } from "@vittaz/core";
+import * as SecureStore from "expo-secure-store";
+import { create_mobile_qa_agent } from "./assistant/mobile_qa";
+import { read_kilo_key } from "./assistant/secure_key";
 import type { Action, AppState, Transaction } from "./domain";
 import { mobileLedgerRuntime } from "./ledger_runtime";
 import { openMobileLedgerStore } from "./storage/open_ledger_store";
@@ -251,10 +254,7 @@ function view_reducer(state: AppState, action: Action): AppState {
     case "send_chat":
     case "send_chat_text":
     case "analyze_quick":
-      return toast(
-        state,
-        "Assistant capture is not connected yet. Use Add transaction to save a ledger entry.",
-      );
+      return state;
     case "add_transaction":
     case "approve":
     case "reject":
@@ -272,6 +272,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const store_ref = useRef<LedgerStore | null>(null);
   const mounted_ref = useRef(true);
+  const request_ref = useRef<AbortController | null>(null);
   const state_ref = useRef(state);
   useEffect(() => {
     state_ref.current = state;
@@ -306,6 +307,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     return () => {
       mounted_ref.current = false;
+      request_ref.current?.abort();
+      request_ref.current = null;
       const store = store_ref.current;
       store_ref.current = null;
       if (store) void store.close();
@@ -315,6 +318,137 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const dispatch = useCallback<Dispatch<Action>>(
     (action) => {
       const store = store_ref.current;
+      if (
+        action.type === "send_chat" ||
+        action.type === "send_chat_text" ||
+        action.type === "analyze_quick"
+      ) {
+        if (state_ref.current.chatMode === "thinking") return;
+        if (!store) {
+          setState((current) => toast(current, "Local database is not ready."));
+          return;
+        }
+        const current = state_ref.current;
+        const question =
+          action.type === "send_chat"
+            ? current.chatInput.trim()
+            : action.type === "send_chat_text"
+              ? action.text.trim()
+              : current.quickInput.trim();
+        if (!question) {
+          setState((value) => toast(value, "Enter a question first."));
+          return;
+        }
+        const user_id = `chat_user_${current.sequence}`;
+        const assistant_id = `chat_assistant_${current.sequence + 1}`;
+        const controller = new AbortController();
+        request_ref.current?.abort();
+        request_ref.current = controller;
+        setState((value) => ({
+          ...value,
+          previousScreen:
+            value.screen === "chat" ? value.previousScreen : value.screen,
+          screen: "chat",
+          chatMode: "thinking",
+          chatInput: "",
+          chatQuestion: question,
+          chatSteps: [],
+          toast: null,
+          sequence: value.sequence + 2,
+          chatMessages: [
+            ...value.chatMessages,
+            { id: user_id, role: "user", text: question },
+            { id: assistant_id, role: "assistant", text: "" },
+          ],
+        }));
+        void (async () => {
+          let streamed_answer = "";
+          const agent = create_mobile_qa_agent(
+            store,
+            await read_kilo_key(SecureStore),
+          );
+          const result = await agent.answerQuestion(question, {
+            signal: controller.signal,
+            onValidatedChunk: (chunk: string) => {
+              streamed_answer += chunk;
+              if (mounted_ref.current) {
+                setState((value) => ({
+                  ...value,
+                  chatMessages: value.chatMessages.map((message) =>
+                    message.id === assistant_id
+                      ? { ...message, text: streamed_answer }
+                      : message,
+                  ),
+                }));
+              }
+            },
+          });
+          if (!result.answered || !result.answer) throw new Error("qa_failed");
+          const tool_copy: Record<string, { label: string; detail: string }> = {
+            get_month_summary: {
+              label: "Checked this month's totals",
+              detail: "Read-only ledger summary",
+            },
+            query_transactions: {
+              label: "Reviewed ledger entries",
+              detail: "Read-only transaction list",
+            },
+            find_person: {
+              label: "Checked a ledger contact",
+              detail: "Read-only contact lookup",
+            },
+            get_balance: {
+              label: "Checked a wallet balance",
+              detail: "Read-only wallet summary",
+            },
+            check_unverified: {
+              label: "Checked entries pending review",
+              detail: "Read-only pending list",
+            },
+          };
+          const steps = result.toolsUsed
+            .filter((tool) =>
+              Object.prototype.hasOwnProperty.call(tool_copy, tool),
+            )
+            .map((tool) => ({
+              label: tool_copy[tool]!.label,
+              detail: tool_copy[tool]!.detail,
+              tool,
+              state: "done" as const,
+            }));
+          if (mounted_ref.current) {
+            setState((value) => ({
+              ...value,
+              chatMode: "idle",
+              chatSteps: steps,
+              chatMessages: value.chatMessages.map((message) =>
+                message.id === assistant_id
+                  ? { ...message, text: streamed_answer || result.answer! }
+                  : message,
+              ),
+            }));
+          }
+        })()
+          .catch(() => {
+            if (!mounted_ref.current) return;
+            setState((value) => ({
+              ...value,
+              chatMode: "idle",
+              chatMessages: value.chatMessages.map((message) =>
+                message.id === assistant_id
+                  ? {
+                      ...message,
+                      text: "I couldn't get a safe answer. Check your connection and try again.",
+                    }
+                  : message,
+              ),
+            }));
+          })
+          .finally(() => {
+            if (request_ref.current === controller) request_ref.current = null;
+          });
+        return;
+      }
       if (action.type === "add_transaction") {
         if (!store) {
           setState((current) => toast(current, "Local database is not ready."));

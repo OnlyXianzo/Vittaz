@@ -765,3 +765,19 @@ Keep the screen's existing palette, chips, spacing language and overall layout;
 do not otherwise redesign the owner-authored UI. A focused native screen test
 asserts both labels and the divider are present. This is presentation-only; it
 does not change ledger writes or duplicate-save behavior.
+
+## 2026-11-06 — Owner-approved S36 assistant route and provider key
+
+The owner authorized wiring the read-only assistant into the native app and
+allowing users to enter their own provider key. S36 uses Kilo Auto Free as the
+initial keyless route; an optional Kilo Gateway key is stored with Expo
+SecureStore and sent only in the request Authorization header. No provider key
+was supplied or embedded. The app sends prompts to Kilo, whose Auto Free pool
+may route to providers that log prompts/outputs, so the UI warns to use
+synthetic data only. The assistant is limited to the existing read-only QA
+capabilities and cannot write ledger data or create pending proposals. The S36
+Settings screen replaces the old, unimplemented approval/name-replacement/note-
+sharing toggles with an explicit read-only/privacy-limit notice; inert controls
+must not imply protections or permissions that are not wired. Other providers/
+local backends are not wired in S36; Ollama local inference remains a separate
+possible keyless route, but requires a reachable local server.

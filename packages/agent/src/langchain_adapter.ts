@@ -114,7 +114,6 @@ export class LangChainCompletionClient implements CompletionClient {
         this.#redactor,
       );
       if (
-        wire.stream ||
         params.onStreamDelta != null ||
         params.onStreamReset != null ||
         callerSignal?.aborted

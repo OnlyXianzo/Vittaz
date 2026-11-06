@@ -8,11 +8,10 @@ import {
   Screen,
   SectionLabel,
   SettingRow,
-  Toggle,
 } from "../ui";
 
 const MODEL_LABEL: Record<AppState["model"], string> = {
-  auto: "Auto, Qwen 1.5B on this phone",
+  auto: "Kilo Auto Free (read-only questions)",
   "qwen-1.5b": "Qwen 1.5B on this phone",
   "qwen-3b": "Qwen 3B on this phone",
   claude: "Auto, Claude",
@@ -38,7 +37,7 @@ export function SettingsScreen() {
           first
           title="Model and keys"
           subtitle={MODEL_LABEL[state.model]}
-          right={<M>Auto</M>}
+          right={<M>Free</M>}
           onPress={() => dispatch({ type: "navigate", screen: "models" })}
         />
         <SettingRow
@@ -54,48 +53,15 @@ export function SettingsScreen() {
         />
       </Card>
 
-      <SectionLabel>Safety</SectionLabel>
-      <Card style={{ paddingVertical: 2 }}>
-        <SettingRow
-          first
-          title="Ask before saving"
-          subtitle="The AI drafts, you approve"
-          right={
-            <Toggle
-              label="Ask before saving"
-              checked={state.settings.askBeforeSaving}
-              onChange={() =>
-                dispatch({ type: "toggle_setting", key: "askBeforeSaving" })
-              }
-            />
-          }
-        />
-        <SettingRow
-          title="Replace names"
-          subtitle="Before anything goes to the cloud"
-          right={
-            <Toggle
-              label="Replace names"
-              checked={state.settings.replaceNames}
-              onChange={() =>
-                dispatch({ type: "toggle_setting", key: "replaceNames" })
-              }
-            />
-          }
-        />
-        <SettingRow
-          title="Send notes to cloud"
-          subtitle="Off keeps notes on your phone"
-          right={
-            <Toggle
-              label="Send notes to cloud"
-              checked={state.settings.sendNotesToCloud}
-              onChange={() =>
-                dispatch({ type: "toggle_setting", key: "sendNotesToCloud" })
-              }
-            />
-          }
-        />
+      <SectionLabel>Assistant privacy and permissions</SectionLabel>
+      <Card>
+        <M style={{ lineHeight: 19 }}>
+          Kilo Auto Free currently answers read-only ledger questions. It cannot
+          draft, save, or approve entries. Ledger notes and notifications are
+          not included in read-only tool results, but anything you type in a
+          question may be sent to Kilo. Name replacement is not guaranteed
+          anonymization; use synthetic data only.
+        </M>
       </Card>
 
       <SectionLabel>Review and data</SectionLabel>

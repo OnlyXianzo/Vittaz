@@ -42,6 +42,11 @@ const optionsSchema = z.strictObject({
     )
     .max(6)
     .optional(),
+  onValidatedChunk: z
+    .custom<(chunk: string) => void | Promise<void>>(
+      (value) => typeof value === "function",
+    )
+    .optional(),
 });
 const resultSchema = z.strictObject({
   content: z.string().max(32768),
@@ -75,6 +80,8 @@ const resultSchema = z.strictObject({
 });
 export interface AnswerQuestionOptions {
   history?: { role: "user" | "assistant"; content: string }[];
+  /** Called only with bounded, privacy-checked final text after the provider completes. */
+  onValidatedChunk?: (chunk: string) => void | Promise<void>;
   rules?: AssistantRule[];
   origin?: MessageOrigin;
   preferences?: AssistantPreferences;
@@ -98,6 +105,7 @@ export interface AnswerQuestionResult {
   stopReason: QaStopReason;
   stepsUsed: number;
   tokensUsed: number;
+  toolsUsed: string[];
   answer: string | null;
 }
 export interface QuestionAnsweringAgent {
@@ -148,14 +156,22 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     } catch {
       throw new QaValidationError();
     }
-    const { maxSteps, tokenBudget, timeoutMs, signal: caller } = opts.data;
+    const {
+      maxSteps,
+      tokenBudget,
+      timeoutMs,
+      signal: caller,
+      onValidatedChunk,
+    } = opts.data;
     let stepsUsed = 0;
     let tokensUsed = 0;
+    const toolsUsed: string[] = [];
     const stopped = (stopReason: QaStopReason): AnswerQuestionResult => ({
       answered: false,
       stopReason,
       stepsUsed,
       tokensUsed,
+      toolsUsed: [...toolsUsed],
       answer:
         stopReason === "sensitive_dropped"
           ? null
@@ -247,7 +263,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
             this.params.client.chatCompletion({
               messages: structuredClone(messages),
               tools: this.tools.specs,
-              stream: false,
+              stream: onValidatedChunk !== undefined,
               maxCompletionTokens: Math.min(8192, tokenBudget - tokensUsed),
               signal,
             }),
@@ -267,12 +283,27 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
             checkSensitiveMessage(completion.content).sensitive
           )
             return stopped("provider_error");
+          const answer = this.params.redactor.unredactText(completion.content);
+          if (onValidatedChunk) {
+            const points = Array.from(answer);
+            for (let offset = 0; offset < points.length; offset += 24) {
+              if (cancelled()) return cancellationResult();
+              const part = points.slice(offset, offset + 24).join("");
+              try {
+                await bounded(() => Promise.resolve(onValidatedChunk(part)));
+              } catch {
+                if (cancelled()) return cancellationResult();
+                // A presentation callback cannot turn a safe answer into a provider failure.
+              }
+            }
+          }
           return {
             answered: true,
             stopReason: "completed",
             stepsUsed,
             tokensUsed,
-            answer: this.params.redactor.unredactText(completion.content),
+            toolsUsed: [...toolsUsed],
+            answer,
           };
         }
         // Never echo provider free text alongside tool calls into later requests.
@@ -289,6 +320,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
         const results: ChatMessage[] = [];
         for (const call of calls) {
           const value = await bounded(() => this.tools.execute(call));
+          toolsUsed.push(call.function.name);
           results.push({
             role: "tool",
             content: JSON.stringify(value),

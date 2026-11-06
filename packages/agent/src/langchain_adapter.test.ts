@@ -56,6 +56,16 @@ test("langchain_native_invoke_roundtrip_preserves_provider_tool_arguments_and_us
   expect(raw.chatCompletion).toHaveBeenCalledTimes(1);
   expect(warn).not.toHaveBeenCalled();
 });
+test("langchain_buffers_provider_sse_for_validated_answer_delivery", async () => {
+  const raw = { chatCompletion: vi.fn(async () => result) };
+  const client = new LangChainCompletionClient(raw);
+  expect(await client.chatCompletion({ ...request, stream: true })).toEqual(
+    result,
+  );
+  expect(raw.chatCompletion).toHaveBeenCalledWith(
+    expect.objectContaining({ stream: true }),
+  );
+});
 test("langchain_sensitive_malformed_stream_callback_and_aborted_input_never_invoke_framework_or_provider", async () => {
   const spy = vi.spyOn(BaseChatModel.prototype, "invoke");
   const raw = { chatCompletion: vi.fn(async () => result) };
@@ -65,7 +75,6 @@ test("langchain_sensitive_malformed_stream_callback_and_aborted_input_never_invo
   for (const input of [
     { messages: [] },
     { messages: [{ role: "user", content: "Your OTP is 123456" }] },
-    { ...request, stream: true },
     { ...request, onStreamDelta: vi.fn() },
     { ...request, onStreamReset: vi.fn() },
     { ...request, signal: aborted.signal },

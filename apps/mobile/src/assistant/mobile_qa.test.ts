@@ -1,0 +1,115 @@
+import { expect, it, jest } from "@jest/globals";
+import type { LedgerStore } from "@vittaz/core";
+import { create_mobile_qa_agent } from "./mobile_qa";
+
+function sse_response(payload: unknown) {
+  const wire = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`;
+  return new Response(wire, {
+    headers: { "content-type": "text/event-stream" },
+  });
+}
+
+it("uses Kilo Auto Free without an auth header and streams only a read-only tool answer", async () => {
+  const transactions: never[] = [];
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({
+        transactions: { list: async () => transactions },
+        wallets: { get: async () => null },
+      } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  const requests: Array<{ url: string; init: RequestInit }> = [];
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), init: init ?? {} });
+      const index = requests.length - 1;
+      return sse_response({
+        choices: [
+          {
+            index: 0,
+            delta:
+              index === 0
+                ? {
+                    tool_calls: [
+                      {
+                        index: 0,
+                        id: "synthetic_call",
+                        type: "function",
+                        function: {
+                          name: "get_month_summary",
+                          arguments: '{"year_month":"2026-11"}',
+                        },
+                      },
+                    ],
+                  }
+                : { content: "Synthetic month total is zero." },
+            finish_reason: index === 0 ? "tool_calls" : "stop",
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 },
+      });
+    },
+  ) as typeof fetch;
+  const chunks: string[] = [];
+  const agent = create_mobile_qa_agent(ledger, null, fetch_impl);
+  const answer = await agent.answerQuestion("Synthetic November total", {
+    maxSteps: 3,
+    onValidatedChunk: (chunk: string) => chunks.push(chunk),
+  });
+
+  expect(answer).toMatchObject({
+    answered: true,
+    answer: "Synthetic month total is zero.",
+    toolsUsed: ["get_month_summary"],
+  });
+  expect(chunks.join("")).toBe(answer.answer);
+  expect(requests).toHaveLength(2);
+  for (const request of requests) {
+    expect(request.url).toBe(
+      "https://ai-gateway.kilo.ai/api/v1/chat/completions",
+    );
+    expect(request.init.headers).not.toHaveProperty("Authorization");
+    expect(JSON.parse(String(request.init.body))).toMatchObject({
+      model: "kilo-auto/free",
+      stream: true,
+    });
+  }
+  expect(ledger.transaction).not.toHaveBeenCalled();
+});
+
+it("sends an optional synthetic Kilo key only in the authorization header", async () => {
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({ transactions: { list: async () => [] } } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  let recorded: { url: string; init: RequestInit } | null = null;
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      recorded = { url: String(input), init: init ?? {} };
+      return new Response(
+        JSON.stringify({
+          choices: [
+            { message: { content: "Synthetic answer", tool_calls: [] } },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    },
+  ) as typeof fetch;
+  const answer = await create_mobile_qa_agent(
+    ledger,
+    "synthetic_user_key_123",
+    fetch_impl,
+  ).answerQuestion("Synthetic question");
+  expect(answer.answer).toBe("Synthetic answer");
+  expect(recorded).not.toBeNull();
+  expect(recorded!.init.headers).toMatchObject({
+    Authorization: "Bearer synthetic_user_key_123",
+  });
+  expect(String(recorded!.init.body)).not.toContain("synthetic_user_key_123");
+});

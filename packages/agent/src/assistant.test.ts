@@ -197,6 +197,7 @@ test("assistant_local_null_and_failed_or_unsafe_answers_fail_closed_without_clou
         stepsUsed: 0,
         tokensUsed: 0,
         stopReason: "completed" as const,
+        toolsUsed: [],
       }),
     };
     const service = new SharedAssistantService({ ...f.params, qa });

@@ -8,6 +8,42 @@ import {
 import { createProposal } from "@vittaz/core";
 import { randomUUID } from "expo-crypto";
 import App from "../../App";
+import * as SecureStore from "expo-secure-store";
+import { KILO_KEY_NAME } from "../assistant/secure_key";
+
+jest.mock("expo-secure-store", () => {
+  const values = new Map<string, string>();
+  return {
+    getItemAsync: jest.fn(async (key: string) => values.get(key) ?? null),
+    setItemAsync: jest.fn(async (key: string, value: string) => {
+      values.set(key, value);
+    }),
+    deleteItemAsync: jest.fn(async (key: string) => {
+      values.delete(key);
+    }),
+  };
+});
+
+jest.mock("../assistant/mobile_qa", () => ({
+  create_mobile_qa_agent: jest.fn(() => ({
+    answerQuestion: jest.fn(
+      async (
+        _question: string,
+        options: { onValidatedChunk?: (chunk: string) => void | Promise<void> },
+      ) => {
+        await options.onValidatedChunk?.("Synthetic safe answer.");
+        return {
+          answered: true,
+          stopReason: "completed",
+          stepsUsed: 2,
+          tokensUsed: 20,
+          toolsUsed: ["get_month_summary"],
+          answer: "Synthetic safe answer.",
+        };
+      },
+    ),
+  })),
+}));
 
 jest.mock("expo-crypto", () => ({
   randomUUID: jest.fn(() => "11111111-1111-4111-8111-111111111111"),
@@ -46,8 +82,9 @@ async function withoutGlobalCrypto<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetMemoryLedger();
+  await SecureStore.deleteItemAsync(KILO_KEY_NAME);
   jest.clearAllMocks();
 });
 
@@ -176,42 +213,98 @@ describe("Vittaz native shell backed by core", () => {
     expect(screen.getByText("₹125")).toBeTruthy();
   });
 
-  it("does not fabricate demo chat answers or pending proposals", async () => {
+  it("answers a synthetic ledger question with a read-only tool and validated streamed text", async () => {
     await open();
     await fireEvent.press(
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Transaction text"),
+      screen.getByLabelText("Question"),
+      "What did I spend this month?",
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Ask Assistant" }),
+    );
+    expect(screen.getByRole("header", { name: "Assistant" })).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
+    );
+    expect(screen.getByText("get_month_summary")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Auto, Kilo Auto Free" }),
+    ).toBeTruthy();
+    expect(getMemoryRows("transactions")).toHaveLength(0);
+  });
+
+  it("stores an optional Kilo Gateway key securely while exposing keyless free access", async () => {
+    await open();
+    await tab("Settings");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Model and keys" }),
+    );
+    expect(screen.getByRole("radio", { name: "Kilo Auto Free" })).toBeTruthy();
+    expect(screen.getByText(/no key is required/i)).toBeTruthy();
+    const key_input = screen.getByLabelText("Kilo Gateway API key");
+    expect(key_input.props.secureTextEntry).toBe(true);
+    await fireEvent.changeText(key_input, "synthetic_user_key_123");
+    await fireEvent.press(screen.getByRole("button", { name: "Save key" }));
+    await waitFor(() =>
+      expect(screen.getByText("Kilo key saved securely.")).toBeTruthy(),
+    );
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+      KILO_KEY_NAME,
+      "synthetic_user_key_123",
+    );
+    expect(screen.queryByText("synthetic_user_key_123")).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Remove key" }));
+    await waitFor(() =>
+      expect(screen.getByText(/Kilo key removed/)).toBeTruthy(),
+    );
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(KILO_KEY_NAME);
+  });
+
+  it("never creates a ledger entry or proposal from an assistant reply", async () => {
+    await open();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add or ask by message" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Question"),
       "Who owes me?",
     );
-    await fireEvent.press(screen.getByRole("button", { name: "Analyze" }));
-    expect(
-      screen.getByText(/Assistant capture is not connected yet/),
-    ).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Ask Assistant" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
+    );
+    expect(getMemoryRows("transactions")).toHaveLength(0);
+    await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     await tab("Inbox");
     expect(screen.getByText("Inbox is clear")).toBeTruthy();
   });
 
-  it("keeps local settings and model selection interactive", async () => {
+  it("states the active read-only cloud boundary and keeps model selection interactive", async () => {
     await open();
     await tab("Settings");
-    const toggle = screen.getByRole("switch", { name: "Send notes to cloud" });
-    expect(toggle.props.accessibilityState.checked).toBe(false);
-    await fireEvent.press(toggle);
     expect(
-      screen.getByRole("switch", { name: "Send notes to cloud" }).props
-        .accessibilityState.checked,
-    ).toBe(true);
+      screen.getByText(/currently answers read-only ledger questions/i),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("switch", { name: "Send notes to cloud" }),
+    ).toBeNull();
+    expect(screen.queryByRole("switch", { name: "Replace names" })).toBeNull();
     await fireEvent.press(
       screen.getByRole("button", { name: "Model and keys" }),
     );
     expect(screen.getByRole("header", { name: "Choose model" })).toBeTruthy();
-    await fireEvent.press(screen.getByRole("radio", { name: "Gemini" }));
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "Kilo Auto Free" }),
+    );
     expect(
-      screen.getByRole("radio", { name: "Gemini" }).props.accessibilityState
-        .checked,
+      screen.getByRole("radio", { name: "Kilo Auto Free" }).props
+        .accessibilityState.checked,
     ).toBe(true);
   });
 
