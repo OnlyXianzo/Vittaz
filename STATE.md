@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "PR #62 is open; required CI is pending. Manual standalone APK build and owner device report remain pending."
+blocked_on: "PR #62 required CI is pending; manual S36 APK run 42273678939 is queued; owner device report remains pending."
 last_updated: "2026-11-07"
 last_green_commit: "ee274c51b654ddd04d98efce25ba23442cfd570b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded. S36 commit ff74ec1 is pushed in PR #62; required CI is pending. Local validation passes 351 root tests at 100% coverage and 19 mobile tests, plus typecheck/lint/format/privacy/build/audit/secret gates and Android JS export (1,411 modules). S36 APK and owner device checks remain pending."
+ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded. S36 commit 2d94697 is pushed in PR #62; required CI is pending. Manual standalone APK workflow run 42273678939 is queued on the branch. Local validation passes 351 root tests at 100% coverage and 19 mobile tests, plus typecheck/lint/format/privacy/build/audit/secret gates and Android JS export (1,411 modules). Owner device checks remain pending."
 ---
 
 # STATE
@@ -158,10 +158,10 @@ ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded.
 
 ## Next actions
 
-1. PR #62 is open with S36 commit `ff74ec1`; wait for required CI to finish.
-   After green CI, dispatch the manual standalone APK workflow. Ask the owner to
-   install that artifact and report keyless Kilo read-only tool use, validated
-   answer-chunk display, and force-stop/reopen. Device evidence is still pending.
+1. PR #62 now points to `2d94697`; wait for required CI and APK workflow run
+   `42273678939` to finish. If the APK build succeeds, have the owner install
+   that artifact and report keyless Kilo read-only tool use, validated answer-
+   chunk display, and force-stop/reopen. Device evidence is still pending.
 2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
 3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
@@ -209,10 +209,12 @@ ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded.
   safety toggles with an accurate read-only/privacy scope notice.
 - Commit `ff74ec1ef019fb781d48697b7dbcf32c732ae37a` is pushed to
   `feat/s36-kilo-mobile-chat`; PR #62 is open against `main` and required CI is
-  pending. No S36 APK or device report exists yet. A fresh `npm run android:env`
-  reports Node 24.22.2 available, Java 11, no Android SDK/adb, and no connected
-  device. After PR CI is green, dispatch the manual GitHub Actions APK workflow,
-  then await the owner's synthetic-data device report.
+  pending. A docs-only follow-up `2d94697347e2807d17543a29609ac0748a03fd82`
+  records PR/device status. Manual APK workflow run `42273678939` (run #9) is
+  queued on the branch; no S36 APK or device report exists yet. A fresh
+  `npm run android:env` reports Node 24.22.2 available, Java 11, no Android
+  SDK/adb, and no connected device. Await CI/APK completion, then the owner's
+  synthetic-data device report.
 
 ## Owner-owned open items (do not decide)
 
