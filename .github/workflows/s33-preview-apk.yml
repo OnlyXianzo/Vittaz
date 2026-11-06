@@ -38,9 +38,15 @@ jobs:
           mkdir -p "$PREVIEW_DIR"
           cp -R apps/mobile "$PREVIEW_DIR/native"
           rm -rf "$PREVIEW_DIR/native/node_modules"
+          # metro.config.cjs watches ../../packages/core/src, so the domain core
+          # must exist at the same relative path inside the temp tree.
+          mkdir -p "$PREVIEW_DIR/../packages"
+          cp -R packages/core "$PREVIEW_DIR/../packages/core"
+          rm -rf "$PREVIEW_DIR/../packages/core/node_modules"
           test -f "$PREVIEW_DIR/native/App.tsx"
           test -f "$PREVIEW_DIR/native/metro.config.cjs"
           test -f "$PREVIEW_DIR/native/ui/src/state.ts"
+          test -f "$PREVIEW_DIR/../packages/core/src/index.ts"
 
       - name: Install preview dependencies and expo-dev-client in temp only
         run: |
