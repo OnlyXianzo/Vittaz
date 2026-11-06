@@ -85,6 +85,16 @@ test("mobile_typecheck_resolves_copied_agent_dependencies_from_the_mobile_lockfi
   ]);
 });
 
+test("mobile_jest_uses_cjs_langchain_exports_for_esm_aware_provider_tests", () => {
+  const config = read("apps/mobile/jest.config.cjs");
+  expect(config).toContain(
+    '"^@langchain/core/messages$": "<rootDir>/node_modules/@langchain/core/dist/messages/index.cjs"',
+  );
+  expect(config).toContain(
+    '"^@langchain/core/(.*)$": "<rootDir>/node_modules/@langchain/core/dist/$1.cjs"',
+  );
+});
+
 test("preview_apk_workflow_does_not_use_runner_context_in_job_level_env", () => {
   const workflow = read(workflow_path);
   // GitHub only exposes the `runner` context at step level. Using it in

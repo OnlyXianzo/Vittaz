@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "PR #62 native check failed on mobile TypeScript dependency resolution; a regression-tested tsconfig fix is prepared. New CI and latest APK build remain pending. Owner cannot test now; device behavior remains unverified."
+blocked_on: "PR #62 typecheck fix 8d8ec53 passed typecheck but native Jest then failed loading LangChain ESM; Jest CJS mapping/regression fix is prepared for fresh CI. APK run 42273678939 succeeded and is archived. Owner cannot test now."
 last_updated: "2026-11-07"
 last_green_commit: "ee274c51b654ddd04d98efce25ba23442cfd570b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #62 (latest prior head ae4e865) root quality, test, privacy and build checks succeeded; native typecheck failed because the copied agent sources could not resolve @langchain/core and zod from the isolated mobile install. A failing regression check was added, confirmed red, then tsconfig path mappings were added; this fix is being pushed for fresh CI. Earlier local gates passed on Node 24.22.2/npm 11.19.1. Manual APK run 42273678939 is in progress on pre-fix source. Owner cannot test now; no device behavior is claimed."
+ci_proof: "PR #62 head 8d8ec53 passed mobile typecheck after the first fix, but native Jest failed because it selected LangChain ESM .js under its CommonJS runner. A second regression-first fix maps Jest to the package's versioned CommonJS dist exports; fresh CI is pending. Manual APK run 42273678939 succeeded on pre-fix config, bundled 1,411 modules, and its 48,634,494-byte APK is archived at ../S36-builds/s36-preview-standalone.apk (SHA-256 c9fd11be3b6faab4d663da552b99850ea5fed5bcb1f935abc9deba9a33005d78). Owner cannot test now; no device behavior is claimed."
 ---
 
 # STATE
@@ -158,11 +158,12 @@ ci_proof: "PR #62 (latest prior head ae4e865) root quality, test, privacy and bu
 
 ## Next actions
 
-1. Push the regression-tested TypeScript path fix and wait for PR #62 required
-   CI. The existing APK run `42273678939` is in progress on pre-fix source; after
-   CI, build a standalone APK from the fixed head if needed. Owner has said they
-   cannot test now. Keep device checks pending and do not infer results; archive
-   this as an owner/device obstacle unless they later provide a report.
+1. Push the Jest CommonJS mapping/regression fix and wait for fresh PR #62
+   checks. APK run `42273678939` succeeded from pre-fix config and is archived.
+   If required CI passes, merge only through the normal protected path and
+   dispatch a fresh APK from the final head. The owner says they cannot test now:
+   keep device checks pending, make no device claims, and archive this as the
+   remaining owner/device obstacle.
 2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
 3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
@@ -208,19 +209,25 @@ ci_proof: "PR #62 (latest prior head ae4e865) root quality, test, privacy and bu
   passes with package-agent copying, SecureStore autolinking assertion and
   runner software reporting. The settings UI also replaces unimplemented
   safety toggles with an accurate read-only/privacy scope notice.
-- Commit `ff74ec1ef019fb781d48697b7dbcf32c732ae37a` is pushed to
-  `feat/s36-kilo-mobile-chat`; PR #62 is open against `main`. Root quality,
-  privacy, test, and build checks passed on `ae4e865`; the native job failed at
-  typecheck because the app-only install could not resolve workspace agent
-  dependencies. A new red-first regression test covers mobile TypeScript path
-  aliases; `apps/mobile/tsconfig.json` now points at the locked mobile
-  `@langchain/core` and Zod declarations. The missing-path condition was
-  confirmed before the fix and a direct config assertion passes after it. The
-  Vitest regression has not been run locally in this resumed workspace because
-  dependencies are absent; fresh CI must validate it and the typecheck. APK workflow run `42273678939` (run #9) is in progress on
-  the previous source. Owner says they cannot test the app now. The fresh
-  `npm run android:env` reports Java 11, no Android SDK/adb, and no device, so
-  device behavior remains explicitly unverified and owner-blocked.
+- PR #62 is open against `main`. On `ae4e865`, root quality/privacy/test/build
+  passed while native typecheck failed because the isolated mobile install could
+  not resolve copied agent declarations. Commit `8d8ec53` mapped `@langchain/core`
+  and Zod to app-local type declarations; CI then passed typecheck but Jest failed
+  loading the package's ESM entry in its CommonJS runner. A second red-first
+  regression now requires Jest to use the pinned package's `.cjs` exports; config
+  and direct assertions pass in the workspace. Local Jest could not be rerun
+  because node_modules was absent after resume. Push this fix and let fresh CI
+  validate root/mobile tests, typecheck, formatting and export.
+- Manual APK workflow run `42273678939` (run #9) succeeded on the pre-fix
+  TypeScript/Jest config: JDK 17, Node 24.22.2, npm 11.19.1; 1,411 modules;
+  Gradle `BUILD SUCCESSFUL in 10m 5s`. The standalone artifact was copied to
+  `../S36-builds/s36-preview-standalone.apk`, 48,634,494 bytes, SHA-256
+  `c9fd11be3b6faab4d663da552b99850ea5fed5bcb1f935abc9deba9a33005d78`, expiry
+  `2026-11-13T18:57:31Z`. Static inspection only; build is not device proof and
+  does not validate the later CI fixes.
+- Owner says they cannot test the app now. A fresh `npm run android:env` reports
+  Java 11, no Android SDK/adb, and no device. Keep all device checks explicitly
+  unverified and owner-blocked.
 
 ## Owner-owned open items (do not decide)
 
