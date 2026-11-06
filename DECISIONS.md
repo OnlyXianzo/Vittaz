@@ -749,6 +749,19 @@ with `globalThis.crypto` absent, the app now injects SDK-matched
 runtime and public behavior are unchanged; no fallback to `Math.random` is
 introduced. The tests assert Expo's UUID function is used, with synthetic IDs.
 The Expo SDK 58 official docs and version are recorded in `docs/references.md`.
-The repair does not establish device persistence; owner must retry the corrected
-APK and confirm a synthetic entry survives app close/reopen before S35 device
-verification is accepted or S36 begins.
+The repair alone did not establish device persistence. On 2026-11-06 the owner
+later confirmed that a synthetic entry saved with the corrected APK remained
+after closing and reopening Vittaz. This accepts only S35's basic manual-save
+persistence check; assistant, approval, migration, Keystore and other device
+checks remain pending.
+
+## 2026-11-06 — Owner-approved Add form grouping clarification
+
+The owner reports that the Direction chips (Spent/Received/Lent) and Category
+chips (Food/Travel/etc.) read as one group because there is no separator, while
+the amount area is already clear. The owner explicitly approved a narrow
+presentation change: small Direction and Category labels plus a subtle divider.
+Keep the screen's existing palette, chips, spacing language and overall layout;
+do not otherwise redesign the owner-authored UI. A focused native screen test
+asserts both labels and the divider are present. This is presentation-only; it
+does not change ledger writes or duplicate-save behavior.

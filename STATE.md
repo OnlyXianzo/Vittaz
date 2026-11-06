@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
-current_step: "S35 corrected APK owner verification"
-current_step_status: "blocked_on_owner"
-blocked_on: "owner install/save/close/reopen report; no S36 until synthetic save survives"
+current_step: "Owner-approved Add form clarity"
+current_step_status: "in_progress"
+blocked_on: "native CI, merge, and corrected-APK visual confirmation; S36 is unblocked after owner S35 save/reopen report"
 last_updated: "2026-11-06"
-last_green_commit: "e548227a4df5992a4c6ecbeb4147ff692b654fb6"
+last_green_commit: "c50973ac37f488462df16d1fec6c6a544fc11d0b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone APK run 42228039226 attempt 2 succeeded; artifact has Expo Crypto module + embedded JS. Owner device save/persistence retry remains pending."
+ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone APK run 42228039226 attempt 2 succeeded. Owner confirmed synthetic save survived close/reopen on 2026-11-06; S35 basic persistence accepted. Owner-approved Add-form grouping PR is in progress; local app 12/12, root 344/56 at 100%, and both Expo exports pass. S36 is unblocked and next."
 ---
 
 # STATE
@@ -99,8 +99,23 @@ ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone AP
   Static DEX inspection found `expo.modules.crypto.CryptoModule` and
   `UUID.randomUUID()`; APK includes `assets/index.android.bundle`. These are
   build/static facts, not device execution.
-- S36 stays blocked until the owner installs this corrected standalone APK and
-  confirms a synthetic entry survives close/reopen.
+- Owner then confirmed that a synthetic entry saved with the corrected APK
+  survived close/reopen; S35 basic SQLite persistence is accepted. S36 is
+  unblocked. This does not establish the remaining device tests.
+
+## Owner-approved Add form grouping clarification — 2026-11-06
+
+- Owner clarified that Direction (Spent/Received/Lent) and Category
+  (Food/Travel/etc.) controls visually run together; the amount field is already
+  clear. The owner approved small labels plus a subtle divider, with no broader
+  redesign.
+- A focused native UI regression was added first and failed because the labels
+  were absent; the labels/divider implementation now passes.
+- Local branch gates: mobile Jest 12/12, lint/format/typecheck; Android export
+  (912 modules) and web export pass. Root gates: 344 tests / 56 files, 100%
+  coverage; lint/format/typecheck/privacy/audit/secret scan/build pass.
+- PR CI, APK build, and owner visual confirmation of this minor update remain
+  pending. S36 itself is unblocked by the accepted S35 save/reopen report.
 
 ## Current proof
 
@@ -108,8 +123,9 @@ ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone AP
   success. S35 merged as `a533288`.
 - Root gate: **344 tests / 56 files, 100% coverage**; format/lint/typecheck,
   privacy, build, secret scan pass; root audit 0.
-- Native app: `npm ci`, format/lint/typecheck, **Jest 11/11**, Android export
-  (2.6 MB Hermes) and web export (502 modules + 641 KB WASM) pass.
+- Native app: `npm ci`, format/lint/typecheck, **Jest 12/12** on the current
+  owner-approved grouping branch; Android export (2.6 MB Hermes) and web export
+  (510 modules + 641 KB WASM) pass.
 - App `npm audit`: 33 advisories (1 low, 32 moderate, none high/critical).
   Forced remediation downgrades Expo 58/Jest 30 and was not applied; see
   `docs/references.md`.
@@ -117,24 +133,25 @@ ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone AP
   `BUILD SUCCESSFUL in 12m 25s`; embedded bundle contains core symbols; SQLite
   module strings present in DEX. ZIP SHA-256 `115e44a0672a715132c65ecaf0617327256bb8b7d895e097a194d5d2197da62a`,
   expires `2026-11-13T12:23:47Z`.
-- Owner did install/try the original post-S35 APK, but Save failed before insert
-  with the UUID runtime error documented above. No S35 persistence proof; S33
-  acceptance still covers only the earlier APK opening.
-- Corrected APK run `42228039226` attempt 2 is build proof only, not device proof;
-  the artifact and hash are recorded in the corrective follow-up above.
+- Owner did try the original post-S35 APK, but Save failed before insert with
+  the UUID runtime error documented above. That attempt did not save an entry;
+  the later corrected-APK owner report is recorded separately.
+- Corrected APK run `42228039226` attempt 2 built the tested artifact. Owner later
+  confirmed a synthetic entry survived close/reopen; the device result is recorded
+  in `docs/device_tests.md`. Broader device behavior remains unverified.
 - Sandbox `npm run android:env` remains `ok:false` (no Java 17/Android SDK/adb/device).
 
 ## Next actions
 
-1. Ask the owner to install the corrected standalone APK, save a synthetic entry,
-   close/reopen, and report whether the row remains. Keep S35 persistence pending
-   until that report.
-2. Hold S36 LangChain check until owner verification passes.
-3. S37/G4: persistence, Keystore, local model/benchmark, Telegram, voice and OCR
-   device checklist. Each row needs its own owner report.
+1. Complete the owner-approved Direction/Category grouping change, run app and
+   root gates, and merge it as one small PR.
+2. Start S36: LangChain bundle, one tool call, streaming, and force-close/reopen
+   check. This is unblocked by the owner's S35 persistence report.
+3. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
+   Telegram, voice and OCR checklist. Each row needs its own owner report.
 4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
-5. Phase J UI vertical slices; prove every slice on a real device.
+5. Continue Phase J UI vertical slices and prove each slice on a real device.
 
 ## Owner-owned open items (do not decide)
 

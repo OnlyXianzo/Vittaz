@@ -63,7 +63,10 @@ export function AddScreen() {
         </Row>
       </Card>
 
-      <Row start gap={8} style={{ marginTop: 10, flexWrap: "wrap" }}>
+      <M size={12} style={{ marginTop: 12, marginBottom: 4 }}>
+        Direction
+      </M>
+      <Row start gap={8} style={{ flexWrap: "wrap" }}>
         {DIRECTIONS.map((d) => (
           <Chip
             key={d}
@@ -75,7 +78,19 @@ export function AddScreen() {
           />
         ))}
       </Row>
-      <Row start gap={8} style={{ marginTop: 10, flexWrap: "wrap" }}>
+      <View
+        testID="direction-category-separator"
+        style={{
+          height: 1,
+          marginTop: 12,
+          marginBottom: 8,
+          backgroundColor: colors.cardBorder,
+        }}
+      />
+      <M size={12} style={{ marginBottom: 4 }}>
+        Category
+      </M>
+      <Row start gap={8} style={{ flexWrap: "wrap" }}>
         {CATEGORIES.map((c) => (
           <Chip
             key={c}
