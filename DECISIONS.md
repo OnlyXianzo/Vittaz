@@ -677,7 +677,7 @@ At S34 merge time, the screens still ran the preview reducer and no
 record below. No device behavior is claimed for S34; the S33 owner report covers
 the earlier APK opening only.
 
-## S35 — Expo SQLite and native core-backed state (2026-11-06; implementation in progress)
+## S35 — Expo SQLite and native core-backed state (done 2026-11-06)
 
 - Added `expo-sqlite ~58.0.15` through `npx expo install expo-sqlite` (SDK 58
   recommended pin) and enabled its app config plugin. It is only in
