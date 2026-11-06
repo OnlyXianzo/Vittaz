@@ -4,9 +4,9 @@ current_step: "S35"
 current_step_status: "not_started"
 blocked_on: "none"
 last_updated: "2026-11-06"
-last_green_commit: "cd314219b5cc415084dd4166c50a312761e156a2"
+last_green_commit: "37c6263e926a0c68f3133d27dfd7b8ea6ff0d1c1"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "S33 device proof accepted by owner; S34 promotion verified locally by app jest 11/11, typecheck, lint, format and a real expo export containing core symbols"
+ci_proof: "S33 device proof accepted by owner (pre-promotion APK); S34 promotion merged b19e181 + fix 37c6263; APK run 42204863019 success, 873 modules, core symbols verified inside the shipped APK bundle"
 ---
 
 # STATE
@@ -70,7 +70,16 @@ ci_proof: "S33 device proof accepted by owner; S34 promotion verified locally by
 
 ## Current proof
 
-- Root suite now 320 tests / 55 files, 100% coverage. Promoted app: jest 11/11, typecheck/lint/format clean, `expo export --platform android` succeeds.
+- Root suite now 321 tests / 55 files, 100% coverage. Promoted app: jest 11/11,
+  typecheck/lint/format clean, `expo export --platform android` succeeds.
+- Post-promotion APK run `42204863019` succeeded on main `37c6263`: autolink
+  `missing: []`, 873 modules bundled, `BUILD SUCCESSFUL in 9m 55s`. Downloaded the
+  standalone APK and confirmed core symbols inside its embedded bundle.
+- An earlier APK run on `b19e181` failed: the workflow copied only `apps/mobile`
+  while Metro watches `../../packages/core/src`. Fixed in PR #54 by copying
+  `packages/core` too; verified by reproducing the CI temp layout locally.
+- This APK is build proof only. The owner has not installed it. S33 acceptance
+  covers the pre-promotion APK opening and does not extend to this build.
 - Sandbox `npm run android:env` reports `ok:false` with static errors:
   `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
   `no_ready_device`. This is expected in the sandbox and is not device proof.
