@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "PR #62 latest native test exposed Zod ESM selection after the LangChain CJS mapping. A red-first Zod CJS mapping now passes local mobile tests/typecheck/lint/format; commit and fresh CI remain pending. APK run 42273678939 is archived. Owner cannot test now."
+blocked_on: "S36 code is merged and CI/build passed. Device/runtime acceptance remains owner-blocked because the owner cannot test now; do not claim phone behavior."
 last_updated: "2026-11-07"
-last_green_commit: "ee274c51b654ddd04d98efce25ba23442cfd570b"
+last_green_commit: "10e31794dbec8653b165959104d0bc703c1b578b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #62 head 02afd8b typechecked, but native Jest then failed selecting Zod's ESM declaration entry under its CommonJS runner after LangChain was routed to CJS. The red-first `zod` -> `index.cjs` Jest mapping now passes local mobile tests (19/19), typecheck, lint and format under Node 24.22.2; it is awaiting commit and fresh CI. Manual APK run 42273678939 succeeded on pre-fix config, bundled 1,411 modules, and its 48,634,494-byte APK is archived at ../S36-builds/s36-preview-standalone.apk (SHA-256 c9fd11be3b6faab4d663da552b99850ea5fed5bcb1f935abc9deba9a33005d78). Owner cannot test now; no device behavior is claimed."}
+ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. Owner cannot test now; device acceptance remains pending."}}
 ---
 
 # STATE
@@ -141,6 +141,15 @@ ci_proof: "PR #62 head 02afd8b typechecked, but native Jest then failed selectin
   SQLite and LinearGradient present. The S36 Settings screen does not present
   inert approval/name-replacement/note-sharing toggles as active controls; it
   states the actual read-only cloud boundary and the limits of name replacement.
+- PR #62 merged after required PR and main CI/Native checks passed. Merge commit
+  `10e31794dbec8653b165959104d0bc703c1b578b`; the branch is closed.
+- Final merged-head APK run `42279488717` succeeded on `main`: Node 24.22.2,
+  npm 11.19.1, Temurin JDK 17.0.21, Gradle 9.4.1; 1,411 modules bundled;
+  `BUILD SUCCESSFUL in 12m 43s`. Artifact `13536090229` expires
+  `2026-11-13T19:39:41Z`; archived at
+  `../S36-builds/s36-final-merged-standalone.apk`, 48,634,494 bytes, SHA-256
+  `37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35`. Static
+  bundle/DEX inspection only; this is not device/runtime evidence.
 - Mobile `npm audit --audit-level=moderate`: 33 advisories (1 low, 32 moderate,
   none high/critical). Forced remediation downgrades Expo/Jest/ESLint and was
   not applied; see `docs/references.md`.
@@ -158,12 +167,11 @@ ci_proof: "PR #62 head 02afd8b typechecked, but native Jest then failed selectin
 
 ## Next actions
 
-1. Commit and push the Zod CommonJS mapping plus regression, then wait for fresh
-   PR #62 checks. The existing APK run `42273678939` succeeded from pre-fix
-   config and is archived. If required CI passes, merge only through the normal
-   protected path and dispatch a fresh APK from the final head. Owner cannot test
-   now: keep device checks pending, make no device claims, and archive this as
-   the remaining owner/device obstacle.
+1. S36 code is merged and the final main-head APK is archived at
+   `../S36-builds/s36-final-merged-standalone.apk`. The sole remaining S36
+   acceptance item is owner device testing: keyless read-only Kilo use, validated
+   answer display, and force-stop/reopen. Owner currently cannot test, so keep
+   those checks pending and make no device claims.
 2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
 3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
@@ -209,23 +217,22 @@ ci_proof: "PR #62 head 02afd8b typechecked, but native Jest then failed selectin
   passes with package-agent copying, SecureStore autolinking assertion and
   runner software reporting. The settings UI also replaces unimplemented
   safety toggles with an accurate read-only/privacy scope notice.
-- PR #62 is open against `main`. On `ae4e865`, root quality/privacy/test/build
-  passed while native typecheck failed because the isolated mobile install could
-  not resolve copied agent declarations. Commit `8d8ec53` mapped LangChain/Zod
-  type declarations; typecheck then passed but Jest selected ESM entries. A second
-  red-first mapping uses the pinned `.cjs` exports. The first local Jest rerun
-  then exposed Zod's ESM entry; a third red-first mapping now routes `zod` to
-  `index.cjs`. Under downloaded Node 24.22.2/npm 11.19.1 and a clean app `npm ci`,
-  mobile tests pass 19/19, typecheck, lint and format pass. Root Vitest regression
-  for these mappings awaits fresh CI; the direct config assertions pass locally.
-  The new fix still needs committing/pushing and fresh root/native CI validation.
-- Manual APK workflow run `42273678939` (run #9) succeeded on the pre-fix
-  TypeScript/Jest config: JDK 17, Node 24.22.2, npm 11.19.1; 1,411 modules;
-  Gradle `BUILD SUCCESSFUL in 10m 5s`. The standalone artifact was copied to
-  `../S36-builds/s36-preview-standalone.apk`, 48,634,494 bytes, SHA-256
-  `c9fd11be3b6faab4d663da552b99850ea5fed5bcb1f935abc9deba9a33005d78`, expiry
-  `2026-11-13T18:57:31Z`. Static inspection only; build is not device proof and
-  does not validate the later CI fixes.
+- PR #62 (`9a55779`) merged into `main` on 2026-11-07 as
+  `10e31794dbec8653b165959104d0bc703c1b578b`. Initial native CI exposed missing
+  isolated-app TypeScript declarations, then CommonJS Jest resolution for
+  LangChain and Zod. Regression-first TypeScript/Jest mappings resolve the
+  pinned exports; Node 24.22.2/npm 11.19.1 local checks pass (mobile 19/19,
+  typecheck, lint, format; root 353 tests/56 files at 100%). Required PR CI and
+  post-merge main CI/native checks all passed.
+- Final merged-head manual APK run `42279488717` succeeded on `main` commit
+  `10e31794dbec8653b165959104d0bc703c1b578b`: Node 24.22.2, npm 11.19.1,
+  Temurin JDK 17.0.21, Gradle 9.4.1; 1,411 modules; `BUILD SUCCESSFUL in
+12m 43s`. APK archived at `../S36-builds/s36-final-merged-standalone.apk`,
+  48,634,494 bytes, SHA-256
+  `37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35`, expiry
+  `2026-11-13T19:39:41Z`. Embedded bundle and SecureStore DEX class are present.
+  Static inspection/build evidence only; not phone or runtime evidence. The
+  earlier pre-fix artifact from run `42273678939` remains historical.
 - Owner says they cannot test the app now. A fresh `npm run android:env` reports
   Java 11, no Android SDK/adb, and no device. Keep all device checks explicitly
   unverified and owner-blocked.
