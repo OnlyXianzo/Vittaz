@@ -4,10 +4,14 @@ on:
   push:
     paths:
       - "apps/mobile/**"
+      - "packages/core/**"
+      - "packages/storage/src/expo_sqlite_store.ts"
       - ".github/workflows/native.yml"
   pull_request:
     paths:
       - "apps/mobile/**"
+      - "packages/core/**"
+      - "packages/storage/src/expo_sqlite_store.ts"
       - ".github/workflows/native.yml"
   workflow_dispatch:
 

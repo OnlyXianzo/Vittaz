@@ -8,7 +8,7 @@ import { ledgerStoreContractCases } from "../../core/test/ledger_store_contract.
 import {
   createExpoSqliteLedgerStore,
   type ExpoSqliteConnection,
-} from "../../../apps/mobile/src/storage/expo_sqlite_store.js";
+} from "./expo_sqlite_store.js";
 
 // The adapter talks only the public async Expo SQLite API. This bridge uses a
 // real SQLite engine so the exact same framework-neutral contract cases run
@@ -105,4 +105,28 @@ test("expo_sqlite_store_persists_rows_across_close_and_reopen", async () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("expo_sqlite_store_defaults_a_missing_user_version_to_zero", async () => {
+  const db = openNodeSqlitePort();
+  const get_first = db.getFirstAsync.bind(db);
+  db.getFirstAsync = async <T>(sql: string, ...params: unknown[]) => {
+    if (sql === "PRAGMA user_version;") return null;
+    return get_first<T>(sql, ...params);
+  };
+  const store = await createExpoSqliteLedgerStore(db);
+  db.getFirstAsync = get_first;
+  expect(
+    await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version;"),
+  ).toEqual({ user_version: 3 });
+  await store.close();
+});
+
+test("expo_sqlite_store_rejects_a_database_schema_newer_than_core", async () => {
+  const db = openNodeSqlitePort();
+  await db.execAsync("PRAGMA user_version = 999;");
+  await expect(createExpoSqliteLedgerStore(db)).rejects.toThrow(
+    "schema_newer_than_supported",
+  );
+  await db.closeAsync();
 });

@@ -577,3 +577,23 @@ would downgrade Expo to 53 and Jest to 29, which breaks the app's SDK 58 baselin
 No `--force` downgrade was applied. Root backend `npm audit` remains 0 findings.
 This is an app-toolchain finding to review separately; it is not hidden by the
 root audit result.
+
+### S35 adapter source boundary learned from protected CI
+
+The first protected root `test` job failed after all assertions passed in 55
+files: OXC's Vite transform followed the test import into
+`apps/mobile/src/storage/expo_sqlite_store.ts` and tried to load that directory's
+`tsconfig.json` (`extends: expo/tsconfig.base`). The backend test job deliberately
+runs only root dependencies, so Expo's config was absent. The adapter itself is
+framework-neutral and has no Expo runtime import; it was moved to
+`packages/storage/src/expo_sqlite_store.ts`, while the app opens the Expo DB and
+imports that source. Metro watches `packages/storage/src`; the manual APK
+workflow copies `packages/storage` beside `packages/core`; Native CI now triggers
+when either shared package changes. This keeps the same production adapter
+under test without installing Expo in backend CI.
+
+The privacy gate also initially returned `privacy_checks_failed_or_missing` in
+CI while local execution passed. The checker now runs only its six declared
+privacy suites instead of discovering and importing every repository test
+file, and emits bounded failure-class diagnostics without assertion messages or
+payloads. The root CI `test:coverage` command still runs the complete suite.

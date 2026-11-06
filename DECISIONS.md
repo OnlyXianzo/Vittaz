@@ -685,11 +685,18 @@ the earlier APK opening only.
 - Extracted the exact existing versioned SQL to
   `packages/core/src/ledger/migration_steps.ts`; Node storage and Expo adapter
   now share one `MIGRATION_STEPS` source. Migration SQL itself was not rewritten.
-- `apps/mobile/src/storage/expo_sqlite_store.ts` implements the framework-free
+- `packages/storage/src/expo_sqlite_store.ts` implements the framework-free
   core `LedgerStore` port with CRUD repositories, migration-on-open, scoped
   capabilities, queue serialization, async rollback, close semantics, and FK
-  enforcement. `open_ledger_store.ts` opens persistent `vittaz.db` and closes on
-  initialization failure.
+  enforcement. The app imports this same source; it has no Expo runtime import.
+  `apps/mobile/src/storage/open_ledger_store.ts` opens persistent `vittaz.db` and
+  closes on initialization failure.
+- Initial protected CI exposed an integration boundary: root Vitest followed a
+  test import into `apps/mobile/src/storage/expo_sqlite_store.ts` and OXC tried
+  to load the app's `expo/tsconfig.base`, absent from backend CI. The adapter
+  moved to `packages/storage`; Metro watches it, APK CI copies the package, and
+  Native CI triggers on its path. Root tests exercise the same adapter source
+  without installing Expo in backend CI.
 - Expo docs warn `withExclusiveTransactionAsync` opens a new connection where
   `PRAGMA foreign_keys=ON` does not apply. Since the adapter owns and serializes
   all access, it uses `withTransactionAsync` on the configured connection
@@ -715,7 +722,7 @@ the earlier APK opening only.
   script usable. First export failed on missing `.wasm`; Metro now includes wasm
   and COEP/COOP headers. Android export (2.6 MB Hermes) and web export (502
   modules + 641 KB WASM) both succeed locally; native CI checks both.
-- Final local root gate: 340 tests / 56 files, 100% coverage; root audit 0.
+- Final local root gate: 344 tests / 56 files, 100% coverage; root audit 0.
   App Jest 11/11; app lint/typecheck/format and Android/web exports pass.
 - Local `npm audit` in the app reports 33 issues (1 low/32 moderate). Forced
   remediation wants Expo 53/Jest 29, so no forced downgrade was applied; the

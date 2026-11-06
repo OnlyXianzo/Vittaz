@@ -71,7 +71,7 @@ ci_proof: "S33 device proof accepted by owner (pre-promotion APK); S34 promotion
 
 ## Current proof
 
-- S35 local root gate green: **340 tests / 56 files, 100% coverage**. Root
+- S35 local root gate green: **344 tests / 56 files, 100% coverage**. Root
   format/lint/typecheck/privacy/audit/build/secret scan all pass; root audit 0.
 - App: `npm ci`, format/lint/typecheck pass; **Jest 11/11**. Android export
   succeeds (2.6 MB Hermes). Web export succeeds (502 modules + 641 KB WASM) with

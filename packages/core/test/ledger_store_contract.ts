@@ -205,6 +205,10 @@ export function ledgerStoreContractCases(open: () => Promise<LedgerStore>) {
             "repository_reentrant_access",
           );
           await a.asyncRejects(
+            store.transaction(async () => store.transaction(async () => null)),
+            "repository_reentrant_access",
+          );
+          await a.asyncRejects(
             store.read(async () => store.close()),
             "repository_reentrant_access",
           );
@@ -236,8 +240,17 @@ export function ledgerStoreContractCases(open: () => Promise<LedgerStore>) {
         try {
           await store.transaction(async (repos) => {
             await repos.proposals.insert(proposal);
+            const updated_proposal = {
+              ...proposal,
+              counterparty_name: null,
+              note: null,
+            };
+            await repos.proposals.replace(updated_proposal);
             await repos.audit.insert(audit);
-            a.deepEqual(await repos.proposals.get(proposal.id), proposal);
+            a.deepEqual(
+              await repos.proposals.get(proposal.id),
+              updated_proposal,
+            );
             a.deepEqual(await repos.audit.get(audit.id), audit);
           });
         } finally {

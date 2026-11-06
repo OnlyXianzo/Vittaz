@@ -119,6 +119,8 @@ test("s34_apk_workflow_copies_core_because_metro_watches_it", () => {
   const apk = read(".github/workflows/s33-preview-apk.yml");
   expect(apk).toContain("packages/core");
   expect(apk).toMatch(/cp -R packages\/core/);
+  expect(apk).toContain("packages/storage");
+  expect(apk).toMatch(/cp -R packages\/storage/);
   const metro = read("apps/mobile/metro.config.cjs");
   expect(metro).toContain("../../packages/core/src");
 });
@@ -144,7 +146,7 @@ test("s35_uses_sdk_matched_expo_sqlite_and_core_backed_native_state", () => {
   expect(selectors).not.toContain("647100");
   expect(selectors).not.toContain("73000");
 
-  const adapter = read("apps/mobile/src/storage/expo_sqlite_store.ts");
+  const adapter = read("packages/storage/src/expo_sqlite_store.ts");
   expect(adapter).toContain("MIGRATION_STEPS");
   expect(adapter).toContain("PRAGMA foreign_keys = ON");
   expect(adapter).toContain("withTransactionAsync");
@@ -165,4 +167,13 @@ test("s35_expo_sqlite_web_setup_keeps_the_existing_expo_web_preview_buildable", 
   expect(metro).toContain('"wasm"');
   expect(metro).toContain("Cross-Origin-Embedder-Policy");
   expect(metro).toContain("Cross-Origin-Opener-Policy");
+});
+
+test("s35_sqlite_adapter_lives_in_storage_source_not_the_expo_project_tree", () => {
+  expect(exists("packages/storage/src/expo_sqlite_store.ts")).toBe(true);
+  expect(exists("apps/mobile/src/storage/expo_sqlite_store.ts")).toBe(false);
+  const opener = read("apps/mobile/src/storage/open_ledger_store.ts");
+  expect(opener).toContain("packages/storage/src/expo_sqlite_store");
+  const native_ci = read(".github/workflows/native.yml");
+  expect(native_ci).toContain("packages/storage/src/expo_sqlite_store.ts");
 });

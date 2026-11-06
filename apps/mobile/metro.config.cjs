@@ -8,11 +8,17 @@ const sharedSource = path.resolve(projectRoot, "./ui/src");
 // S34: the framework-free domain core is consumed as source, not as a built
 // package, so the app and the backend share one copy of the logic.
 const coreSource = path.resolve(projectRoot, "../../packages/core/src");
+const storageSource = path.resolve(projectRoot, "../../packages/storage/src");
 
 const config = getDefaultConfig(projectRoot);
 
 config.watchFolders = [
-  ...new Set([...(config.watchFolders ?? []), sharedSource, coreSource]),
+  ...new Set([
+    ...(config.watchFolders ?? []),
+    sharedSource,
+    coreSource,
+    storageSource,
+  ]),
 ];
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, "node_modules")];
 // expo-sqlite's web adapter loads its SQLite WASM asset. The web runtime also
