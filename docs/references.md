@@ -496,3 +496,23 @@ the app's ~1151-package lockfile never enters backend CI. The app is checked by
 `.github/workflows/native.yml` with `working-directory: apps/mobile`.
 
 No device behavior is claimed for S34.
+
+### S34 follow-up: the APK workflow must copy `packages/core` too
+
+After the promotion, the first `s33-preview-apk` run on main `b19e181` failed at
+Gradle `:app:createBundleReleaseJsAndAssets` with:
+
+```
+Failed to construct transformer: Error: ENOENT ... stat
+'/home/runner/work/_temp/vittaz-preview/packages/core/src'
+```
+
+The promoted `metro.config.cjs` watches `../../packages/core/src`, but the
+workflow copied only `apps/mobile` into the runner temp tree, so that watch root
+did not exist. A local `expo export` had passed because the real repository does
+have `packages/core` at that relative path — the local check could not catch a
+missing-copy bug in the CI layout. The workflow now also copies `packages/core`
+to `$PREVIEW_DIR/../packages/core`, and a regression test asserts it. The fix was
+verified by reproducing the CI temp layout locally (`ui/native` +
+`packages/core` as siblings) and running `expo export` there, which produced the
+same 2.5 MB Hermes bundle hash as the in-repo build.

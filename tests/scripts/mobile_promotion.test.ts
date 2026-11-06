@@ -108,3 +108,16 @@ test("s34_metro_and_jest_resolve_core_nodenext_js_specifiers_to_ts_source", () =
     /moduleNameMapper[\s\S]*\\\.js/,
   );
 });
+
+test("s34_apk_workflow_copies_core_because_metro_watches_it", () => {
+  // Regression: the promoted app's metro.config.cjs watches
+  // ../../packages/core/src. Copying only apps/mobile into runner temp left
+  // that root missing and Gradle's createBundleReleaseJsAndAssets failed with
+  // "ENOENT ... /vittaz-preview/packages/core/src". A local `expo export`
+  // passed because the real repo has packages/core at that relative path.
+  const apk = read(".github/workflows/s33-preview-apk.yml");
+  expect(apk).toContain("packages/core");
+  expect(apk).toMatch(/cp -R packages\/core/);
+  const metro = read("apps/mobile/metro.config.cjs");
+  expect(metro).toContain("../../packages/core/src");
+});
