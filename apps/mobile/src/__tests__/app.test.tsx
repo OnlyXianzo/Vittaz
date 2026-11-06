@@ -93,6 +93,18 @@ describe("Vittaz native shell backed by core", () => {
     expect(screen.getAllByText("₹250").length).toBeGreaterThan(0);
   });
 
+  it("separates transaction direction from expense category on the add screen", async () => {
+    await open();
+    await tab("Ledger");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add transaction" }),
+    );
+
+    expect(screen.getByText("Direction")).toBeTruthy();
+    expect(screen.getByTestId("direction-category-separator")).toBeTruthy();
+    expect(screen.getByText("Category")).toBeTruthy();
+  });
+
   it("does not save a lent entry without a counterparty", async () => {
     await open();
     await tab("Ledger");

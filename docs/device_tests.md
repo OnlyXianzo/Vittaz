@@ -1,9 +1,9 @@
 # Device test checklist
 
-Status: **S33 executed and owner-accepted 2026-11-05.** All later rows remain
-**not executed**. The agent never observed the phone; the only device evidence is
-the owner's own report, recorded below. Do not extend that report to any other
-row.
+Status: **S33 executed and owner-accepted 2026-11-05.** S35 SQLite basic
+persistence was owner-reported passed on 2026-11-06. All later rows remain
+pending; S35 SQLite is the only later-row exception. The agent never observed the phone;
+evidence below is the owner's report. Do not extend it to other rows.
 
 This file is the place to record actual device runs only after they happen. Do
 not mark a row complete from emulator assumptions, Expo Go behavior, web preview,
@@ -19,20 +19,20 @@ or Node tests.
 
 ## Checklist
 
-| Area                  | Test                                                                                                    | Status                                                            |
-| --------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05**                              |
-| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending                                    |
-| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **pending owner retry — corrected APK run 42228039226 available** |
-| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                                                           |
-| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                | pending                                                           |
-| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                                                           |
-| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                                                           |
-| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                                                           |
-| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                                                           |
-| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                                                           |
-| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                                                           |
-| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                                                           |
+| Area                  | Test                                                                                                    | Status                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05** |
+| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending       |
+| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **passed — owner report 2026-11-06** |
+| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                              |
+| LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                | pending                              |
+| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                              |
+| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                              |
+| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                              |
+| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                              |
+| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                              |
+| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                              |
+| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                              |
 
 ## S33 device record (owner-reported)
 
@@ -68,12 +68,24 @@ or Node tests.
   compatibility issue, not missing Metro or a blank-screen failure.
 - Corrective change: PR #58 merged as `e548227`; app now injects SDK-matched
   Expo Crypto UUID generation for manual saves and proposal approval. This is
-  covered by tests with `globalThis.crypto` removed, but device behavior remains
-  **unverified**.
+  covered by tests with `globalThis.crypto` removed. The owner later confirmed
+  successful save and close/reopen on the corrected APK; see below.
 - Corrected standalone build: [workflow run 42228039226](https://github.com/OnlyXianzo/Vittaz/actions/runs/42228039226), attempt 2 succeeded; download artifact `s33-preview-standalone-apk` (expires 2026-11-13 13:58 UTC). APK SHA-256: `3874cdb8ed54f5e4dec52d798bbc0f20c8a71f6a52fde0672f716c103be708b0`. Static inspection found the Expo Crypto DEX module and embedded JavaScript; this is build evidence, not phone evidence. The initial attempt failed because Gradle could not resolve the Foojay resolver plugin; the same job rerun passed without source changes.
-- Required retest: install the corrected APK, save synthetic data, close/reopen
-  the app, and confirm the row remains. Leave this row blocked until the owner
-  reports the result; do not start S36 before this blocker is cleared.
+
+## S35 corrected-APK persistence result (owner-reported)
+
+- Date: 2026-11-06.
+- Reporter: owner. The agent did not run or observe the phone.
+- Build: corrected standalone artifact `s33-preview-standalone-apk` from run
+  `42228039226` (attempt 2 succeeded; SHA-256 and expiry recorded above).
+- Owner confirmed the entry used for the check was synthetic/test-only and
+  remained visible after closing and reopening Vittaz. Screenshots show the
+  successful save toast and ledger row; personal/financial details are not
+  copied into this record.
+- Phone model and Android version were not supplied.
+- Result: **S35 SQLite basic manual-save persistence passed by owner report.**
+  This does not establish the assistant, proposal approval, migrations, readonly
+  connections, Keystore, or any other pending device test.
 
 ## Recording results
 
