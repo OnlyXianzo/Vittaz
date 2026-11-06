@@ -116,6 +116,130 @@ test("baseline_4_5_qa_readonly_connection_and_registry_no_proposal_or_transactio
   expect(f.source.listTransactions).not.toHaveBeenCalled();
   expect(await f.writer.exportSnapshot()).toEqual(before);
 });
+test("qa_streams_only_final_validated_answer_after_a_readonly_tool_call", async () => {
+  const f = await fixture();
+  let provider_finished = false;
+  const client = {
+    chatCompletion: vi
+      .fn()
+      .mockImplementationOnce(async () => completion({ toolCalls: [call()] }))
+      .mockImplementationOnce(async () => {
+        provider_finished = true;
+        return completion({ content: "Synthetic safe answer." });
+      }),
+  };
+  const chunks: string[] = [];
+  const qa = new ReadOnlyQaLoop({
+    client,
+    data: f.source,
+    redactor: f.redactor,
+  });
+  const result = await qa.answerQuestion("Synthetic monthly total", {
+    onValidatedChunk: (chunk: string) => {
+      expect(provider_finished).toBe(true);
+      chunks.push(chunk);
+    },
+  });
+  expect(result).toMatchObject({
+    answered: true,
+    answer: "Synthetic safe answer.",
+    toolsUsed: ["get_month_summary"],
+  });
+  expect(
+    client.chatCompletion.mock.calls.map(([request]) => request.stream),
+  ).toEqual([true, true]);
+  expect(chunks.join("")).toBe("Synthetic safe answer.");
+  expect(f.source.listTransactions).toHaveBeenCalledTimes(1);
+});
+
+test("qa_presentation_callback_errors_are_nonfatal_to_a_safe_answer", async () => {
+  const f = await fixture();
+  const client = {
+    chatCompletion: vi.fn(async () => completion({ content: "S".repeat(48) })),
+  };
+  const callback = vi.fn(() => {
+    throw new Error("private_synthetic_presentation_failure");
+  });
+  const result = await new ReadOnlyQaLoop({
+    client,
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic", { onValidatedChunk: callback });
+  expect(result).toMatchObject({ answered: true, answer: "S".repeat(48) });
+  expect(callback).toHaveBeenCalledTimes(2);
+  expect(JSON.stringify(result)).not.toContain(
+    "private_synthetic_presentation_failure",
+  );
+});
+
+test("qa_abort_during_presentation_callback_stops_before_the_next_chunk", async () => {
+  const f = await fixture();
+  const controller = new AbortController();
+  const callback = vi.fn(() => {
+    controller.abort();
+    throw new Error("private_synthetic_presentation_failure");
+  });
+  const result = await new ReadOnlyQaLoop({
+    client: {
+      chatCompletion: vi.fn(async () =>
+        completion({ content: "S".repeat(48) }),
+      ),
+    },
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic", {
+    signal: controller.signal,
+    onValidatedChunk: callback,
+  });
+  expect(result).toMatchObject({ answered: false, stopReason: "aborted" });
+  expect(callback).toHaveBeenCalledTimes(1);
+});
+
+test("qa_deadline_expiry_during_presentation_callback_stops_before_the_next_chunk", async () => {
+  const f = await fixture();
+  const callback = vi.fn(
+    () => new Promise<void>((resolve) => setTimeout(resolve, 80)),
+  );
+  const result = await new ReadOnlyQaLoop({
+    client: {
+      chatCompletion: vi.fn(async () =>
+        completion({ content: "S".repeat(48) }),
+      ),
+    },
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic", {
+    timeoutMs: 20,
+    onValidatedChunk: callback,
+  });
+  expect(result).toMatchObject({ answered: false, stopReason: "timeout" });
+  expect(callback).toHaveBeenCalledTimes(1);
+});
+
+test("qa_deadline_expiry_between_validated_chunks_stops_presentation", async () => {
+  const f = await fixture();
+  const callback = vi.fn(() => {
+    const deadline = performance.now() + 30;
+    while (performance.now() < deadline) {
+      /* synthetic presentation work advances the monotonic deadline */
+    }
+  });
+  const result = await new ReadOnlyQaLoop({
+    client: {
+      chatCompletion: vi.fn(async () =>
+        completion({ content: "S".repeat(48) }),
+      ),
+    },
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic", {
+    timeoutMs: 20,
+    onValidatedChunk: callback,
+  });
+  expect(result).toMatchObject({ answered: false, stopReason: "timeout" });
+  expect(callback).toHaveBeenCalledTimes(1);
+});
+
 test("qa_reads_projected_results_and_restores_names_only_in_local_reply", async () => {
   const f = await fixture();
   const client = {

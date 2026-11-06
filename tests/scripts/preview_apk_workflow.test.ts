@@ -59,6 +59,43 @@ test("preview_apk_docs_explain_native_js_mismatch_and_standalone_install", () =>
   expect(references).toContain("react-native-safe-area-context");
 });
 
+test("preview_apk_workflow_copies_agent_and_records_runner_and_secure_store_versions", () => {
+  const workflow = read(workflow_path);
+  expect(workflow).toContain(
+    'cp -R packages/agent "$PREVIEW_DIR/../packages/agent"',
+  );
+  expect(workflow).toContain("$PREVIEW_DIR/../packages/agent/src/qa_loop.ts");
+  expect(workflow).toContain("uname -a");
+  expect(workflow).toContain("node --version");
+  expect(workflow).toContain("npm --version");
+  expect(workflow).toContain("java -version");
+  expect(workflow).toContain("secure_store:");
+  expect(workflow).toContain('["expo-secure-store", expoDeps]');
+});
+
+test("mobile_typecheck_resolves_copied_agent_dependencies_from_the_mobile_lockfile", () => {
+  const config = JSON.parse(read("apps/mobile/tsconfig.json")) as {
+    compilerOptions?: { paths?: Record<string, string[]> };
+  };
+  expect(config.compilerOptions?.paths?.["@langchain/core/*"]).toEqual([
+    "node_modules/@langchain/core/dist/*",
+  ]);
+  expect(config.compilerOptions?.paths?.["zod"]).toEqual([
+    "node_modules/zod/index.d.cts",
+  ]);
+});
+
+test("mobile_jest_uses_cjs_langchain_exports_for_esm_aware_provider_tests", () => {
+  const config = read("apps/mobile/jest.config.cjs").replace(/\s+/g, " ");
+  expect(config).toContain(
+    '"^@langchain/core/messages$": "<rootDir>/node_modules/@langchain/core/dist/messages/index.cjs"',
+  );
+  expect(config).toContain(
+    '"^@langchain/core/(.*)$": "<rootDir>/node_modules/@langchain/core/dist/$1.cjs"',
+  );
+  expect(config).toContain('"^zod$": "<rootDir>/node_modules/zod/index.cjs"');
+});
+
 test("preview_apk_workflow_does_not_use_runner_context_in_job_level_env", () => {
   const workflow = read(workflow_path);
   // GitHub only exposes the `runner` context at step level. Using it in

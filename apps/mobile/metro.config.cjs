@@ -9,6 +9,7 @@ const sharedSource = path.resolve(projectRoot, "./ui/src");
 // package, so the app and the backend share one copy of the logic.
 const coreSource = path.resolve(projectRoot, "../../packages/core/src");
 const storageSource = path.resolve(projectRoot, "../../packages/storage/src");
+const agentSource = path.resolve(projectRoot, "../../packages/agent/src");
 
 const config = getDefaultConfig(projectRoot);
 
@@ -18,6 +19,7 @@ config.watchFolders = [
     sharedSource,
     coreSource,
     storageSource,
+    agentSource,
   ]),
 ];
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, "node_modules")];

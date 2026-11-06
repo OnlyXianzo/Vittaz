@@ -22,6 +22,13 @@ module.exports = {
   // S34: resolve the domain core to source, matching metro.config.cjs.
   moduleNameMapper: {
     "^@vittaz/core$": "<rootDir>/../../packages/core/src/index.ts",
+    // Jest's transformer executes CommonJS. Route the ESM-only package export
+    // selection to LangChain's exact-version CommonJS distribution for tests.
+    "^@langchain/core/messages$":
+      "<rootDir>/node_modules/@langchain/core/dist/messages/index.cjs",
+    "^@langchain/core/(.*)$":
+      "<rootDir>/node_modules/@langchain/core/dist/$1.cjs",
+    "^zod$": "<rootDir>/node_modules/zod/index.cjs",
     // Core uses NodeNext ".js" specifiers over ".ts" sources.
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },

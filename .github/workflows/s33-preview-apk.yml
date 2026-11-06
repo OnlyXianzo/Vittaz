@@ -33,6 +33,13 @@ jobs:
         with:
           node-version: "24.22.2"
 
+      - name: Record runner software
+        run: |
+          uname -a
+          node --version
+          npm --version
+          java -version 2>&1
+
       - name: Copy owner preview into runner temp
         run: |
           mkdir -p "$PREVIEW_DIR"
@@ -43,20 +50,23 @@ jobs:
           mkdir -p "$PREVIEW_DIR/../packages"
           cp -R packages/core "$PREVIEW_DIR/../packages/core"
           cp -R packages/storage "$PREVIEW_DIR/../packages/storage"
+          cp -R packages/agent "$PREVIEW_DIR/../packages/agent"
           rm -rf "$PREVIEW_DIR/../packages/core/node_modules"
           rm -rf "$PREVIEW_DIR/../packages/storage/node_modules"
+          rm -rf "$PREVIEW_DIR/../packages/agent/node_modules"
           test -f "$PREVIEW_DIR/native/App.tsx"
           test -f "$PREVIEW_DIR/native/metro.config.cjs"
           test -f "$PREVIEW_DIR/native/ui/src/state.ts"
           test -f "$PREVIEW_DIR/../packages/core/src/index.ts"
           test -f "$PREVIEW_DIR/../packages/storage/src/expo_sqlite_store.ts"
+          test -f "$PREVIEW_DIR/../packages/agent/src/qa_loop.ts"
 
       - name: Install preview dependencies and expo-dev-client in temp only
         run: |
           cd "$PREVIEW_DIR/native"
           npm ci
           npx expo install expo-dev-client
-          node -e "const p=require('./package.json');const d=p.dependencies;console.log(JSON.stringify({expo:d.expo,expo_dev_client:d['expo-dev-client'],react_native:d['react-native'],safe_area_context:d['react-native-safe-area-context'],svg:d['react-native-svg'],linear_gradient:d['expo-linear-gradient']},null,2))"
+          node -e "const p=require('./package.json');const d=p.dependencies;console.log(JSON.stringify({expo:d.expo,expo_dev_client:d['expo-dev-client'],react_native:d['react-native'],safe_area_context:d['react-native-safe-area-context'],secure_store:d['expo-secure-store'],svg:d['react-native-svg'],linear_gradient:d['expo-linear-gradient']},null,2))"
 
       - name: Prebuild Android in temp
         run: |
@@ -79,6 +89,7 @@ jobs:
               ["react-native-safe-area-context", rnDeps],
               ["react-native-svg", rnDeps],
               ["expo-linear-gradient", expoDeps],
+              ["expo-secure-store", expoDeps],
               ["expo-dev-client", expoDeps],
             ];
             const missing = required.filter(([name, list]) => !list.includes(name)).map(([name]) => name);

@@ -370,15 +370,17 @@ storage adapter bundle together.
   strings in DEX. This proves a bundle was built, not that SQLite opened or ran
   on a device.
 
-**Not device proof.** The owner has not installed this post-S35 APK. S33's
-owner-reported open applies only to the earlier pre-promotion artifact. Do not
-claim persistence, transaction saving, or SQLite runtime behavior until the
-owner installs this build and reports the actual result.
+**Owner-reported device result (2026-11-06).** The owner installed the corrected
+standalone APK from run `42228039226` (attempt 2) and confirmed that a synthetic
+manual entry remained after closing and reopening Vittaz. The first attempt of
+that run failed on Gradle dependency resolution and is retained as an
+infrastructure failure; attempt 2 passed without source changes. This accepts
+only S35 basic manual-save persistence. The owner did not provide phone model or
+Android version; the agent did not run or observe the device. See
+`docs/device_tests.md` for the report details and still-pending checks.
 
-### Install and report
-
-Follow the download/unknown-source/install steps above, using run
-`42215554135` and artifact `s33-preview-standalone-apk`. Open Vittaz, add one
-synthetic manual transaction, close/reopen the app, and report whether the row
-is still present. This is supporting device evidence for S35; do not use real
-financial data in the test.
+The standalone workflow remains the way to test a later change. Use the current
+S36 workflow run/artifact once generated; install `s33-preview-standalone-apk`
+(`app-release.apk`) following the steps above. S36 device testing is pending and
+must use synthetic questions/data. Do not treat Metro export or APK static
+inspection as device behavior.

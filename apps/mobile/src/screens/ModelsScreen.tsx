@@ -1,12 +1,13 @@
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import * as SecureStore from "expo-secure-store";
 import { useApp } from "../store";
-import type { ModelId } from "../domain";
-import { colors } from "../theme";
+import { read_kilo_key, save_kilo_key } from "../assistant/secure_key";
 import {
   B,
   Button,
   Card,
+  Input,
   M,
   PageHeader,
   Pill,
@@ -16,55 +17,47 @@ import {
   SectionLabel,
 } from "../ui";
 
-function ModelRow({
-  model,
-  title,
-  subtitle,
-  right,
-  first = false,
-  onSelect,
-}: {
-  model: ModelId;
-  title: string;
-  subtitle: string;
-  right?: React.ReactNode;
-  first?: boolean;
-  onSelect: (model: ModelId) => void;
-}) {
-  const { state } = useApp();
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityLabel={title}
-      accessibilityState={{ checked: state.model === model }}
-      onPress={() => onSelect(model)}
-      style={({ pressed }) => [
-        {
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 12,
-          paddingVertical: 10,
-          minHeight: 56,
-        },
-        !first && { borderTopWidth: 1, borderTopColor: colors.hairline },
-        pressed && { opacity: 0.7 },
-      ]}
-    >
-      <Radio on={state.model === model} />
-      <View style={{ flex: 1 }}>
-        <B size={15}>{title}</B>
-        <M size={12} style={{ marginTop: 2 }}>
-          {subtitle}
-        </M>
-      </View>
-      {right}
-    </Pressable>
-  );
-}
-
 export function ModelsScreen() {
   const { state, dispatch } = useApp();
-  const select = (model: ModelId) => dispatch({ type: "select_model", model });
+  const [key_value, set_key_value] = useState("");
+  const [has_key, set_has_key] = useState(false);
+  const [saving, set_saving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void read_kilo_key(SecureStore)
+      .then((key) => {
+        if (active) set_has_key(key !== null);
+      })
+      .catch(() => {
+        if (active) set_has_key(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const save_key = async (value: string) => {
+    set_saving(true);
+    try {
+      await save_kilo_key(SecureStore, value);
+      set_has_key(value.trim().length > 0);
+      set_key_value("");
+      dispatch({
+        type: "show_toast",
+        message: value.trim()
+          ? "Kilo key saved securely."
+          : "Kilo key removed. Keyless free access remains available.",
+      });
+    } catch {
+      dispatch({
+        type: "show_toast",
+        message: "Could not save that key. Check its format and try again.",
+      });
+    } finally {
+      set_saving(false);
+    }
+  };
 
   return (
     <Screen>
@@ -74,9 +67,9 @@ export function ModelsScreen() {
       />
       <Pressable
         accessibilityRole="radio"
-        accessibilityLabel="Auto"
+        accessibilityLabel="Kilo Auto Free"
         accessibilityState={{ checked: state.model === "auto" }}
-        onPress={() => select("auto")}
+        onPress={() => dispatch({ type: "select_model", model: "auto" })}
         style={({ pressed }) => [pressed && { opacity: 0.8 }]}
       >
         <Card
@@ -86,113 +79,67 @@ export function ModelsScreen() {
           <Row start gap={12} style={{ alignItems: "flex-start" }}>
             <Radio on={state.model === "auto"} />
             <View style={{ flex: 1 }}>
-              <B>Auto</B>
+              <B>Kilo Auto Free</B>
               <M style={{ marginTop: 4, lineHeight: 18 }}>
-                Adding entries runs on your phone. Hard questions go to your
-                cloud key with names replaced and notes left out.
+                Read-only ledger questions. Works without a key; adding ledger
+                entries remains a separate, on-device action.
               </M>
             </View>
+            <Pill>Selected</Pill>
           </Row>
         </Card>
       </Pressable>
 
-      <SectionLabel>On this phone</SectionLabel>
-      <Card style={{ paddingVertical: 4 }}>
-        <ModelRow
-          first
-          model="qwen-1.5b"
-          title="Qwen 1.5B"
-          subtitle="Downloaded, 1.1 GB, about 8 tokens a second"
-          right={<Pill>Stays on phone</Pill>}
-          onSelect={select}
+      <SectionLabel>Kilo Gateway key (optional)</SectionLabel>
+      <Card style={{ gap: 12 }}>
+        <M style={{ lineHeight: 18 }}>
+          {has_key
+            ? "A key is stored in Android secure storage. The key itself is never shown."
+            : "No key is required for Kilo Auto Free. Add your own Kilo Gateway key if you prefer."}
+        </M>
+        <Input
+          label="Kilo Gateway API key"
+          value={key_value}
+          onChangeText={set_key_value}
+          placeholder="Paste your key"
+          secure
+          textStyle={{ minHeight: 48 }}
         />
-        <ModelRow
-          model="qwen-3b"
-          title="Qwen 3B"
-          subtitle="2 GB, slower, better at questions"
-          onSelect={select}
-          right={
+        <Row gap={8}>
+          <Button
+            label={saving ? "Saving…" : "Save key"}
+            disabled={saving || !key_value.trim()}
+            onPress={() => void save_key(key_value)}
+            style={{ flex: 1 }}
+          />
+          {has_key ? (
             <Button
-              label="Download"
+              label="Remove key"
               variant="ghost"
-              small
-              onPress={() =>
-                dispatch({
-                  type: "show_toast",
-                  message:
-                    "Model downloads are not connected in this UI preview.",
-                })
-              }
+              disabled={saving}
+              onPress={() => void save_key("")}
+              style={{ flex: 1 }}
             />
-          }
-        />
+          ) : null}
+        </Row>
       </Card>
 
-      <SectionLabel>Cloud, your keys</SectionLabel>
-      <Card style={{ paddingVertical: 4 }}>
-        <ModelRow
-          first
-          model="claude"
-          title="Claude"
-          subtitle="Preview only"
-          onSelect={select}
-        />
-        <ModelRow
-          model="gemini"
-          title="Gemini"
-          subtitle="Preview only"
-          onSelect={select}
-        />
-        <ModelRow
-          model="free"
-          title="Free tier models"
-          subtitle="May train on your data"
-          right={<Pill tone="amber">Not private</Pill>}
-          onSelect={select}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add API key"
-          onPress={() =>
-            dispatch({
-              type: "show_toast",
-              message: "Key storage is not connected in this UI preview.",
-            })
-          }
-          style={({ pressed }) => [
-            {
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              paddingVertical: 10,
-              minHeight: 56,
-              borderTopWidth: 1,
-              borderTopColor: colors.hairline,
-            },
-            pressed && { opacity: 0.7 },
-          ]}
-        >
-          <View
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: colors.lime,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Feather name="plus" size={14} color={colors.limeDark} />
-          </View>
-          <B size={15}>Add API key</B>
-        </Pressable>
+      <SectionLabel>Privacy</SectionLabel>
+      <Card>
+        <M style={{ lineHeight: 19 }}>
+          Kilo Auto Free can route prompts to different providers; free
+          providers may log prompts. Do not send real names, account details,
+          personal messages, or other confidential information. Use synthetic
+          data for testing. The assistant only has read-only ledger tools and
+          cannot create or approve entries.
+        </M>
       </Card>
-
       <M
         size={12}
         style={{ marginVertical: 14, marginHorizontal: 4, lineHeight: 17 }}
       >
-        Preview only. No keys are stored and no cloud model is called.
+        Your optional key stays in Expo SecureStore. Removing it returns the app
+        to keyless free access.
       </M>
     </Screen>
   );
