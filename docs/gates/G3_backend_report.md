@@ -42,7 +42,7 @@ Using Node `24.22.2` / npm `11.19.1`:
 
 1. **No Android device behavior has been verified.** `docs/device_tests.md` is a
    pending checklist. S33 cannot start until the owner runs `adb devices`.
-2. The native UI under `apps/mobile/ui/native` is owner-authored and visual-only.
+2. The native UI (then at `apps/mobile/ui/native`, promoted to `apps/mobile` in S34) is owner-authored and visual-only.
    It still reuses the web demo reducer through Metro `watchFolders`; that must be
    replaced by `packages/core` through an `expo-sqlite` repository adapter during
    S34–S35.

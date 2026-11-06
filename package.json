@@ -4,7 +4,7 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/cli"
   ],
   "scripts": {
     "build": "tsc --build --force",

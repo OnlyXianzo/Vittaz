@@ -618,3 +618,61 @@ TypeScript development-client debug APK on `ubuntu-24.04` with JDK 17 and Node
 24.22.2, then uploads the APK with 7-day retention. It does not touch
 `apps/mobile/ui/native` and does not claim device behavior. S33 remains open
 until the owner reports that the artifact installed and opened on their phone.
+
+## S34 — native app promoted to `apps/mobile` (2026-11-06)
+
+The owner explicitly chose **"Move it — promote to apps/mobile"** when asked how
+to handle the owner-authored UI directory. `apps/mobile/ui/native` was moved to
+`apps/mobile` with `git mv`, so every file is recorded as a rename and history is
+preserved. 27 of 36 files are byte-for-byte identical; the 9 that changed are all
+configuration or path files. **No screen, asset, `App.tsx`, `ui.tsx`, `store.tsx`
+or `theme.ts` was modified.** `src/domain.ts` changed only to repoint the shared
+imports and to re-export the core bridge.
+
+Structural decisions forced by the move:
+
+- **`apps/mobile` is not a root workspace.** Root `workspaces` changed from
+  `["packages/*", "apps/*"]` to `["packages/*", "apps/cli"]`. The Expo app keeps
+  its own lockfile and ~1151 packages; hoisting it would drag React Native into
+  every backend CI job. It is also removed from the root `tsconfig.json`
+  project references, and root prettier/eslint/vitest/tsc ignore `apps/mobile`.
+- **The web preview stays at `apps/mobile/ui`** and is now nested inside the Expo
+  app. The app's own eslint/prettier/tsconfig ignore `ui/`; Metro and Jest
+  deliberately consume `ui/src` as the shared domain source.
+- **`apps/mobile` keeps Expo's SDK-managed version ranges** (`~58.0.23`, `~5.11.1`)
+  because `npx expo install` maintains them. The existing
+  `dependencies_are_exactly_pinned` test therefore no longer covers
+  `apps/mobile/package.json`. It was **not weakened**: a new companion test,
+  `promoted_mobile_app_is_reproducible_through_its_own_lockfile`, asserts
+  lockfileVersion 3, a matching `expo` entry, `npm@11.19.1`, and that the app is
+  not a root workspace. Reproducibility comes from `npm ci` + the committed
+  lockfile. All backend packages remain exactly pinned.
+- **`android/` is now gitignored** in the promoted app. Prebuild output is
+  generated, and the CI workflow builds it in a temp copy.
+
+### Core wiring (S34 acceptance)
+
+`apps/mobile/src/core.ts` re-exports from `@vittaz/core`, and `src/domain.ts`
+re-exports that bridge, so core is reachable from the entrypoint through the seam
+every screen already imports. `@vittaz/core` is resolved **as source** via Metro
+`watchFolders` + `extraNodeModules`, Jest `moduleNameMapper`, and a tsconfig
+path. It is deliberately not a `package.json` dependency, so there is no build
+step or published copy between the app and the domain logic.
+
+Two real defects were found by running an actual `expo export`, not by string
+assertions, and both are recorded so they are not rediscovered:
+
+1. An unimported bridge file is **dead code**. The first bundle contained no core
+   symbols at all. Fixed by re-exporting through `domain.ts`.
+2. `packages/core` uses NodeNext `"./x.js"` specifiers while shipping `.ts`
+   files, so Metro failed with `Unable to resolve "./ledger/money.js"`. Fixed
+   with a Metro `resolveRequest` extension remap and a matching Jest
+   `moduleNameMapper` rule.
+
+Verified: the Android Hermes bundle grew from 2.3 MB to 2.5 MB and now contains
+`MoneyValidationError`, `normalizeIndicDigits` and `assertIntegerPaise`.
+
+**Still not done (S35):** the screens continue to run the preview demo reducer
+from `apps/mobile/ui/src/state`. Core is reachable but does not yet own app
+state, and there is no `expo-sqlite` adapter. No device behavior is claimed for
+S34; the S33 owner report covers the app opening only.

@@ -4,3 +4,5 @@ dist/
 coverage/
 *.log
 expo-env.d.ts
+android/
+tsconfig.tsbuildinfo

@@ -8,9 +8,6 @@
       "path": "apps/cli"
     },
     {
-      "path": "apps/mobile"
-    },
-    {
       "path": "packages/storage"
     },
     {

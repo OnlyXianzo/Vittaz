@@ -75,7 +75,8 @@ Record:
 
 ## 4. What S33 does not do
 
-- It does not promote or rewrite `apps/mobile/ui/native`.
+- It does not promote or rewrite the owner UI. (S34 later promoted it to
+  `apps/mobile` with the owner's explicit approval, via `git mv`.)
 - It does not wire `packages/core` or `expo-sqlite`; that is S34–S35.
 - It does not open `canvas/screens.zip` or implement UI slices.
 - It does not decide license, backup encryption, or the native preview reducer
@@ -85,7 +86,7 @@ Record:
 
 The repository includes a manual GitHub Actions workflow at
 `.github/workflows/s33-android-proof.yml`. It is triggered by `workflow_dispatch`
-only. It does not use secrets and does not touch `apps/mobile/ui/native`.
+only. It does not use secrets and does not modify the owner UI in the checkout.
 
 What it builds:
 
@@ -165,7 +166,8 @@ into it. The blank Expo template autolinks `expo-*` modules only; it contains no
 `react-native-safe-area-context`, no `react-native-svg`, and no
 `expo-linear-gradient`.
 
-The owner preview at `apps/mobile/ui/native` declares all three, and its
+The owner preview (now at `apps/mobile`, formerly `apps/mobile/ui/native`)
+declares all three, and its
 `App.tsx` wraps the tree in `SafeAreaProvider`. When the blank APK loaded the
 preview's JavaScript from Metro, the Fabric renderer could not find the native
 view manager and threw:
@@ -178,7 +180,7 @@ This is a **binary/bundle mismatch**, not a defect in the preview UI and not a
 defect in the blank build. Two consequences:
 
 - `npx expo install react-native-safe-area-context` in
-  `apps/mobile/ui/native` cannot fix it. The preview already declares the correct
+  the preview cannot fix it. The preview already declares the correct
   SDK 58 version (`~5.11.1`), and installing JavaScript never adds native code to
   an APK that is already built.
 - The APK must be rebuilt from a project that contains those native modules.
@@ -194,9 +196,9 @@ the native binary and the JavaScript bundle match. It is `workflow_dispatch`
 only, uses `permissions: contents: read`, uses no secrets, and pins every action
 to a commit SHA.
 
-It never modifies `apps/mobile/ui/native`. It copies `apps/mobile/ui/native` and
-`apps/mobile/ui/src` into the runner temp directory as siblings (the Metro
-`watchFolders` layout), and all mutation happens in that copy:
+It never modifies the checkout. Since S34 it copies `apps/mobile` into the
+runner temp directory; the shared domain travels with it at `ui/src`, preserving
+the Metro `watchFolders` layout. All mutation happens in that copy:
 
 1. `npm ci` from the owner's lockfile.
 2. `npx expo install expo-dev-client` — **in the temp copy only**.
@@ -229,7 +231,7 @@ signing setup; a real keystore is a later, owner-owned decision.
 
 The dev-client artifact is the debug variant. Use it only when you want live
 reload, and only against a Metro server started from
-`apps/mobile/ui/native` — not against the blank proof app.
+`apps/mobile` — not against the blank proof app.
 
 ### Run it
 

@@ -8,6 +8,8 @@ export default defineConfig(
   {
     ignores: [
       "node_modules/**",
+      // The sibling web preview keeps its own toolchain and dependencies.
+      "ui/**",
       ".expo/**",
       "coverage/**",
       "dist/**",

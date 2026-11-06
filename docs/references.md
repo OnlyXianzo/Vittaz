@@ -459,3 +459,40 @@ See https://docs.github.com/en/actions/reference/workflows-and-actions/contexts.
 
 This workflow is build proof only. Do not claim device behavior; S33 closes only
 when the owner reports that the app opened on their phone.
+
+## S34 native promotion and core source resolution (2026-11-06)
+
+No new dependency was added. The Expo app moved from `apps/mobile/ui/native` to
+`apps/mobile` with `git mv`; versions are unchanged (`expo ~58.0.23`,
+React Native `0.88.1`, `react-native-safe-area-context ~5.11.1`,
+`react-native-svg 15.16.0`, `expo-linear-gradient ~58.0.3`).
+
+Monorepo resolution facts verified by running the app's own toolchain and a real
+`npx expo export --platform android`, not by reading docs alone:
+
+- Metro resolves a workspace source package through
+  `config.watchFolders` plus `config.resolver.extraNodeModules`. Relevant official
+  docs: https://docs.expo.dev/guides/monorepos/ (Expo SDK 58, consulted
+  2026-11-06).
+- **Metro does not substitute file extensions.** `packages/core` is written for
+  NodeNext and imports `"./ledger/money.js"` while shipping `.ts` files, so the
+  first export failed with `Unable to resolve "./ledger/money.js"`. A
+  `config.resolver.resolveRequest` hook that retries relative `.js` specifiers
+  without the extension fixes it; Jest needs the equivalent
+  `moduleNameMapper` rule `"^(\\.{1,2}/.*)\\.js$": "$1"`.
+- An exported-but-unimported module is tree-shaken out of the Metro graph. A
+  bridge file alone left **zero** core symbols in the bundle; re-exporting it
+  from `src/domain.ts` (the seam every screen already imports) made core
+  reachable. Bundle size 2.3 MB -> 2.5 MB, and `MoneyValidationError`,
+  `normalizeIndicDigits` and `assertIntegerPaise` are present in the Hermes
+  output. Verify reachability by grepping the emitted bundle, not by asserting
+  that a file contains an import string.
+- `packages/core` imports `node:fs`, `node:child_process` and `vitest` only from
+  `*.test.ts` files, so the production graph is Metro-safe.
+
+Root tooling now excludes `apps/mobile` (prettier, eslint, vitest,
+`tsconfig.check.json`) and root `workspaces` is `["packages/*","apps/cli"]`, so
+the app's ~1151-package lockfile never enters backend CI. The app is checked by
+`.github/workflows/native.yml` with `working-directory: apps/mobile`.
+
+No device behavior is claimed for S34.

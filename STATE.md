@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
-current_step: "S34"
+current_step: "S35"
 current_step_status: "not_started"
 blocked_on: "none"
-last_updated: "2026-11-05"
+last_updated: "2026-11-06"
 last_green_commit: "cd314219b5cc415084dd4166c50a312761e156a2"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "run 42044273087 success on main 816df51; artifacts s33-preview-standalone-apk + s33-preview-devclient-apk; autolink missing:[]; blank-vs-preview DEX comparison recorded"
+ci_proof: "S33 device proof accepted by owner; S34 promotion verified locally by app jest 11/11, typecheck, lint, format and a real expo export containing core symbols"
 ---
 
 # STATE
@@ -47,11 +47,30 @@ ci_proof: "run 42044273087 success on main 816df51; artifacts s33-preview-standa
 - Downloaded both APKs and compared DEX/native libs: the blank APK has none of
   `RNCSafeAreaProvider`, `SvgViewManager`, `LinearGradientModule`, no codegen
   `.so` for svg/safe-area, and no JS bundle; the preview APK has all of them.
-- `apps/mobile/ui/native` is still not modified.
+- **S34 done 2026-11-06.** Owner chose "Move it — promote to apps/mobile".
+  `git mv apps/mobile/ui/native` -> `apps/mobile`; every file recorded as a
+  rename. 27/36 files byte-for-byte identical; the 9 changed are config/path
+  only. No screen, asset, App.tsx, ui.tsx, store.tsx or theme.ts was touched.
+- `apps/mobile` is NOT a root workspace and not a root TS project reference;
+  root workspaces are now `["packages/*","apps/cli"]`. The Expo app keeps its own
+  lockfile so React Native never enters backend CI.
+- The web preview stays at `apps/mobile/ui`, nested inside the app. Metro/Jest
+  read `ui/src`; the app's eslint/prettier/tsc ignore `ui/`.
+- `apps/mobile/src/core.ts` re-exports `@vittaz/core`, re-exported again by
+  `src/domain.ts` so it is reachable from the entrypoint. Resolved as source via
+  Metro watchFolders/extraNodeModules, Jest moduleNameMapper and a tsconfig path.
+- Two real defects caught by a real `expo export`, not string tests: an
+  unimported bridge was dead code (no core symbols in the bundle), and core's
+  NodeNext `.js` specifiers over `.ts` sources broke Metro resolution. Both
+  fixed; bundle grew 2.3 MB -> 2.5 MB and now contains core symbols.
+- `dependencies_are_exactly_pinned` no longer covers `apps/mobile` (Expo owns
+  those ranges); replaced by a lockfile-reproducibility test, not weakened.
+- S35 still owed: the preview demo reducer still owns app state; no
+  `expo-sqlite` adapter yet. No device claim for S34.
 
 ## Current proof
 
-- S33 environment checker tests: 6 tests pass locally; full suite now 311 tests / 54 files.
+- Root suite now 320 tests / 55 files, 100% coverage. Promoted app: jest 11/11, typecheck/lint/format clean, `expo export --platform android` succeeds.
 - Sandbox `npm run android:env` reports `ok:false` with static errors:
   `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
   `no_ready_device`. This is expected in the sandbox and is not device proof.
@@ -62,10 +81,10 @@ ci_proof: "run 42044273087 success on main 816df51; artifacts s33-preview-standa
 
 ## Next actions
 
-1. S34: promote the native app to `apps/mobile` and import `packages/core`,
-   without rewriting the owner-owned visual shell.
-2. S35: `expo-sqlite` repository adapter passing the same core contract tests,
-   then replace the preview demo reducer.
+1. S35: `expo-sqlite` repository adapter passing the same core contract tests,
+   then replace the preview demo reducer so core owns app state.
+2. Re-run the manual `S33 preview APK` workflow after S35 to prove the wired app
+   on the phone; the workflow now copies `apps/mobile`.
 3. Every later device row still needs its own owner report. Do not reuse the S33
    report as evidence for persistence, SQLite, Keystore, Telegram or local model.
 4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
