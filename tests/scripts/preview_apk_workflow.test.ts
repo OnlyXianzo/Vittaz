@@ -73,6 +73,18 @@ test("preview_apk_workflow_copies_agent_and_records_runner_and_secure_store_vers
   expect(workflow).toContain('["expo-secure-store", expoDeps]');
 });
 
+test("mobile_typecheck_resolves_copied_agent_dependencies_from_the_mobile_lockfile", () => {
+  const config = JSON.parse(read("apps/mobile/tsconfig.json")) as {
+    compilerOptions?: { paths?: Record<string, string[]> };
+  };
+  expect(config.compilerOptions?.paths?.["@langchain/core/*"]).toEqual([
+    "node_modules/@langchain/core/dist/*",
+  ]);
+  expect(config.compilerOptions?.paths?.["zod"]).toEqual([
+    "node_modules/zod/index.d.cts",
+  ]);
+});
+
 test("preview_apk_workflow_does_not_use_runner_context_in_job_level_env", () => {
   const workflow = read(workflow_path);
   // GitHub only exposes the `runner` context at step level. Using it in

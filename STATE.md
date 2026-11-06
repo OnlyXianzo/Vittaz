@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "PR #62 required CI is pending; manual S36 APK run 42273678939 is queued; owner device report remains pending."
+blocked_on: "PR #62 native check failed on mobile TypeScript dependency resolution; a regression-tested tsconfig fix is prepared. New CI and latest APK build remain pending. Owner cannot test now; device behavior remains unverified."
 last_updated: "2026-11-07"
 last_green_commit: "ee274c51b654ddd04d98efce25ba23442cfd570b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded. S36 commit 2d94697 is pushed in PR #62; required CI is pending. Manual standalone APK workflow run 42273678939 is queued on the branch. Local validation passes 351 root tests at 100% coverage and 19 mobile tests, plus typecheck/lint/format/privacy/build/audit/secret gates and Android JS export (1,411 modules). Owner device checks remain pending."
+ci_proof: "PR #62 (latest prior head ae4e865) root quality, test, privacy and build checks succeeded; native typecheck failed because the copied agent sources could not resolve @langchain/core and zod from the isolated mobile install. A failing regression check was added, confirmed red, then tsconfig path mappings were added; this fix is being pushed for fresh CI. Earlier local gates passed on Node 24.22.2/npm 11.19.1. Manual APK run 42273678939 is in progress on pre-fix source. Owner cannot test now; no device behavior is claimed."
 ---
 
 # STATE
@@ -158,10 +158,11 @@ ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded.
 
 ## Next actions
 
-1. PR #62 now points to `2d94697`; wait for required CI and APK workflow run
-   `42273678939` to finish. If the APK build succeeds, have the owner install
-   that artifact and report keyless Kilo read-only tool use, validated answer-
-   chunk display, and force-stop/reopen. Device evidence is still pending.
+1. Push the regression-tested TypeScript path fix and wait for PR #62 required
+   CI. The existing APK run `42273678939` is in progress on pre-fix source; after
+   CI, build a standalone APK from the fixed head if needed. Owner has said they
+   cannot test now. Keep device checks pending and do not infer results; archive
+   this as an owner/device obstacle unless they later provide a report.
 2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
 3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
@@ -208,13 +209,18 @@ ci_proof: "PR #60 merged as ee274c5; Add layout owner visual report is recorded.
   runner software reporting. The settings UI also replaces unimplemented
   safety toggles with an accurate read-only/privacy scope notice.
 - Commit `ff74ec1ef019fb781d48697b7dbcf32c732ae37a` is pushed to
-  `feat/s36-kilo-mobile-chat`; PR #62 is open against `main` and required CI is
-  pending. A docs-only follow-up `2d94697347e2807d17543a29609ac0748a03fd82`
-  records PR/device status. Manual APK workflow run `42273678939` (run #9) is
-  queued on the branch; no S36 APK or device report exists yet. A fresh
-  `npm run android:env` reports Node 24.22.2 available, Java 11, no Android
-  SDK/adb, and no connected device. Await CI/APK completion, then the owner's
-  synthetic-data device report.
+  `feat/s36-kilo-mobile-chat`; PR #62 is open against `main`. Root quality,
+  privacy, test, and build checks passed on `ae4e865`; the native job failed at
+  typecheck because the app-only install could not resolve workspace agent
+  dependencies. A new red-first regression test covers mobile TypeScript path
+  aliases; `apps/mobile/tsconfig.json` now points at the locked mobile
+  `@langchain/core` and Zod declarations. The missing-path condition was
+  confirmed before the fix and a direct config assertion passes after it. The
+  Vitest regression has not been run locally in this resumed workspace because
+  dependencies are absent; fresh CI must validate it and the typecheck. APK workflow run `42273678939` (run #9) is in progress on
+  the previous source. Owner says they cannot test the app now. The fresh
+  `npm run android:env` reports Java 11, no Android SDK/adb, and no device, so
+  device behavior remains explicitly unverified and owner-blocked.
 
 ## Owner-owned open items (do not decide)
 
