@@ -51,15 +51,21 @@ test("android_proof_docs_record_runner_image_and_owner_install_steps", () => {
   expect(guide).toContain("Mark S33 done only after");
 });
 
-test("android_proof_first_ci_build_is_recorded_but_owner_open_still_pending", () => {
+test("android_proof_blank_build_is_superseded_and_s33_acceptance_is_recorded", () => {
   const guide = read("docs/android_environment.md");
   expect(guide).toContain("42031551861");
   expect(guide).toContain("s33-android-proof-apk");
   expect(guide).toContain(
     "bdbb2f62082fb38402cd9ef9e2988f68ebeed8a0fb462e8987ca471565121b8e",
   );
-  expect(guide).toContain("pending owner install/open report");
+  // The blank artifact never became device proof; it is kept as history.
+  expect(guide).toContain("Status: **superseded**");
+  expect(guide).toContain("RNCSafeAreaProvider");
+  // Acceptance is against the preview standalone APK, on the owner's report.
+  expect(guide).toContain("42044273087");
+  expect(guide).toContain("accepted by owner 2026-11-05");
   const state = read("STATE.md");
-  expect(state).toContain("42031551861");
-  expect(state).toContain("owner APK install/open report");
+  expect(state).toContain("42044273087");
+  expect(state).toContain("S33 accepted by owner 2026-11-05");
+  expect(state).not.toContain('blocked_on: "owner APK install/open report"');
 });

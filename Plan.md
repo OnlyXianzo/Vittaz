@@ -154,7 +154,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 ### Phase I: Android (you and your phone)
 
-- [ ] **S33. Environment.** `adb devices` lists the phone. Build a blank Expo development build.
+- [x] **S33. Environment.** `adb devices` lists the phone. Build a blank Expo development build. **Done 2026-11-05:** owner installed `s33-preview-standalone-apk` from run `42044273087` and reported Vittaz opened and rendered the Home screen on their phone. `adb devices` was not required; the owner report is the acceptance evidence.
 - [ ] **S34. App shell.** `apps/mobile` imports `packages/core`.
 - [ ] **S35. SQLite adapter.** An `expo-sqlite` adapter passes the same core tests.
 - [ ] **S36. LangChain check.** Bundle, one tool call, streaming, and a force-close and reopen.

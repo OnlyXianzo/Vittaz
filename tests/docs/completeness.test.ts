@@ -15,7 +15,12 @@ test("docs_s32_readme_and_device_tests_are_current", () => {
   expect(readme).toContain("docs/device_tests.md");
   expect(readme).toContain("docs/mutation_checks.md");
   const device = read("docs/device_tests.md");
-  expect(device).toContain("No Android device behavior has been verified");
+  // S33 was owner-accepted on 2026-11-05. The checklist must record that one
+  // executed row without implying any later device row was executed.
+  expect(device).toContain("S33 executed and owner-accepted 2026-11-05");
+  expect(device).toContain("All later rows remain");
+  expect(device).toContain("The agent never observed the phone");
+  expect(device).toContain("42044273087");
   expect(device).toContain("adb devices");
   expect(device).toContain("Keystore");
   expect(device).toContain("expo-sqlite");
