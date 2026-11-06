@@ -110,6 +110,7 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
       import { writeFileSync } from "node:fs";
       const mode = process.env.SYNTHETIC_REPORT_MODE;
       if (mode === "nonzero") { console.error("PRIVATE_SYNTH_TEST_PAYLOAD"); process.exit(7); }
+      if (mode === "module_error") { console.error("Error [ERR_MODULE_NOT_FOUND]: synthetic_module"); process.exit(1); }
       if (mode === "missing") process.exit(0);
       const file = process.argv.find(value => value.startsWith("--outputFile=")).slice("--outputFile=".length);
       const report = ${JSON.stringify(validReport())};
@@ -127,6 +128,7 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
     for (const mode of [
       "success",
       "nonzero",
+      "module_error",
       "missing",
       "malformed",
       "empty",
@@ -147,8 +149,12 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
       expect(result.stdout + result.stderr).not.toContain(
         "PRIVATE_SYNTH_TEST_PAYLOAD",
       );
-      if (mode === "nonzero")
+      if (mode === "nonzero") {
         expect(result.stderr).toContain("privacy_child_failed");
+        expect(result.stderr).toContain("failure_class=child_exit_nonzero");
+      }
+      if (mode === "module_error")
+        expect(result.stderr).toContain("failure_class=module_load_failed");
       if (mode === "missing" || mode === "malformed")
         expect(result.stderr).toContain("privacy_report_invalid");
       if (mode === "empty" || mode === "failed")

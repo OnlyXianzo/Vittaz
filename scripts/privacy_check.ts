@@ -100,8 +100,15 @@ export function runPrivacyCheck(): boolean {
           ? String(result.error.code)
           : "none";
       const failed_names = readFailedAssertionNames(report_path);
+      const child_output = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
+      const failure_class =
+        /ERR_MODULE_NOT_FOUND|Cannot find (?:package|module)/.test(child_output)
+          ? "module_load_failed"
+          : /EAGAIN|resource temporarily unavailable/i.test(child_output)
+            ? "resource_exhausted"
+            : "child_exit_nonzero";
       console.error(
-        `privacy_child_failed status=${result.status ?? "null"} signal=${result.signal ?? "none"} error_code=${error_code} failed_tests=${failed_names.join("|") || "unavailable"}`,
+        `privacy_child_failed status=${result.status ?? "null"} signal=${result.signal ?? "none"} error_code=${error_code} failure_class=${failure_class} failed_tests=${failed_names.join("|") || "unavailable"}`,
       );
       return false;
     }
