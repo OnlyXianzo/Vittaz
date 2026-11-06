@@ -42,11 +42,14 @@ jobs:
           # must exist at the same relative path inside the temp tree.
           mkdir -p "$PREVIEW_DIR/../packages"
           cp -R packages/core "$PREVIEW_DIR/../packages/core"
+          cp -R packages/storage "$PREVIEW_DIR/../packages/storage"
           rm -rf "$PREVIEW_DIR/../packages/core/node_modules"
+          rm -rf "$PREVIEW_DIR/../packages/storage/node_modules"
           test -f "$PREVIEW_DIR/native/App.tsx"
           test -f "$PREVIEW_DIR/native/metro.config.cjs"
           test -f "$PREVIEW_DIR/native/ui/src/state.ts"
           test -f "$PREVIEW_DIR/../packages/core/src/index.ts"
+          test -f "$PREVIEW_DIR/../packages/storage/src/expo_sqlite_store.ts"
 
       - name: Install preview dependencies and expo-dev-client in temp only
         run: |

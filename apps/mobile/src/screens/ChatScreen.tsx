@@ -105,7 +105,7 @@ export function ChatScreen() {
           {state.chatMessages.length === 0 ? (
             <EmptyState
               title="Ask or add by message"
-              copy="Questions need no amount — try “Who owes me?” or “What did I spend this month?”. To add an entry, say “I spent 299 on Zomato”."
+              copy="Assistant capture is not connected yet. Use Add transaction from Ledger to save an entry to this device."
             />
           ) : null}
 

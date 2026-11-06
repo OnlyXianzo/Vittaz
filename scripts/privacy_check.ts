@@ -49,6 +49,29 @@ export function hasPrivacyEvidence(value: unknown): boolean {
   );
 }
 
+function readFailedAssertionNames(reportPath: string): string[] {
+  try {
+    const report: unknown = JSON.parse(readFileSync(reportPath, "utf8"));
+    if (!record(report) || !Array.isArray(report.testResults)) return [];
+    return report.testResults.flatMap((suite: unknown) => {
+      if (!record(suite) || !Array.isArray(suite.assertionResults)) return [];
+      return suite.assertionResults
+        .filter(
+          (assertion: unknown) =>
+            record(assertion) && assertion.status === "failed",
+        )
+        .map((assertion: Record<string, unknown>) =>
+          typeof assertion.fullName === "string"
+            ? assertion.fullName.slice(0, 120)
+            : "unnamed_test",
+        )
+        .slice(0, 20);
+    });
+  } catch {
+    return [];
+  }
+}
+
 export function runPrivacyCheck(): boolean {
   const directory = mkdtempSync(join(tmpdir(), "vittaz-privacy-"));
   try {
@@ -62,6 +85,7 @@ export function runPrivacyCheck(): boolean {
         `--testNamePattern=${privacyTestPattern}`,
         "--reporter=json",
         `--outputFile=${join(directory, "report.json")}`,
+        ...requiredPrivacySuites,
       ],
       {
         cwd: fileURLToPath(new URL("..", import.meta.url)),
@@ -70,11 +94,42 @@ export function runPrivacyCheck(): boolean {
         maxBuffer: 16 * 1024 * 1024,
       },
     );
-    if (result.error || result.status !== 0) return false;
-    return hasPrivacyEvidence(
-      JSON.parse(readFileSync(join(directory, "report.json"), "utf8")),
-    );
+    const report_path = join(directory, "report.json");
+    if (result.error || result.status !== 0) {
+      const error_code =
+        result.error && "code" in result.error
+          ? String(result.error.code)
+          : "none";
+      const failed_names = readFailedAssertionNames(report_path);
+      const child_output = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
+      const failure_class =
+        /ERR_MODULE_NOT_FOUND|Cannot find (?:package|module)/.test(child_output)
+          ? "module_load_failed"
+          : /EAGAIN|resource temporarily unavailable/i.test(child_output)
+            ? "resource_exhausted"
+            : "child_exit_nonzero";
+      console.error(
+        `privacy_child_failed status=${result.status ?? "null"} signal=${result.signal ?? "none"} error_code=${error_code} failure_class=${failure_class} failed_tests=${failed_names.join("|") || "unavailable"}`,
+      );
+      return false;
+    }
+    let report: unknown;
+    try {
+      report = JSON.parse(readFileSync(join(directory, "report.json"), "utf8"));
+    } catch {
+      console.error("privacy_report_invalid");
+      return false;
+    }
+    if (!hasPrivacyEvidence(report)) {
+      const failed_names = readFailedAssertionNames(report_path);
+      console.error(
+        `privacy_evidence_missing failed_tests=${failed_names.join("|") || "none"}`,
+      );
+      return false;
+    }
+    return true;
   } catch {
+    console.error("privacy_runner_error");
     return false;
   } finally {
     rmSync(directory, { recursive: true, force: true });

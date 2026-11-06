@@ -110,19 +110,29 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
       import { writeFileSync } from "node:fs";
       const mode = process.env.SYNTHETIC_REPORT_MODE;
       if (mode === "nonzero") { console.error("PRIVATE_SYNTH_TEST_PAYLOAD"); process.exit(7); }
+      if (mode === "module_error") { console.error("Error [ERR_MODULE_NOT_FOUND]: synthetic_module"); process.exit(1); }
       if (mode === "missing") process.exit(0);
       const file = process.argv.find(value => value.startsWith("--outputFile=")).slice("--outputFile=".length);
       const report = ${JSON.stringify(validReport())};
       if (mode === "empty") report.numPassedTests = 0;
+      if (mode === "failed") {
+        report.success = false;
+        report.numFailedTests = 1;
+        report.testResults[0].status = "failed";
+        report.testResults[0].assertionResults[0].status = "failed";
+        report.testResults[0].assertionResults[0].fullName = "privacy_synthetic_failure";
+      }
       writeFileSync(file, mode === "malformed" ? "not_json" : JSON.stringify(report));
     `,
     );
     for (const mode of [
       "success",
       "nonzero",
+      "module_error",
       "missing",
       "malformed",
       "empty",
+      "failed",
     ]) {
       const result = spawnSync(process.execPath, [runner], {
         encoding: "utf8",
@@ -139,9 +149,29 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
       expect(result.stdout + result.stderr).not.toContain(
         "PRIVATE_SYNTH_TEST_PAYLOAD",
       );
+      if (mode === "nonzero") {
+        expect(result.stderr).toContain("privacy_child_failed");
+        expect(result.stderr).toContain("failure_class=child_exit_nonzero");
+      }
+      if (mode === "module_error")
+        expect(result.stderr).toContain("failure_class=module_load_failed");
+      if (mode === "missing" || mode === "malformed")
+        expect(result.stderr).toContain("privacy_report_invalid");
+      if (mode === "empty" || mode === "failed")
+        expect(result.stderr).toContain("privacy_evidence_missing");
+      if (mode === "failed")
+        expect(result.stderr).toContain("privacy_synthetic_failure");
       expect(readdirSync(scratch)).toEqual([]);
     }
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("privacy_ci_runs_only_the_required_primitive_suites", () => {
+  const source = readFileSync(
+    new URL("../../scripts/privacy_check.ts", import.meta.url),
+    "utf8",
+  );
+  expect(source).toContain("...requiredPrivacySuites");
 });

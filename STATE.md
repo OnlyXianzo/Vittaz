@@ -1,7 +1,7 @@
 ---
 current_phase: "Phase I Android"
 current_step: "S35"
-current_step_status: "not_started"
+current_step_status: "in_progress"
 blocked_on: "none"
 last_updated: "2026-11-06"
 last_green_commit: "37c6263e926a0c68f3133d27dfd7b8ea6ff0d1c1"
@@ -65,13 +65,23 @@ ci_proof: "S33 device proof accepted by owner (pre-promotion APK); S34 promotion
   fixed; bundle grew 2.3 MB -> 2.5 MB and now contains core symbols.
 - `dependencies_are_exactly_pinned` no longer covers `apps/mobile` (Expo owns
   those ranges); replaced by a lockfile-reproducibility test, not weakened.
-- S35 still owed: the preview demo reducer still owns app state; no
-  `expo-sqlite` adapter yet. No device claim for S34.
+- S35 implementation in progress on `feat/s35-expo-sqlite-adapter` (not merged).
+  Local gates are green: shared adapter contract cases, core-backed manual entry
+  and proposal review, demo reducer/seeded rows removed. See current proof.
 
 ## Current proof
 
-- Root suite now 321 tests / 55 files, 100% coverage. Promoted app: jest 11/11,
-  typecheck/lint/format clean, `expo export --platform android` succeeds.
+- S35 local root gate green: **344 tests / 56 files, 100% coverage**. Root
+  format/lint/typecheck/privacy/audit/build/secret scan all pass; root audit 0.
+- App: `npm ci`, format/lint/typecheck pass; **Jest 11/11**. Android export
+  succeeds (2.6 MB Hermes). Web export succeeds (502 modules + 641 KB WASM) with
+  Metro wasm/COEP/COOP setup. Native workflow now exports both targets.
+- App audit: 33 advisories (1 low, 32 moderate, 0 high/critical). Forced
+  remediation downgrades Expo 58/Jest 30, so not applied; see references.
+- Protected CI and post-S35 APK run pending.
+- App `npm audit` is not clean: 33 advisories (1 low, 32 moderate, no
+  high/critical). Forced fix downgrades Expo 58 -> 53 and Jest 30 -> 29; not
+  applied. Root backend audit remains 0. See `docs/references.md`.
 - Post-promotion APK run `42204863019` succeeded on main `37c6263`: autolink
   `missing: []`, 873 modules bundled, `BUILD SUCCESSFUL in 9m 55s`. Downloaded the
   standalone APK and confirmed core symbols inside its embedded bundle.
@@ -84,27 +94,23 @@ ci_proof: "S33 device proof accepted by owner (pre-promotion APK); S34 promotion
   `java_missing_or_unsupported`, `android_sdk_missing`, `adb_missing`,
   `no_ready_device`. This is expected in the sandbox and is not device proof.
 - Protected CI on S33 head `d91bcd1`: quality, privacy, test, security, build all success.
-- Local full gate: lint/typecheck/format:check pass; 302 tests / 52 files; 100% coverage;
-  privacy_checks_passed; build + CLI smoke pass; npm audit 0 vulnerabilities;
-  secret:scan 0 findings.
+- Older S33 gate was 302 tests / 52 files; superseded by the S35 local gate above.
 
 ## Next actions
 
-1. S35: `expo-sqlite` repository adapter passing the same core contract tests,
-   then replace the preview demo reducer so core owns app state.
-2. Re-run the manual `S33 preview APK` workflow after S35 to prove the wired app
-   on the phone; the workflow now copies `apps/mobile`.
-3. Every later device row still needs its own owner report. Do not reuse the S33
-   report as evidence for persistence, SQLite, Keystore, Telegram or local model.
-4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+1. Finish S35: push the current branch, pass protected CI, merge, then run the
+   manual preview APK workflow. The owner has not installed that post-S35 APK;
+   no S35 device behavior is claimed.
+2. Every later device row needs its own owner report. Do not reuse the S33 report
+   as evidence for persistence, SQLite, Keystore, Telegram or local model.
+3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
-5. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
-   an `expo-sqlite` repository adapter, replace preview demo reducer.
-6. Phase J UI vertical slices; prove every slice on a real device.
+4. Phase J UI vertical slices; prove every slice on a real device.
 
 ## Owner-owned open items (do not decide)
 
 - License undecided despite GPL-3.0 LICENSE file.
 - Backups plaintext; backup encryption undecided.
-- Native preview reuses web demo reducer through Metro watchFolders; must be
-  replaced during core wiring.
+- The original native preview reused the web demo reducer through Metro
+  `watchFolders`; S35 replaces that native state path with core + `expo-sqlite`.
+  The browser preview continues using its own reducer.

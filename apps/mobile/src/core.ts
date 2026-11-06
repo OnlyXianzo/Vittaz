@@ -8,9 +8,10 @@
  *
  * This module only re-exports. It holds no behaviour of its own.
  *
- * NOTE (S35): the screens still run the preview demo reducer from
- * `../ui/src/state`. Swapping that reducer for core + an `expo-sqlite`
- * repository adapter is S35. Nothing here writes to a database.
+ * Native ledger mutations call core use cases through the Expo SQLite
+ * LedgerStore. Presentation state stays local to the native provider; no demo
+ * reducer or seeded preview rows are used. Core use cases persist user actions
+ * through the adapter, while AI features remain disabled until wired.
  */
 
 export {

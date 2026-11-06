@@ -30,9 +30,10 @@ export interface Transaction {
   category: string;
   mode: Mode;
   person?: string;
+  splitOwedPaise?: number;
   note: string;
   status: TransactionStatus;
-  day: "Today" | "Yesterday" | "27 Oct";
+  day: string;
   time: string;
   source?: string;
   confidence?: number;

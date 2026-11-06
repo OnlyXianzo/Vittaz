@@ -672,7 +672,63 @@ assertions, and both are recorded so they are not rediscovered:
 Verified: the Android Hermes bundle grew from 2.3 MB to 2.5 MB and now contains
 `MoneyValidationError`, `normalizeIndicDigits` and `assertIntegerPaise`.
 
-**Still not done (S35):** the screens continue to run the preview demo reducer
-from `apps/mobile/ui/src/state`. Core is reachable but does not yet own app
-state, and there is no `expo-sqlite` adapter. No device behavior is claimed for
-S34; the S33 owner report covers the app opening only.
+At S34 merge time, the screens still ran the preview reducer and no
+`expo-sqlite` adapter existed. S35 implementation is in progress; see the S35
+record below. No device behavior is claimed for S34; the S33 owner report covers
+the earlier APK opening only.
+
+## S35 — Expo SQLite and native core-backed state (2026-11-06; implementation in progress)
+
+- Added `expo-sqlite ~58.0.15` through `npx expo install expo-sqlite` (SDK 58
+  recommended pin) and enabled its app config plugin. It is only in
+  `apps/mobile`'s standalone lockfile, not root dependencies.
+- Extracted the exact existing versioned SQL to
+  `packages/core/src/ledger/migration_steps.ts`; Node storage and Expo adapter
+  now share one `MIGRATION_STEPS` source. Migration SQL itself was not rewritten.
+- `packages/storage/src/expo_sqlite_store.ts` implements the framework-free
+  core `LedgerStore` port with CRUD repositories, migration-on-open, scoped
+  capabilities, queue serialization, async rollback, close semantics, and FK
+  enforcement. The app imports this same source; it has no Expo runtime import.
+  `apps/mobile/src/storage/open_ledger_store.ts` opens persistent `vittaz.db` and
+  closes on initialization failure.
+- Initial protected CI exposed an integration boundary: root Vitest followed a
+  test import into `apps/mobile/src/storage/expo_sqlite_store.ts` and OXC tried
+  to load the app's `expo/tsconfig.base`, absent from backend CI. The adapter
+  moved to `packages/storage`; Metro watches it, APK CI copies the package, and
+  Native CI triggers on its path. Root tests exercise the same adapter source
+  without installing Expo in backend CI.
+- Expo docs warn `withExclusiveTransactionAsync` opens a new connection where
+  `PRAGMA foreign_keys=ON` does not apply. Since the adapter owns and serializes
+  all access, it uses `withTransactionAsync` on the configured connection
+  instead. A shared contract case proves orphan foreign-key inserts fail.
+- Added framework-neutral contract cases in `packages/core/test/ledger_store_contract.ts`.
+  The exact same cases run against both the Node `openLedgerStore` and Expo
+  adapter in root Vitest, using a real SQLite engine through the Expo async API
+  shape. They cover CRUD/scopes, async rollback/recovery, FK enforcement,
+  external-operation serialization, direct reentrancy rejection, close, and
+  proposal/audit round-trip. Additional tests prove file persistence across
+  close/reopen and shared migration version.
+- Replaced the native `useReducer(reducer)` preview path with a local presentation
+  state handler and a database-loaded transaction view. Manual entry calls
+  `createManualTransaction`; approve/reject call core proposal use cases. Demo
+  rows and balance offsets are removed. Native selectors are date/data-driven.
+  Chat/quick capture explicitly refuse rather than fabricating answers or
+  proposals.
+- Native Jest tests use a deterministic in-memory `LedgerStore` double for shell
+  behavior. That is not a native database test; the shared contract suite uses
+  real SQLite in Node, and the app's manual APK build is still required for
+  compile proof. No S35 device claim.
+- Expo SQLite web bundle support was also required to keep the existing `web`
+  script usable. First export failed on missing `.wasm`; Metro now includes wasm
+  and COEP/COOP headers. Android export (2.6 MB Hermes) and web export (502
+  modules + 641 KB WASM) both succeed locally; native CI checks both.
+- Final local root gate: 344 tests / 56 files, 100% coverage; root audit 0.
+  App Jest 11/11; app lint/typecheck/format and Android/web exports pass.
+- Local `npm audit` in the app reports 33 issues (1 low/32 moderate). Forced
+  remediation wants Expo 53/Jest 29, so no forced downgrade was applied; the
+  app audit finding is documented separately from the clean root backend audit.
+
+Known scope limit: the adapter rejects _direct_ synchronous re-entry from within
+a store callback, matching the tested core case. As with the Expo transaction
+API, repository handles passed to the callback must be used for all work; do not
+call the outer store from inside a callback. Core use cases follow this rule.

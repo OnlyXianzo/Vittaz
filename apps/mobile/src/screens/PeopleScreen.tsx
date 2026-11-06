@@ -10,7 +10,7 @@ export function PeopleScreen() {
     <Screen>
       <PageHeader large title="People" />
       <M style={{ marginTop: 8, marginHorizontal: 2, marginBottom: 12 }}>
-        Receivables and payables in this synthetic preview.
+        Receivables are calculated from saved transaction splits on this device.
       </M>
       {state.people.map((person) => (
         <Card key={person.id} style={{ marginTop: 12 }}>

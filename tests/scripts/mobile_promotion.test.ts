@@ -58,10 +58,12 @@ test("s34_root_tooling_ignores_the_promoted_app", () => {
   expect(vitest).toContain("apps/mobile/**");
 });
 
-test("s34_shared_domain_paths_and_ci_are_repointed", () => {
+test("s34_shared_sources_and_ci_are_repointed_without_a_preview_reducer", () => {
   const domain = read("apps/mobile/src/domain.ts");
-  expect(domain).toContain("../ui/src/state");
+  expect(domain).toContain("../ui/src/types");
+  expect(domain).not.toContain("../ui/src/state");
   expect(domain).not.toContain("../../src/state");
+  expect(domain).toContain('from "./selectors"');
   const metro = read("apps/mobile/metro.config.cjs");
   expect(metro).toContain('"./ui/src"');
   const jest_config = read("apps/mobile/jest.config.cjs");
@@ -73,7 +75,6 @@ test("s34_shared_domain_paths_and_ci_are_repointed", () => {
   expect(apk).not.toContain("apps/mobile/ui/native");
   expect(apk).toContain('cp -R apps/mobile "$PREVIEW_DIR/native"');
 });
-
 test("s34_apps_mobile_imports_packages_core_through_a_resolvable_bridge", () => {
   const bridge = read("apps/mobile/src/core.ts");
   expect(bridge).toContain("@vittaz/core");
@@ -118,6 +119,61 @@ test("s34_apk_workflow_copies_core_because_metro_watches_it", () => {
   const apk = read(".github/workflows/s33-preview-apk.yml");
   expect(apk).toContain("packages/core");
   expect(apk).toMatch(/cp -R packages\/core/);
+  expect(apk).toContain("packages/storage");
+  expect(apk).toMatch(/cp -R packages\/storage/);
   const metro = read("apps/mobile/metro.config.cjs");
   expect(metro).toContain("../../packages/core/src");
+});
+
+test("s35_uses_sdk_matched_expo_sqlite_and_core_backed_native_state", () => {
+  const pkg = JSON.parse(read("apps/mobile/package.json"));
+  expect(pkg.dependencies["expo-sqlite"]).toBe("~58.0.15");
+  const app_config = JSON.parse(read("apps/mobile/app.json"));
+  expect(app_config.expo.plugins).toContain("expo-sqlite");
+
+  const store = read("apps/mobile/src/store.tsx");
+  expect(store).toContain("openMobileLedgerStore");
+  expect(store).toContain("createManualTransaction");
+  expect(store).toContain("approveProposal");
+  expect(store).toContain("rejectProposal");
+  expect(store).not.toContain("useReducer");
+  expect(store).not.toContain('from "./ui/src/state"');
+
+  const native_domain = read("apps/mobile/src/domain.ts");
+  expect(native_domain).not.toContain('from "../ui/src/state"');
+  expect(native_domain).not.toContain("SYNTHETIC_PEOPLE");
+  const selectors = read("apps/mobile/src/selectors.ts");
+  expect(selectors).not.toContain("647100");
+  expect(selectors).not.toContain("73000");
+
+  const adapter = read("packages/storage/src/expo_sqlite_store.ts");
+  expect(adapter).toContain("MIGRATION_STEPS");
+  expect(adapter).toContain("PRAGMA foreign_keys = ON");
+  expect(adapter).toContain("withTransactionAsync");
+  expect(adapter).not.toContain("withExclusiveTransactionAsync");
+  expect(read("packages/core/test/ledger_store_contract.ts")).toContain(
+    "ledger_store_proposal_and_audit_round_trip_contract",
+  );
+});
+
+test("s35_native_ci_exports_android_and_sqlite_web_targets", () => {
+  const native_ci = read(".github/workflows/native.yml");
+  expect(native_ci).toContain("expo export --platform android");
+  expect(native_ci).toContain("npm run export:web");
+});
+
+test("s35_expo_sqlite_web_setup_keeps_the_existing_expo_web_preview_buildable", () => {
+  const metro = read("apps/mobile/metro.config.cjs");
+  expect(metro).toContain('"wasm"');
+  expect(metro).toContain("Cross-Origin-Embedder-Policy");
+  expect(metro).toContain("Cross-Origin-Opener-Policy");
+});
+
+test("s35_sqlite_adapter_lives_in_storage_source_not_the_expo_project_tree", () => {
+  expect(exists("packages/storage/src/expo_sqlite_store.ts")).toBe(true);
+  expect(exists("apps/mobile/src/storage/expo_sqlite_store.ts")).toBe(false);
+  const opener = read("apps/mobile/src/storage/open_ledger_store.ts");
+  expect(opener).toContain("packages/storage/src/expo_sqlite_store");
+  const native_ci = read(".github/workflows/native.yml");
+  expect(native_ci).toContain("packages/storage/src/expo_sqlite_store.ts");
 });
