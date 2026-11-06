@@ -70,11 +70,30 @@ export function runPrivacyCheck(): boolean {
         maxBuffer: 16 * 1024 * 1024,
       },
     );
-    if (result.error || result.status !== 0) return false;
-    return hasPrivacyEvidence(
-      JSON.parse(readFileSync(join(directory, "report.json"), "utf8")),
-    );
+    if (result.error || result.status !== 0) {
+      const error_code =
+        result.error && "code" in result.error
+          ? String(result.error.code)
+          : "none";
+      console.error(
+        `privacy_child_failed status=${result.status ?? "null"} signal=${result.signal ?? "none"} error_code=${error_code}`,
+      );
+      return false;
+    }
+    let report: unknown;
+    try {
+      report = JSON.parse(readFileSync(join(directory, "report.json"), "utf8"));
+    } catch {
+      console.error("privacy_report_invalid");
+      return false;
+    }
+    if (!hasPrivacyEvidence(report)) {
+      console.error("privacy_evidence_missing");
+      return false;
+    }
+    return true;
   } catch {
+    console.error("privacy_runner_error");
     return false;
   } finally {
     rmSync(directory, { recursive: true, force: true });

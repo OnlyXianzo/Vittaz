@@ -139,6 +139,12 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
       expect(result.stdout + result.stderr).not.toContain(
         "PRIVATE_SYNTH_TEST_PAYLOAD",
       );
+      if (mode === "nonzero")
+        expect(result.stderr).toContain("privacy_child_failed");
+      if (mode === "missing" || mode === "malformed")
+        expect(result.stderr).toContain("privacy_report_invalid");
+      if (mode === "empty")
+        expect(result.stderr).toContain("privacy_evidence_missing");
       expect(readdirSync(scratch)).toEqual([]);
     }
   } finally {
