@@ -6,7 +6,12 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { createProposal } from "@vittaz/core";
+import { randomUUID } from "expo-crypto";
 import App from "../../App";
+
+jest.mock("expo-crypto", () => ({
+  randomUUID: jest.fn(() => "11111111-1111-4111-8111-111111111111"),
+}));
 import {
   getMemoryRows,
   openMobileLedgerStore,
@@ -27,7 +32,24 @@ async function tab(name: string) {
   await fireEvent.press(screen.getByRole("tab", { name }));
 }
 
-beforeEach(() => resetMemoryLedger());
+async function withoutGlobalCrypto<T>(operation: () => Promise<T>): Promise<T> {
+  const original = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: undefined,
+  });
+  try {
+    return await operation();
+  } finally {
+    if (original) Object.defineProperty(globalThis, "crypto", original);
+    else Reflect.deleteProperty(globalThis, "crypto");
+  }
+}
+
+beforeEach(() => {
+  resetMemoryLedger();
+  jest.clearAllMocks();
+});
 
 describe("Vittaz native shell backed by core", () => {
   it("opens on an empty local ledger instead of demo transactions", async () => {
@@ -52,12 +74,15 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByLabelText("Person"),
       "Synthetic Cafe",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Save transaction" }),
-    );
-    await waitFor(() =>
-      expect(screen.getByText("Saved to this device.")).toBeTruthy(),
-    );
+    await withoutGlobalCrypto(async () => {
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Save transaction" }),
+      );
+      await waitFor(() =>
+        expect(screen.getByText("Saved to this device.")).toBeTruthy(),
+      );
+    });
+    expect(randomUUID).toHaveBeenCalledTimes(2);
     await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     await tab("Ledger");
     await waitFor(() =>
@@ -125,12 +150,15 @@ describe("Vittaz native shell backed by core", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: /^Review selected/ }),
     );
-    await fireEvent.press(screen.getByRole("button", { name: "Approve" }));
-    await waitFor(() =>
-      expect(
-        screen.getByText("Approved and saved to this device."),
-      ).toBeTruthy(),
-    );
+    await withoutGlobalCrypto(async () => {
+      await fireEvent.press(screen.getByRole("button", { name: "Approve" }));
+      await waitFor(() =>
+        expect(
+          screen.getByText("Approved and saved to this device."),
+        ).toBeTruthy(),
+      );
+    });
+    expect(randomUUID).toHaveBeenCalledTimes(2);
     await tab("Ledger");
     expect(screen.getByText("Person_1")).toBeTruthy();
     expect(screen.getByText("₹125")).toBeTruthy();
