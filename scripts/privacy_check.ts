@@ -85,6 +85,7 @@ export function runPrivacyCheck(): boolean {
         `--testNamePattern=${privacyTestPattern}`,
         "--reporter=json",
         `--outputFile=${join(directory, "report.json")}`,
+        ...requiredPrivacySuites,
       ],
       {
         cwd: fileURLToPath(new URL("..", import.meta.url)),

@@ -167,3 +167,11 @@ test("privacy_ci_runner_fails_closed_on_child_and_report_errors_without_echoing_
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("privacy_ci_runs_only_the_required_primitive_suites", () => {
+  const source = readFileSync(
+    new URL("../../scripts/privacy_check.ts", import.meta.url),
+    "utf8",
+  );
+  expect(source).toContain("...requiredPrivacySuites");
+});
