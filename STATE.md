@@ -1,12 +1,12 @@
 ---
 current_phase: "Phase I Android"
-current_step: "Owner-approved Add form clarity"
-current_step_status: "in_progress"
-blocked_on: "native CI, merge, and corrected-APK visual confirmation; S36 is unblocked after owner S35 save/reopen report"
+current_step: "S36 LangChain check"
+current_step_status: "not_started"
+blocked_on: "owner phone run required for S36; S35 is accepted. Visual review of the updated Add form is also pending."
 last_updated: "2026-11-06"
-last_green_commit: "c50973ac37f488462df16d1fec6c6a544fc11d0b"
+last_green_commit: "ee274c51b654ddd04d98efce25ba23442cfd570b"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone APK run 42228039226 attempt 2 succeeded. Owner confirmed synthetic save survived close/reopen on 2026-11-06; S35 basic persistence accepted. Owner-approved Add-form grouping PR is in progress; local app 12/12, root 344/56 at 100%, and both Expo exports pass. S36 is unblocked and next."
+ci_proof: "PR #60 merged as ee274c5 with required CI green. Updated standalone APK run 42237936656 succeeded on attempt 1; artifact expires 2026-11-13T15:07:16Z. Owner-confirmed synthetic save survived close/reopen on 2026-11-06; S35 basic persistence accepted. S36 is unblocked and next; no S36 device check has started."
 ---
 
 # STATE
@@ -114,18 +114,26 @@ ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone AP
 - Local branch gates: mobile Jest 12/12, lint/format/typecheck; Android export
   (912 modules) and web export pass. Root gates: 344 tests / 56 files, 100%
   coverage; lint/format/typecheck/privacy/audit/secret scan/build pass.
-- PR CI, APK build, and owner visual confirmation of this minor update remain
-  pending. S36 itself is unblocked by the accepted S35 save/reopen report.
+- PR #60 merged to main as `ee274c51b654ddd04d98efce25ba23442cfd570b`; required
+  quality, privacy, test, security, build, and native checks all succeeded.
+- Standalone APK run `42237936656` succeeded on attempt 1 from that commit. The
+  `s33-preview-standalone-apk` artifact expires `2026-11-13T15:07:16Z`; APK
+  SHA-256 is `9940af8fd4f31f6b1fa03a277474b74b5727a349cbc2425789a18743a808d8f3`.
+  Static bundle inspection confirms the Direction/Category label strings are
+  packaged; this is not device execution.
+- Owner visual confirmation on the updated APK is pending. S36 remains unblocked
+  by the accepted S35 save/reopen report and has not started.
 
 ## Current proof
 
-- Protected CI for PR #56: quality, privacy, test, security, build, native all
-  success. S35 merged as `a533288`.
+- PR #60 protected CI: quality, privacy, test, security, build, and native all
+  succeeded. Grouping update merged as `ee274c5`; S35 core work merged earlier as
+  PR #56 (`a533288`).
 - Root gate: **344 tests / 56 files, 100% coverage**; format/lint/typecheck,
   privacy, build, secret scan pass; root audit 0.
-- Native app: `npm ci`, format/lint/typecheck, **Jest 12/12** on the current
-  owner-approved grouping branch; Android export (2.6 MB Hermes) and web export
-  (510 modules + 641 KB WASM) pass.
+- Native app for PR #60: format/lint/typecheck, **Jest 12/12**; Android export
+  (912 modules) and web export (510 modules + 641 KB WASM) pass. PR CI also
+  passed after merge.
 - App `npm audit`: 33 advisories (1 low, 32 moderate, none high/critical).
   Forced remediation downgrades Expo 58/Jest 30 and was not applied; see
   `docs/references.md`.
@@ -143,15 +151,15 @@ ci_proof: "PR #58 merged e548227 with required CI green. Corrected standalone AP
 
 ## Next actions
 
-1. Complete the owner-approved Direction/Category grouping change, run app and
-   root gates, and merge it as one small PR.
-2. Start S36: LangChain bundle, one tool call, streaming, and force-close/reopen
-   check. This is unblocked by the owner's S35 persistence report.
-3. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
+1. Ask the owner to install the updated standalone APK, visually confirm the
+   Direction and Category grouping, and then run the S36 phone checks: LangChain
+   bundle, one tool call, streaming, and force-close/reopen. S36 is unblocked by
+   the accepted S35 persistence report; no S36 device check has started.
+2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
-4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
-5. Continue Phase J UI vertical slices and prove each slice on a real device.
+4. Continue Phase J UI vertical slices and prove each slice on a real device.
 
 ## Owner-owned open items (do not decide)
 

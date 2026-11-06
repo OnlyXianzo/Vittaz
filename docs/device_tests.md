@@ -24,6 +24,7 @@ or Node tests.
 | S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05** |
 | S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending       |
 | S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **passed — owner report 2026-11-06** |
+| Add-form clarity      | Direction/Category labels and subtle divider visible in updated standalone APK                          | pending — owner review               |
 | S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                              |
 | LangChain             | Bundle size, tool calling, streaming, cold start, and reopen behavior recorded on device                | pending                              |
 | Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                              |
@@ -86,6 +87,15 @@ or Node tests.
 - Result: **S35 SQLite basic manual-save persistence passed by owner report.**
   This does not establish the assistant, proposal approval, migrations, readonly
   connections, Keystore, or any other pending device test.
+
+## Add-form grouping visual review (pending owner report)
+
+- The owner approved the Direction/Category labels and subtle divider; PR #60
+  merged the presentation-only change as `ee274c51b654ddd04d98efce25ba23442cfd570b`.
+- Updated standalone build: [workflow run 42237936656](https://github.com/OnlyXianzo/Vittaz/actions/runs/42237936656), attempt 1 succeeded. Artifact `s33-preview-standalone-apk` expires `2026-11-13T15:07:16Z`.
+- APK SHA-256: `9940af8fd4f31f6b1fa03a277474b74b5727a349cbc2425789a18743a808d8f3`.
+- Static inspection confirms the UI label strings are packaged. This is build evidence only; the owner has not yet reported seeing the updated layout on-device.
+- Owner visual confirmation remains pending. This is separate from S35 SQLite basic persistence, which passed by owner report on the earlier corrected APK.
 
 ## Recording results
 
