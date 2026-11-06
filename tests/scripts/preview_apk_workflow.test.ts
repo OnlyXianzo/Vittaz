@@ -24,8 +24,10 @@ test("preview_apk_workflow_is_manual_minimal_pinned_and_secretless", () => {
 
 test("preview_apk_workflow_copies_owner_preview_without_mutating_repo", () => {
   const workflow = read(workflow_path);
-  expect(workflow).toContain("apps/mobile/ui/native");
-  expect(workflow).toContain("apps/mobile/ui/src");
+  // S34 promoted the Expo app to apps/mobile; the web preview is nested at
+  // apps/mobile/ui, so one copy carries both the app and its shared domain.
+  expect(workflow).toContain('cp -R apps/mobile "$PREVIEW_DIR/native"');
+  expect(workflow).toContain("$PREVIEW_DIR/native/ui/src/state.ts");
   expect(workflow).toContain("RUNNER_TEMP");
   expect(workflow).toContain("git diff --exit-code");
   expect(workflow).toContain("expo install expo-dev-client");

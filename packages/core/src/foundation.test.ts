@@ -20,7 +20,6 @@ test("dependencies_are_exactly_pinned", () => {
     "packages/storage/package.json",
     "packages/agent/package.json",
     "apps/cli/package.json",
-    "apps/mobile/package.json",
   ]) {
     const pkg = JSON.parse(read(path));
     for (const [name, version] of Object.entries({
@@ -80,4 +79,19 @@ test("spreadsheet_dependency_is_official_pinned_and_integrity_locked", () => {
     integrity:
       "sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==",
   });
+});
+
+test("promoted_mobile_app_is_reproducible_through_its_own_lockfile", () => {
+  // apps/mobile is the owner-authored Expo app. It is deliberately NOT a root
+  // workspace and keeps Expo's SDK-managed ranges (~58.0.23 etc), which
+  // `npx expo install` maintains. Reproducibility comes from its committed
+  // lockfile plus `npm ci`, not from exact top-level pins.
+  const pkg = JSON.parse(read("apps/mobile/package.json"));
+  expect(pkg.name).toBe("@vittaz/mobile");
+  expect(pkg.packageManager).toBe("npm@11.19.1");
+  const lock = JSON.parse(read("apps/mobile/package-lock.json"));
+  expect(lock.lockfileVersion).toBe(3);
+  expect(lock.packages[""].dependencies.expo).toBe(pkg.dependencies.expo);
+  const root = JSON.parse(read("package.json"));
+  expect(root.workspaces).not.toContain("apps/*");
 });

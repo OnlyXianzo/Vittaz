@@ -36,12 +36,11 @@ jobs:
       - name: Copy owner preview into runner temp
         run: |
           mkdir -p "$PREVIEW_DIR"
-          cp -R apps/mobile/ui/native "$PREVIEW_DIR/native"
-          cp -R apps/mobile/ui/src "$PREVIEW_DIR/src"
+          cp -R apps/mobile "$PREVIEW_DIR/native"
           rm -rf "$PREVIEW_DIR/native/node_modules"
           test -f "$PREVIEW_DIR/native/App.tsx"
           test -f "$PREVIEW_DIR/native/metro.config.cjs"
-          test -f "$PREVIEW_DIR/src/state.ts"
+          test -f "$PREVIEW_DIR/native/ui/src/state.ts"
 
       - name: Install preview dependencies and expo-dev-client in temp only
         run: |
