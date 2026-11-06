@@ -152,10 +152,10 @@ acceptance.
   `expo-dev-client` `~58.0.18`, React Native `0.88.1`.
 - Gradle result: `BUILD SUCCESSFUL in 7m 35s`.
 
-Status: **pending owner install/open report**. This CI run proves the blank Expo
-debug APK built and uploaded. It does not prove the APK installed or opened on a
-phone. Do not claim device behavior. Mark S33 done only after the owner reports
-that the app opened on their phone.
+Status: **superseded**. This CI run proved only that the blank Expo debug APK
+built and uploaded. The owner's attempt to load the preview bundle into it
+crashed on `RNCSafeAreaProvider`; see the mismatch section below. S33 was
+ultimately accepted against the preview standalone APK, not this artifact.
 
 ## Why the blank proof APK crashed on the preview bundle
 
@@ -303,6 +303,12 @@ and no JavaScript at all. The preview APK contains all of it plus an embedded
 Hermes bundle. That is why the blank APK crashed on `RNCSafeAreaProvider` and why
 the standalone preview APK does not need Metro.
 
-Status: **pending owner install/open report**. These are static binary facts and
-a successful build. They are not device behavior. Do not claim device behavior;
-S33 closes only when the owner reports the app opened on their phone.
+Status: **accepted by owner 2026-11-05**. The owner installed
+`s33-preview-standalone-apk` from this run and reported that Vittaz opened and
+rendered the Home screen on their phone. That owner report is the S33 acceptance
+evidence; it is recorded in `docs/device_tests.md`. The binary facts above are
+build proof, not device proof, and the agent never observed the device.
+
+This acceptance covers the app opening only. Persistence, SQLite, Keystore,
+Telegram, local model, and `packages/core` wiring remain unproven and keep their
+own pending rows.

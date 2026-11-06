@@ -1,10 +1,10 @@
 ---
 current_phase: "Phase I Android"
-current_step: "S33"
-current_step_status: "preview_apk_built_pending_owner_install_open"
-blocked_on: "owner APK install/open report"
+current_step: "S34"
+current_step_status: "not_started"
+blocked_on: "none"
 last_updated: "2026-11-05"
-last_green_commit: "ef030e61ec0af7da092b9d275991e80217539ce2"
+last_green_commit: "cd314219b5cc415084dd4166c50a312761e156a2"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
 ci_proof: "run 42044273087 success on main 816df51; artifacts s33-preview-standalone-apk + s33-preview-devclient-apk; autolink missing:[]; blank-vs-preview DEX comparison recorded"
 ---
@@ -23,7 +23,11 @@ ci_proof: "run 42044273087 success on main 816df51; artifacts s33-preview-standa
 - S33 environment checker/docs merged as PR #45 -> main `5aa9e6e`; state update merged as PR #46 -> main `66495c1`.
 - S33 manual CI Android proof workflow merged as PR #47 -> main `ef030e6`.
 - Manual workflow run `42031551861` succeeded and uploaded `s33-android-proof-apk`.
-- Owner APK install/open report still pending; S33 is not done.
+- **S33 accepted by owner 2026-11-05.** Owner installed
+  `s33-preview-standalone-apk` from run `42044273087` and reported Vittaz opened
+  and rendered the Home screen on their phone. Recorded in
+  `docs/device_tests.md`; Plan S33 checked. Phone model/Android version were not
+  supplied and are left unrecorded.
 - Diagnosed owner-side crash: the blank proof APK autolinked no
   `react-native-safe-area-context`, but the Metro preview bundle rendered
   `SafeAreaProvider`, so Fabric raised `IllegalViewOperationException` for
@@ -58,16 +62,17 @@ ci_proof: "run 42044273087 success on main 816df51; artifacts s33-preview-standa
 
 ## Next actions
 
-1. Owner downloads `s33-preview-standalone-apk` from run `42044273087`, installs
-   `app-release.apk`, opens Vittaz, and reports the result. This APK embeds its
-   JS bundle and does not need Metro. `adb devices` remains optional supporting
-   proof. Artifact expires 2026-11-12T14:35Z.
-2. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
-   the native modules do not match and it will crash on `RNCSafeAreaProvider`.
-3. If an artifact expires or a rebuild is needed, re-run the manual workflow.
-4. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
+1. S34: promote the native app to `apps/mobile` and import `packages/core`,
+   without rewriting the owner-owned visual shell.
+2. S35: `expo-sqlite` repository adapter passing the same core contract tests,
+   then replace the preview demo reducer.
+3. Every later device row still needs its own owner report. Do not reuse the S33
+   report as evidence for persistence, SQLite, Keystore, Telegram or local model.
+4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+   the native modules do not match and it crashes on `RNCSafeAreaProvider`.
+5. S34–S35: promote native app to `apps/mobile`, connect `packages/core` through
    an `expo-sqlite` repository adapter, replace preview demo reducer.
-5. Phase J UI vertical slices; prove every slice on a real device.
+6. Phase J UI vertical slices; prove every slice on a real device.
 
 ## Owner-owned open items (do not decide)
 
