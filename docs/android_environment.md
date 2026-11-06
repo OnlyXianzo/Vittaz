@@ -314,3 +314,37 @@ build proof, not device proof, and the agent never observed the device.
 This acceptance covers the app opening only. Persistence, SQLite, Keystore,
 Telegram, local model, and `packages/core` wiring remain unproven and keep their
 own pending rows.
+
+## Recorded post-promotion APK build (S34, build proof only)
+
+After S34 promoted the app to `apps/mobile`, the APK workflow was re-run to prove
+the promoted structure still produces an installable APK.
+
+- Workflow run: https://github.com/OnlyXianzo/Vittaz/actions/runs/42204863019
+- Commit: `37c6263e926a0c68f3133d27dfd7b8ea6ff0d1c1`.
+- Job `preview-apk`: success, `BUILD SUCCESSFUL in 9m 55s`.
+- Autolinking assertion: `missing: []`.
+- Metro: `Android Bundled 22155ms index.ts (873 modules)` — up from 855 modules
+  before core was wired, reflecting the `packages/core` graph.
+- Repository-unchanged assertion passed.
+
+Artifacts, both expiring `2026-11-13T10:54Z` (7-day retention):
+
+| Artifact                     | APK size     | ZIP size     | ZIP SHA-256                                                        |
+| ---------------------------- | ------------ | ------------ | ------------------------------------------------------------------ |
+| `s33-preview-standalone-apk` | 42,970,454 B | 22,508,626 B | `ac10144cb25388f81fc80654c018edb816a8011f773dad1fbaa329f18a7c0081` |
+| `s33-preview-devclient-apk`  | not measured | 44,274,062 B | not downloaded                                                     |
+
+The standalone artifact was downloaded and its embedded
+`assets/index.android.bundle` inspected directly: `MoneyValidationError`,
+`normalizeIndicDigits` and `assertIntegerPaise` are all present. Core is therefore
+genuinely shipped in the binary, not merely referenced in source.
+
+An earlier run on `b19e181` failed because the workflow did not copy
+`packages/core` into the temp tree; see `docs/references.md` for that diagnosis
+and the fix.
+
+Status: **build proof only**. This APK has not been installed or opened by the
+owner. The S33 owner acceptance covers the pre-promotion APK opening; it does not
+extend to this build, to core wiring, or to persistence. S35 still owes the
+`expo-sqlite` adapter and replacement of the preview demo reducer.
