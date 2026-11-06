@@ -167,7 +167,7 @@ export function AddScreen() {
         >
           <Row>
             <M>Improved note</M>
-            <Pill>Demo rewrite</Pill>
+            <Pill>Local cleanup</Pill>
           </Row>
           <T size={15} style={{ marginTop: 6, lineHeight: 21 }}>
             {state.improvedNote}

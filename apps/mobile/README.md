@@ -75,20 +75,32 @@ npm test             # Jest + @testing-library/react-native
 npm run test:coverage
 ```
 
-The Jest suite drives the same flows as the preview's Playwright spec: home
-summary, message → approval, question answering without an amount, ledger search
-and filters, inbox review, manual entry, settings toggles, model choice and the
-onboarding replay.
+The Jest suite covers the native shell with a deterministic in-memory
+`LedgerStore` double. The root Vitest suite runs the **same framework-neutral
+`LedgerStore` contract cases** against both the Node SQLite store and the Expo
+adapter, backed by a real SQLite engine. The manual APK workflow also bundles
+`packages/core` into the native artifact.
 
 ## Honest limits
 
-- Synthetic, in-memory data only. No backend, `packages/core`, SQLite, AI
-  provider, Telegram bot or device storage is connected.
-- The assistant is the preview's deterministic demo: question detection and
-  ledger arithmetic, not a model call.
-- No device or emulator build has been run here, so **no claim is made about
-  Android/iOS runtime behaviour, G2 or G3**. What is verified is typecheck, lint,
-  formatting, the Jest suite and the Expo web bundle.
-- `apps/mobile` itself is still the backend agent's placeholder. This app lives
-  beside the preview so the two agents do not collide; promoting it to
-  `apps/mobile` (and wiring `packages/core`) is a backend-side step.
+- Ledger rows are stored in local `expo-sqlite`; schema SQL is shared with
+  `packages/storage`. Manual entry, proposal approval and rejection use
+  `packages/core` use cases.
+- The native preview reducer and its seeded demo rows have been removed. The
+  assistant and quick-capture actions are explicitly not connected; they do not
+  create synthetic answers or proposals.
+- People records and preferences are not yet persisted, and the current native
+  UI is not a full rewrite of the web preview's state model.
+- No new device behavior is claimed for S35. S33's owner-reported open applies
+  only to the earlier APK; the post-promotion/S35 APK must be installed and
+  reported separately before claiming device behavior.
+- Local `npm audit --audit-level=moderate` reports 33 issues (1 low, 32
+  moderate) in this SDK 58/Jest 30 toolchain. `npm audit fix --force` recommends
+  downgrading Expo to SDK 53 and Jest to 29, which would break the pinned app
+  baseline; no forced downgrade was applied. The app audit is reported separately
+  from the root backend's clean audit.
+- `apps/mobile` is a standalone Expo project with its own lockfile. `npm ci`,
+  typecheck, lint, formatting, Jest and Android bundle export are run by the
+  Native app workflow. Expo web export includes SQLite WASM support and the Metro
+  dev server sets the COEP/COOP headers required by Expo; static hosts must set
+  those headers too. The browser preview remains the separate Vite app at `ui/`.

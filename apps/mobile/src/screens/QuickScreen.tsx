@@ -48,7 +48,8 @@ export function QuickScreen() {
         />
       </Card>
       <M style={{ marginVertical: 10, marginHorizontal: 4 }}>
-        Add an entry: I spent 299 on Zomato. Ask a question: Who owes me?
+        Quick capture and assistant actions are not connected yet. Use Add
+        transaction from Ledger to save a real entry to this device.
       </M>
       <Row style={{ marginTop: 20, marginBottom: 4 }}>
         <B>Recent inputs</B>
@@ -80,8 +81,8 @@ export function QuickScreen() {
         ))}
       </Card>
       <M style={{ marginVertical: 14, marginHorizontal: 4 }}>
-        Questions are answered from the preview ledger and need no amount. No
-        message leaves this preview.
+        No message is processed or sent anywhere. Your saved ledger stays on
+        this device.
       </M>
     </Screen>
   );

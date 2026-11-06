@@ -516,3 +516,64 @@ to `$PREVIEW_DIR/../packages/core`, and a regression test asserts it. The fix wa
 verified by reproducing the CI temp layout locally (`ui/native` +
 `packages/core` as siblings) and running `expo export` there, which produced the
 same 2.5 MB Hermes bundle hash as the in-repo build.
+
+## S35 Expo SQLite adapter (2026-11-06)
+
+Official Expo SDK 58 SQLite docs consulted:
+https://docs.expo.dev/versions/v58.0.0/sdk/sqlite/ (recommended version
+`~58.0.15`, confirmed by `npx expo install expo-sqlite` on 2026-11-06).
+The package is pinned in `apps/mobile/package.json` and lockfile and its config
+plugin is enabled in `apps/mobile/app.json`. The adapter opens a persistent file
+with `openDatabaseAsync("vittaz.db")`, applies the shared versioned SQL, and uses
+parameterized `runAsync`, `getFirstAsync`, and `getAllAsync` operations.
+
+Important transaction detail from the official docs: Expo's
+`withExclusiveTransactionAsync()` uses a new connection; connection settings
+such as `PRAGMA foreign_keys = ON` do not carry over, and cannot be enabled on
+that transaction connection because the PRAGMA has no effect inside a
+transaction. Therefore the adapter enables foreign keys on the database and
+uses `withTransactionAsync()` **behind its own serialized operation queue**. The
+queue ensures only store-owned operations use the connection while the
+transaction is active. A shared contract case inserts an orphan transaction and
+asserts the foreign-key constraint rejects it.
+
+Jest testing guidance consulted:
+https://docs.expo.dev/develop/unit-testing/ (SDK 58, 2026-11-06). Native shell
+Jest uses `jest-expo` and a deterministic in-memory `LedgerStore` test double;
+the **same framework-neutral core contract cases** are run in root Vitest against
+both `openLedgerStore` and the Expo adapter, using a real SQLite engine through
+the Expo-shaped async port. Additional adapter tests prove file persistence
+across close/reopen and migration version parity. This does not replace later
+owner device verification of the Expo native binding.
+
+Schema SQL was extracted, without changing it, to
+`packages/core/src/ledger/migration_steps.ts`. The Node and Expo adapters both
+consume `MIGRATION_STEPS` / `LATEST_SCHEMA_VERSION`, so schema drift cannot be
+introduced by maintaining separate SQL copies.
+
+S35 removes the preview reducer and seeded data from the native app. Native
+selectors derive totals from loaded rows (no demo offsets), and group arbitrary
+stored dates. Manual entry, approval and rejection call core use cases through
+the `LedgerStore`. Chat/quick capture are deliberately disabled, not faked.
+
+No device behavior is claimed for S35. The owner-reported S33 open applies only
+to the earlier pre-promotion APK.
+
+### S35 Expo SQLite web support
+
+The first `expo export --platform web` after installing `expo-sqlite` failed with
+`Unable to resolve "./wa-sqlite/wa-sqlite.wasm" from expo-sqlite/web/worker.ts`.
+Per the SDK 58 SQLite docs, `apps/mobile/metro.config.cjs` now adds `.wasm` to
+Metro `assetExts` and sets COEP/COOP headers for `SharedArrayBuffer` in the Expo
+web dev server. The follow-up web export succeeds. The Native CI workflow checks
+both Android and web exports; the separate browser preview remains the Vite app
+at `apps/mobile/ui`. Static hosting of the Expo web export must also set the
+documented COEP/COOP response headers.
+
+S35 local security check (2026-11-06): `npm audit --audit-level=moderate` in
+`apps/mobile` reports 33 advisories (1 low, 32 moderate, 0 high/critical) in the
+pinned Expo SDK 58 / ESLint 10 / Jest 30 toolchain. The suggested force fix
+would downgrade Expo to 53 and Jest to 29, which breaks the app's SDK 58 baseline.
+No `--force` downgrade was applied. Root backend `npm audit` remains 0 findings.
+This is an app-toolchain finding to review separately; it is not hidden by the
+root audit result.

@@ -35,6 +35,7 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test -- --ci
-      # Bundle check: proves Metro can resolve the shared domain modules and
-      # build the app for a real target. No device claim is made.
-      - run: npx expo export --platform web --output-dir dist
+      # Native bundle check: proves Metro resolves core and expo-sqlite on Android.
+      - run: npx expo export --platform android --output-dir dist-android
+      # Web uses the Expo SQLite WASM asset and COEP/COOP Metro headers.
+      - run: npm run export:web

@@ -1,25 +1,22 @@
 /**
  * Single source of truth for behaviour.
  *
- * The React Native app does not fork the preview's logic: it imports the same
- * reducer, selectors, synthetic data, money helpers and question answering that
- * the browser preview uses. Only the view layer is rebuilt here.
+ * This module shares only UI model types and presentation-only money formatting
+ * with the browser preview. Native ledger state and selectors come from core +
+ * the Expo SQLite adapter; the preview reducer and synthetic rows are not used.
  *
- * Metro is pointed at `apps/mobile/ui/src` through `metro.config.cjs`
- * (`watchFolders`), and Jest at the same folder through `jest.config.cjs`.
+ * Metro watches `apps/mobile/ui/src` for its display model types and
+ * `packages/core/src` for the framework-free domain core.
  */
 
-export { createInitialState, reducer } from "../ui/src/state";
 export {
   groupByDay,
   selectInbox,
   selectLedger,
   selectPending,
   selectSummary,
-} from "../ui/src/selectors";
+} from "./selectors";
 export { formatPaise, parseAmountToPaise } from "../ui/src/money";
-export { answerQuestion, detectQuestion } from "../ui/src/answers";
-export { SYNTHETIC_PEOPLE } from "../ui/src/data";
 export type {
   Action,
   AppState,
@@ -33,9 +30,8 @@ export type {
   Transaction,
 } from "../ui/src/types";
 
-// S34: the framework-free domain core, reachable through the same seam the
-// screens already use. Additive only — the preview reducer below is unchanged
-// until S35 replaces it with core + an expo-sqlite repository adapter.
+// Framework-free domain core re-exports. Ledger mutations go through core and
+// the Expo SQLite repository adapter; no preview reducer is exported here.
 export {
   CORE_VERSION,
   MoneyValidationError,

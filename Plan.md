@@ -154,9 +154,9 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 ### Phase I: Android (you and your phone)
 
-- [x] **S33. Environment.** `adb devices` lists the phone. Build a blank Expo development build. **Done 2026-11-05:** owner installed `s33-preview-standalone-apk` from run `42044273087` and reported Vittaz opened and rendered the Home screen on their phone. `adb devices` was not required; the owner report is the acceptance evidence.
+- [x] **S33. Environment.** Manual Android proof workflow and owner phone install/open. **Done 2026-11-05:** the blank Expo debug APK built as initial toolchain proof but crashed when paired with the preview bundle (`RNCSafeAreaProvider` mismatch). The matching `s33-preview-standalone-apk` from run `42044273087` was installed; owner reported Vittaz opened and rendered Home. `adb devices` was optional; owner report is acceptance evidence.
 - [x] **S34. App shell.** `apps/mobile` imports `packages/core`. **Done 2026-11-06:** owner approved promoting `apps/mobile/ui/native` to `apps/mobile` via `git mv` (history preserved, no visual file changed). Core is reachable from the entrypoint and present in the Android Hermes bundle. Not a root workspace; see `DECISIONS.md`. The demo reducer is still in place — replacing it is S35.
-- [ ] **S35. SQLite adapter.** An `expo-sqlite` adapter passes the same core tests.
+- [ ] **S35. SQLite adapter.** The `expo-sqlite` adapter passes the same shared `LedgerStore` contract cases as Node storage; replace native demo reducer/seeded rows with core-backed local state. Chat/quick capture remain disabled until wired.
 - [ ] **S36. LangChain check.** Bundle, one tool call, streaming, and a force-close and reopen.
 - [ ] **S37. Device tests.** Run `docs/device_tests.md`: persistence, Keystore, local model and benchmark, Telegram service, voice, OCR.
 

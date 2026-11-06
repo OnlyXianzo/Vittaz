@@ -14,6 +14,11 @@ export {
   sumPaise,
 } from "./ledger/money.js";
 
+export {
+  LATEST_SCHEMA_VERSION,
+  MIGRATION_STEPS,
+} from "./ledger/migration_steps.js";
+
 export type {
   TransactionDirection,
   TransactionEventType,
