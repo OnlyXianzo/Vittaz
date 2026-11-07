@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "Owner confirms run #12 standalone APK, blank optional key, and repeated chat failure after clear-data/reinstall on both Wi-Fi and mobile data. The provider failure stage remains unknown because the shipped fallback conflates several safe error classes. A local follow-up branch now classifies connection, access-denied, provider-unavailable and protocol failures without raw details; CI/merge/new APK and successful device retest remain pending."
+blocked_on: "Owner confirms the run #13 screenshot was captured from the new standalone APK and shows KILO_UNKNOWN twice; no answer was returned. The screenshot has the keyboard closed, so keyboard-open composer behavior remains untested. KILO_UNKNOWN is a source-inspected catch-all; exact exception/device cause is not established. S36 acceptance remains pending."
 last_updated: "2026-11-07"
-last_green_commit: "6b190cfa76cbb6b5ed6bed74b805d2fc4179ec9e"
+last_green_commit: "0dbacde6eaa56d0d00b55b9d5d43e6b75cff53f6"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. User-provided screenshots dated 2026-11-07 show repeated generic assistant failures after key-save UI and report a keyboard/composer issue; exact build, provider status, device model/version, and cause are unknown. One anonymous synthetic Kilo endpoint probe returned HTTP 200 SSE, but does not validate the saved key or app path. PR #64 (`5a88a7e`) merged as `c6c57d467953824bd91e0ed8ad48887eaf1eca13`; all required PR checks and main quality/privacy/test/security/build/native checks passed. Keyboard/composer handling merged in PR #65 (`661054d6`) as `6b190cfa76cbb6b5ed6bed74b805d2fc4179ec9e`; all required PR and main checks passed. Manual workflow run `42343693444` (#12) succeeded on that main commit: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 20s, Ubuntu 24.04.5 image `20261101.360.1`, Node 24.22.2/npm 11.19.1, Temurin JDK 17.0.21. Standalone APK artifact `13563145707` expires `2026-11-14T05:53:58Z`, 48,636,434 bytes, SHA-256 `7663ce72020163c36fb3cbf20cdff5390a92a7a62da07eec2ada80ce57e5d29f`; archived at `../S36-builds/s36-merged-post-chat-fixes-standalone.apk`. Static package evidence only; the owner now confirms run #12 was installed and reports the same failure after clear-data/reinstall on Wi-Fi and mobile data with a blank optional key. Successful S36 device acceptance remains pending. A local diagnostic branch separates safe connection, access-denied, provider-unavailable and protocol categories without raw provider data; it passes local tests/checks but has not been merged or built into an APK."}}
+ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. User-provided screenshots dated 2026-11-07 show repeated generic assistant failures after key-save UI and report a keyboard/composer issue; exact build, provider status, device model/version, and cause are unknown. One anonymous synthetic Kilo endpoint probe returned HTTP 200 SSE, but does not validate the saved key or app path. PR #64 (`5a88a7e`) merged as `c6c57d467953824bd91e0ed8ad48887eaf1eca13`; all required PR checks and main quality/privacy/test/security/build/native checks passed. Keyboard/composer handling merged in PR #65 (`661054d6`) as `6b190cfa76cbb6b5ed6bed74b805d2fc4179ec9e`; all required PR and main checks passed. Manual workflow run `42343693444` (#12) succeeded on that main commit: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 20s, Ubuntu 24.04.5 image `20261101.360.1`, Node 24.22.2/npm 11.19.1, Temurin JDK 17.0.21. Standalone APK artifact `13563145707` expires `2026-11-14T05:53:58Z`, 48,636,434 bytes, SHA-256 `7663ce72020163c36fb3cbf20cdff5390a92a7a62da07eec2ada80ce57e5d29f`; archived at `../S36-builds/s36-merged-post-chat-fixes-standalone.apk`. Static package evidence only; the owner now confirms run #12 was installed and reports the same failure after clear-data/reinstall on Wi-Fi and mobile data with a blank optional key. Successful S36 device acceptance remains pending. PR #67 (`6c9b312`) was squash-merged as `0dbacde6eaa56d0d00b55b9d5d43e6b75cff53f6`; all required PR checks and main CI run `42358832997` plus Native run `42358832973` succeeded. Manual APK run #13 (`42358981476`) succeeded on that merge: 1,411 modules, Gradle 9.4.1 `BUILD SUCCESSFUL in 12m 45s`, Ubuntu 24.04.5 image `20261101.360.1`, runner `2.338.2`, Node `24.22.2`/npm `11.19.1`, Temurin JDK `17.0.21`. Standalone artifact `13568469222` expires `2026-11-14T09:30:02Z`; APK 48,638,510 bytes, SHA-256 `46f1319dda4a3e21f0943791ecc0bd24e5f8afdaebd275b08eb9336458f02559`, archived at `../S36-builds/s36-keyless-provider-diagnostics-standalone.apk`. Build evidence only. Owner now confirms a screenshot from run #13; it shows two `KILO_UNKNOWN` failures and no answer. The agent did not inspect the installed package or verify its hash. Composer is visible with keyboard closed; keyboard-open behavior remains untested. Source inspection confirms `KILO_UNKNOWN` is the `provider_error` catch-all; several QA/adapter and invalid-completion paths can reach it, so the screenshot does not identify the cause. S36 acceptance remains pending."}}
 ---
 
 # STATE
@@ -186,19 +186,21 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 
 ## Next actions
 
-1. Complete the local safe diagnostic-code change, update docs/state, pass CI,
-   and open the short PR against protected `main`. After merge, manually build a
-   new standalone APK; do not ask the owner to remove a key, clear data or
-   reinstall the current run #12 APK again.
-2. Once the new APK is available, ask for one synthetic request and only the
-   fixed diagnostic code (or success), plus whether the composer remains visible
-   with the keyboard open. Never request keys, prompt text, or raw provider
-   responses. Keep S36 acceptance pending until a successful owner report.
-3. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
+1. Add regression tests for the remaining `provider_error` catch-all paths and
+   expose only a more specific fixed diagnostic category where the source
+   reliably distinguishes it. Never surface or log raw exceptions, response
+   bodies, prompts, or credentials.
+2. Do not repeat the run #13 test unchanged. After a further diagnostic APK is
+   ready, ask for one synthetic read-only request and only the answer/fixed code
+   plus keyboard-open composer visibility. Keep S36 acceptance pending.
+3. Resolve the supported BYOK provider scope before implementation; official
+   Anthropic docs prohibit third-party apps from offering Claude.ai subscription
+   login. API-key BYOK is supported; see the references follow-up.
+4. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
-4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+5. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
-5. Continue Phase J UI vertical slices and prove each slice on a real device.
+6. Continue Phase J UI vertical slices and prove each slice on a real device.
 
 ## S36 current work — 2026-11-07
 
@@ -220,8 +222,9 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - Documentation consulted and recorded in `docs/references.md`: LangChain
   models/tool/stream docs; Expo SDK 58 SecureStore (`expo-secure-store@58.0.2`);
   Kilo Gateway v1 models/API docs and live unauthenticated catalog; Ollama local
-  API auth docs as an alternative. No live inference request or real provider
-  key was used in development.
+  API auth docs as an alternative. No real provider key was used in development.
+  A later anonymous synthetic Kilo Gateway probe returned HTTP 200 and a complete
+  SSE stream; this does not validate the mobile app or owner request.
 - Final independent validation used Node 24.22.2 / npm 11.19.1, as required.
   An initial shell invocation accidentally used system Node 20.20.2, which caused
   Node-24-specific privacy/test-runner failures; no code was changed for that
@@ -275,20 +278,47 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   Package/build only; no device retest or successful S36 acceptance yet.
 - Follow-up owner report (2026-11-07): owner selected run #12 as the installed
   standalone APK; after clearing data and uninstalling/reinstalling, chat still
-  fails with the optional key field blank on both Wi-Fi and mobile data. This is
-  owner-reported; the agent has not inspected the phone package. Latest screenshot
-  shows keyboard closed, so keyboard-open behavior is still unknown.
-- Local branch `fix/s36-keyless-provider-diagnostics` writes regression tests
-  first and separates safe `connection`, `HTTP error`, `access denied`,
-  `provider unavailable`, and `protocol` categories. UI receives fixed codes only; no keys, prompt text,
-  raw response bodies, or HTTP body details are exposed. It also removes the
-  misleading suggestion to remove a key from the generic fallback. Local proof:
-  root coverage 357 tests / 57 files at 100%; root typecheck/lint/format/build/
-  privacy/secret scan/audit passed; mobile 21/21 tests, typecheck/lint/format
-  passed; Expo Android export bundled 1,411 modules. PR #67 is open; its first
-  required quality run failed only at `format:check` for `docs/device_tests.md`.
-  That formatting issue is corrected locally; follow-up CI, merge, and a new APK
-  remain pending.
+  failed with the optional key field blank on both Wi-Fi and mobile data. This is
+  owner-reported; the agent did not inspect the phone package.
+- Run #13 owner retest (2026-11-07): owner confirms the supplied screenshot is
+  from the run #13 standalone APK. Kilo Auto Free is selected; two assistant
+  replies show `KILO_UNKNOWN` and no successful answer. Exact prompt text is not
+  recorded. The screen's message says no ledger changes were made, but no
+  before/after ledger comparison was supplied. Composer is visible with keyboard
+  closed; keyboard-open behavior remains untested. The agent did not verify the
+  installed APK hash or observe the phone.
+- Source inspection confirms `mobile_qa.ts` maps `provider_error` to
+  `KILO_UNKNOWN`. `qa_loop.ts` maps uncategorized errors to `provider_error` and
+  also uses it for some invalid/empty completions; `langchain_adapter.ts` wraps
+  several unexpected errors generically. The screenshot does not distinguish
+  these paths. The anonymous synthetic Gateway probe returned HTTP 200 and a
+  complete SSE response but does not validate the app's LangChain path.
+- PR #67 (`fix/s36-keyless-provider-diagnostics`) added fixed, safe categories
+  for connection, unavailable, access, HTTP, protocol, auth, rate-limit,
+  rejected-request and unknown failures. UI receives fixed codes only; no keys,
+  prompt text, raw provider bodies, or HTTP body details are exposed. It also
+  removed the misleading suggestion to remove a key from the generic fallback.
+  Local proof: root coverage 357 tests / 57 files at 100%; root
+  typecheck/lint/format/build/privacy/secret scan/audit passed; mobile 21/21
+  tests, typecheck/lint/format passed; Expo Android export bundled 1,411
+  modules. PR #67 initially had a `format:check` failure in
+  `docs/device_tests.md`; formatting was corrected and all required PR checks
+  then passed. PR #67 merged as `0dbacde6eaa56d0d00b55b9d5d43e6b75cff53f6`.
+- Post-merge main CI (`42358832997`) and Native app (`42358832973`) checks passed.
+  Manual S33 standalone APK run #13 (`42358981476`) succeeded on the merge
+  commit; runner/toolchain details and the APK hash are in `docs/device_tests.md`.
+  APK is archived at
+  `../S36-builds/s36-keyless-provider-diagnostics-standalone.apk`. Build succeeded,
+  but the owner-reported run #13 screenshot shows two `KILO_UNKNOWN` failures;
+  successful S36 acceptance remains pending.
+
+- Provider-scope update (2026-11-07): owner chose to retain optional Kilo keyless
+  after the successful direct synthetic probe and requested OpenAI-compatible
+  BYOK plus Claude API-key and subscription/OAuth paths. Official Anthropic docs
+  were checked and recorded in `docs/references.md`: third-party apps must not
+  offer Claude.ai subscription login; direct API-key BYOK is supported. No Claude
+  subscription/OAuth flow is implemented. Ask the owner to revise that part to
+  API-key BYOK or another officially supported provider path before coding.
 
 ## Owner-owned open items (do not decide)
 
