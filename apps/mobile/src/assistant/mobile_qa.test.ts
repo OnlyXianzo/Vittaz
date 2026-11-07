@@ -3,19 +3,38 @@ import type { LedgerStore } from "@vittaz/core";
 import { create_mobile_qa_agent, mobile_qa_failure_message } from "./mobile_qa";
 
 it("shows safe actionable copy for rejected keys and rate limits", () => {
-  expect(mobile_qa_failure_message("provider_auth_failed")).toBe(
-    "Kilo rejected the saved key. Replace it in Model settings or remove it to retry keyless Auto Free. Never share the key.",
+  expect(mobile_qa_failure_message("provider_auth_failed")).toContain(
+    "KILO_AUTH",
   );
-  expect(mobile_qa_failure_message("provider_rate_limited")).toBe(
-    "Kilo Auto Free is rate-limited. Wait a bit before trying again.",
+  expect(mobile_qa_failure_message("provider_auth_failed")).toContain(
+    "Auto Free is normally keyless",
+  );
+  expect(mobile_qa_failure_message("provider_rate_limited")).toContain(
+    "KILO_RATE_LIMIT",
+  );
+  expect(mobile_qa_failure_message("provider_request_rejected")).toContain(
+    "KILO_REQUEST_REJECTED",
   );
 });
 
-it("never includes provider response or prompt data in failure copy", () => {
-  const failure = mobile_qa_failure_message("provider_error");
-  expect(failure).toContain("remove a saved key to retry keyless");
-  expect(failure).toContain("No ledger changes were made.");
-  expect(failure).not.toMatch(/private|prompt|response body|bearer /i);
+it("shows safe provider diagnostics without suggesting a blank key must be removed", () => {
+  const failures = [
+    ["provider_connection_failed", "KILO_CONNECTION"],
+    ["provider_unavailable", "KILO_UNAVAILABLE"],
+    ["provider_access_denied", "KILO_ACCESS"],
+    ["provider_protocol_error", "KILO_PROTOCOL"],
+    ["provider_http_error", "KILO_HTTP"],
+    ["provider_error", "KILO_UNKNOWN"],
+  ] as const;
+
+  for (const [reason, code] of failures) {
+    const failure = mobile_qa_failure_message(reason);
+    expect(failure).toContain(code);
+    expect(failure).toContain("No ledger changes were made.");
+    expect(failure).not.toMatch(
+      /remove a saved key|private|prompt|response body|bearer /i,
+    );
+  }
 });
 
 function sse_response(payload: unknown) {

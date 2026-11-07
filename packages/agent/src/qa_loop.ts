@@ -103,6 +103,11 @@ export type QaStopReason =
   | "provider_auth_failed"
   | "provider_rate_limited"
   | "provider_request_rejected"
+  | "provider_connection_failed"
+  | "provider_unavailable"
+  | "provider_access_denied"
+  | "provider_http_error"
+  | "provider_protocol_error"
   | "provider_error";
 export interface AnswerQuestionResult {
   answered: boolean;
@@ -362,6 +367,16 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
           return stopped("provider_auth_failed");
         if (reasons.size === 1 && reasons.has("rate_limited"))
           return stopped("provider_rate_limited");
+        if (reasons.size === 1 && reasons.has("connection_error"))
+          return stopped("provider_connection_failed");
+        if (reasons.size === 1 && reasons.has("provider_unavailable"))
+          return stopped("provider_unavailable");
+        if (reasons.size === 1 && reasons.has("access_denied"))
+          return stopped("provider_access_denied");
+        if (reasons.size === 1 && reasons.has("provider_http_error"))
+          return stopped("provider_http_error");
+        if (reasons.size === 1 && reasons.has("protocol_error"))
+          return stopped("provider_protocol_error");
       }
       return stopped(
         error instanceof ToolValidationError ||

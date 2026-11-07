@@ -15,13 +15,23 @@ const failure_copy: Record<QaStopReason, string> = {
   sensitive_dropped:
     "This question may contain sensitive information. Use synthetic data only.",
   provider_auth_failed:
-    "Kilo rejected the saved key. Replace it in Model settings or remove it to retry keyless Auto Free. Never share the key.",
+    "Kilo denied authentication. Auto Free is normally keyless; if you intentionally saved a key, verify it in Model settings. Code: KILO_AUTH. Never share the key. No ledger changes were made.",
   provider_rate_limited:
-    "Kilo Auto Free is rate-limited. Wait a bit before trying again.",
+    "Kilo Auto Free is rate-limited. Wait before trying again. Code: KILO_RATE_LIMIT. No ledger changes were made.",
   provider_request_rejected:
-    "Kilo rejected this request format. No ledger changes were made.",
+    "Kilo rejected this request format. Code: KILO_REQUEST_REJECTED. No ledger changes were made.",
+  provider_connection_failed:
+    "The app could not connect to Kilo. Check that the network allows the connection. Code: KILO_CONNECTION. No ledger changes were made.",
+  provider_unavailable:
+    "Kilo is temporarily unavailable. Try again later. Code: KILO_UNAVAILABLE. No ledger changes were made.",
+  provider_access_denied:
+    "Kilo denied access to this model route. Auto Free availability may have changed. Code: KILO_ACCESS. No ledger changes were made.",
+  provider_protocol_error:
+    "Kilo replied in an unsupported format, so no answer was accepted. Code: KILO_PROTOCOL. No ledger changes were made.",
+  provider_http_error:
+    "Kilo returned an HTTP error outside the known auth, rate-limit, and request-format cases. Code: KILO_HTTP. No ledger changes were made.",
   provider_error:
-    "Kilo could not complete the request. Check your connection, remove a saved key to retry keyless, or try again later. No ledger changes were made.",
+    "The request failed for an unclassified reason. If it continues, report code KILO_UNKNOWN. No ledger changes were made.",
   tool_rejected:
     "I couldn't safely finish the read-only ledger lookup. No ledger changes were made.",
   step_limit:

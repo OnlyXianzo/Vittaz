@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "User-provided S36 screenshots dated 2026-11-07 show repeated generic chat failures and a keyboard-open screen without the composer; installed build and provider error are unknown. Provider diagnostics (#64) and keyboard handling (#65) are merged, and a fresh standalone APK is archived. Successful S36 device retest remains pending."
+blocked_on: "Owner confirms run #12 standalone APK, blank optional key, and repeated chat failure after clear-data/reinstall on both Wi-Fi and mobile data. The provider failure stage remains unknown because the shipped fallback conflates several safe error classes. A local follow-up branch now classifies connection, access-denied, provider-unavailable and protocol failures without raw details; CI/merge/new APK and successful device retest remain pending."
 last_updated: "2026-11-07"
 last_green_commit: "6b190cfa76cbb6b5ed6bed74b805d2fc4179ec9e"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. User-provided screenshots dated 2026-11-07 show repeated generic assistant failures after key-save UI and report a keyboard/composer issue; exact build, provider status, device model/version, and cause are unknown. One anonymous synthetic Kilo endpoint probe returned HTTP 200 SSE, but does not validate the saved key or app path. PR #64 (`5a88a7e`) merged as `c6c57d467953824bd91e0ed8ad48887eaf1eca13`; all required PR checks and main quality/privacy/test/security/build/native checks passed. Keyboard/composer handling merged in PR #65 (`661054d6`) as `6b190cfa76cbb6b5ed6bed74b805d2fc4179ec9e`; all required PR and main checks passed. Manual workflow run `42343693444` (#12) succeeded on that main commit: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 20s, Ubuntu 24.04.5 image `20261101.360.1`, Node 24.22.2/npm 11.19.1, Temurin JDK 17.0.21. Standalone APK artifact `13563145707` expires `2026-11-14T05:53:58Z`, 48,636,434 bytes, SHA-256 `7663ce72020163c36fb3cbf20cdff5390a92a7a62da07eec2ada80ce57e5d29f`; archived at `../S36-builds/s36-merged-post-chat-fixes-standalone.apk`. Static package evidence only; user retest and successful S36 device acceptance remain pending."}}
+ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. User-provided screenshots dated 2026-11-07 show repeated generic assistant failures after key-save UI and report a keyboard/composer issue; exact build, provider status, device model/version, and cause are unknown. One anonymous synthetic Kilo endpoint probe returned HTTP 200 SSE, but does not validate the saved key or app path. PR #64 (`5a88a7e`) merged as `c6c57d467953824bd91e0ed8ad48887eaf1eca13`; all required PR checks and main quality/privacy/test/security/build/native checks passed. Keyboard/composer handling merged in PR #65 (`661054d6`) as `6b190cfa76cbb6b5ed6bed74b805d2fc4179ec9e`; all required PR and main checks passed. Manual workflow run `42343693444` (#12) succeeded on that main commit: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 20s, Ubuntu 24.04.5 image `20261101.360.1`, Node 24.22.2/npm 11.19.1, Temurin JDK 17.0.21. Standalone APK artifact `13563145707` expires `2026-11-14T05:53:58Z`, 48,636,434 bytes, SHA-256 `7663ce72020163c36fb3cbf20cdff5390a92a7a62da07eec2ada80ce57e5d29f`; archived at `../S36-builds/s36-merged-post-chat-fixes-standalone.apk`. Static package evidence only; the owner now confirms run #12 was installed and reports the same failure after clear-data/reinstall on Wi-Fi and mobile data with a blank optional key. Successful S36 device acceptance remains pending. A local diagnostic branch separates safe connection, access-denied, provider-unavailable and protocol categories without raw provider data; it passes local tests/checks but has not been merged or built into an APK."}}
 ---
 
 # STATE
@@ -186,17 +186,19 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 
 ## Next actions
 
-1. Ask the user to retest the fresh standalone APK at
-   `../S36-builds/s36-merged-post-chat-fixes-standalone.apk`. First remove the
-   optional key and use synthetic prompts only; report phone model/Android
-   version, whether composer/send remain visible with the keyboard open, and the
-   fixed safe failure category or answer. Never ask for/log the key or copy real
-   prompt text. Keep S36 acceptance pending until a successful user report.
-2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
+1. Complete the local safe diagnostic-code change, update docs/state, pass CI,
+   and open the short PR against protected `main`. After merge, manually build a
+   new standalone APK; do not ask the owner to remove a key, clear data or
+   reinstall the current run #12 APK again.
+2. Once the new APK is available, ask for one synthetic request and only the
+   fixed diagnostic code (or success), plus whether the composer remains visible
+   with the keyboard open. Never request keys, prompt text, or raw provider
+   responses. Keep S36 acceptance pending until a successful owner report.
+3. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
-3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
+4. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
    the native modules do not match and it crashes on `RNCSafeAreaProvider`.
-4. Continue Phase J UI vertical slices and prove each slice on a real device.
+5. Continue Phase J UI vertical slices and prove each slice on a real device.
 
 ## S36 current work — 2026-11-07
 
@@ -271,6 +273,19 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   `../S36-builds/s36-merged-post-chat-fixes-standalone.apk` (48,636,434 bytes,
   SHA-256 `7663ce72020163c36fb3cbf20cdff5390a92a7a62da07eec2ada80ce57e5d29f`).
   Package/build only; no device retest or successful S36 acceptance yet.
+- Follow-up owner report (2026-11-07): owner selected run #12 as the installed
+  standalone APK; after clearing data and uninstalling/reinstalling, chat still
+  fails with the optional key field blank on both Wi-Fi and mobile data. This is
+  owner-reported; the agent has not inspected the phone package. Latest screenshot
+  shows keyboard closed, so keyboard-open behavior is still unknown.
+- Local branch `fix/s36-keyless-provider-diagnostics` writes regression tests
+  first and separates safe `connection`, `HTTP error`, `access denied`,
+  `provider unavailable`, and `protocol` categories. UI receives fixed codes only; no keys, prompt text,
+  raw response bodies, or HTTP body details are exposed. It also removes the
+  misleading suggestion to remove a key from the generic fallback. Local proof:
+  root coverage 357 tests / 57 files at 100%; root typecheck/lint/format/build/
+  privacy/secret scan/audit passed; mobile 21/21 tests, typecheck/lint/format
+  passed; Expo Android export bundled 1,411 modules. No PR, merge, or new APK yet.
 
 ## Owner-owned open items (do not decide)
 

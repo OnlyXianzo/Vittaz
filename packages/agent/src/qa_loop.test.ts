@@ -58,6 +58,36 @@ test("qa_classifies_provider_failures_without_returning_raw_error_text", async (
       stopReason: "provider_error",
     },
     {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "connection_error" },
+      ]),
+      stopReason: "provider_connection_failed",
+    },
+    {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "provider_unavailable" },
+      ]),
+      stopReason: "provider_unavailable",
+    },
+    {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "access_denied" },
+      ]),
+      stopReason: "provider_access_denied",
+    },
+    {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "protocol_error" },
+      ]),
+      stopReason: "provider_protocol_error",
+    },
+    {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "provider_http_error" },
+      ]),
+      stopReason: "provider_http_error",
+    },
+    {
       error: new BadRequestNoFallbackError(),
       stopReason: "provider_request_rejected",
     },
