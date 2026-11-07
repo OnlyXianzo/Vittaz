@@ -22,6 +22,10 @@ test("docs_s32_readme_and_device_tests_are_current", () => {
   expect(device).toContain("S36 first runtime failure report");
   expect(device).toContain("installed APK/build are unknown");
   expect(device).toContain("failed attempt");
+  expect(device).toContain("S36 post-follow-up APK build evidence");
+  expect(device).toContain("42343693444");
+  expect(device).toContain("13563145707");
+  expect(device).toContain("s36-merged-post-chat-fixes-standalone.apk");
   expect(device).toContain("agent never observed");
   expect(device).toContain("42044273087");
   expect(device).toContain("adb devices");
