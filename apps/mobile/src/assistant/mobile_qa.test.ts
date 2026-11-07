@@ -1,6 +1,22 @@
 import { expect, it, jest } from "@jest/globals";
 import type { LedgerStore } from "@vittaz/core";
-import { create_mobile_qa_agent } from "./mobile_qa";
+import { create_mobile_qa_agent, mobile_qa_failure_message } from "./mobile_qa";
+
+it("shows safe actionable copy for rejected keys and rate limits", () => {
+  expect(mobile_qa_failure_message("provider_auth_failed")).toBe(
+    "Kilo rejected the saved key. Replace it in Model settings or remove it to retry keyless Auto Free. Never share the key.",
+  );
+  expect(mobile_qa_failure_message("provider_rate_limited")).toBe(
+    "Kilo Auto Free is rate-limited. Wait a bit before trying again.",
+  );
+});
+
+it("never includes provider response or prompt data in failure copy", () => {
+  const failure = mobile_qa_failure_message("provider_error");
+  expect(failure).toContain("remove a saved key to retry keyless");
+  expect(failure).toContain("No ledger changes were made.");
+  expect(failure).not.toMatch(/private|prompt|response body|bearer /i);
+});
 
 function sse_response(payload: unknown) {
   const wire = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`;

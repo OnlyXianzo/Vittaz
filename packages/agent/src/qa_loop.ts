@@ -12,6 +12,7 @@ import { z } from "zod";
 import { checkSensitiveMessage, scrubOutboundText } from "@vittaz/core";
 import type { PrivacyRedactor } from "@vittaz/core";
 import type { ChatMessage, CompletionClient } from "./provider_client.js";
+import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
 import {
   createQaToolExecutor,
   ToolValidationError,
@@ -99,6 +100,9 @@ export type QaStopReason =
   | "aborted"
   | "sensitive_dropped"
   | "tool_rejected"
+  | "provider_auth_failed"
+  | "provider_rate_limited"
+  | "provider_request_rejected"
   | "provider_error";
 export interface AnswerQuestionResult {
   answered: boolean;
@@ -348,6 +352,17 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       return stopped("step_limit");
     } catch (error) {
       if (cancelled()) return cancellationResult();
+      if (error instanceof BadRequestNoFallbackError)
+        return stopped("provider_request_rejected");
+      if (error instanceof AllKeysFailedError) {
+        const reasons = new Set(
+          error.failures.map((failure) => failure.reason),
+        );
+        if (reasons.size === 1 && reasons.has("unauthorized"))
+          return stopped("provider_auth_failed");
+        if (reasons.size === 1 && reasons.has("rate_limited"))
+          return stopped("provider_rate_limited");
+      }
       return stopped(
         error instanceof ToolValidationError ||
           error instanceof ReadOnlyViolationError ||

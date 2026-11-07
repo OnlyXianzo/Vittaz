@@ -12,6 +12,7 @@ import {
   openReadOnlyLedgerStore,
 } from "../../storage/src/repositories.js";
 import { ReadOnlyQaLoop, QaValidationError } from "./qa_loop.js";
+import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
 import type { ChatCompletionResult } from "./provider_client.js";
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -35,6 +36,50 @@ function completion(
     ...extra,
   };
 }
+test("qa_classifies_provider_failures_without_returning_raw_error_text", async () => {
+  const cases = [
+    {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "unauthorized" },
+      ]),
+      stopReason: "provider_auth_failed",
+    },
+    {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "rate_limited" },
+      ]),
+      stopReason: "provider_rate_limited",
+    },
+    {
+      error: new AllKeysFailedError([
+        { nickname: "kilo_free", reason: "rate_limited" },
+        { nickname: "secondary", reason: "unauthorized" },
+      ]),
+      stopReason: "provider_error",
+    },
+    {
+      error: new BadRequestNoFallbackError(),
+      stopReason: "provider_request_rejected",
+    },
+  ] as const;
+  const f = await fixture();
+
+  for (const { error, stopReason } of cases) {
+    const qa = new ReadOnlyQaLoop({
+      client: {
+        chatCompletion: vi.fn(async () => {
+          throw error;
+        }),
+      },
+      data: f.source,
+      redactor: f.redactor,
+    });
+    const result = await qa.answerQuestion("Synthetic connectivity test");
+    expect(result).toMatchObject({ answered: false, stopReason });
+    expect(JSON.stringify(result)).not.toContain(error.message);
+  }
+});
+
 async function fixture() {
   const dir = mkdtempSync(join(tmpdir(), "vittaz_qa_"));
   cleanup.push(async () => rmSync(dir, { recursive: true, force: true }));
