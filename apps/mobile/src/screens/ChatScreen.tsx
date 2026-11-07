@@ -85,7 +85,7 @@ export function ChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           ref={scrollRef}
@@ -336,6 +336,11 @@ export function ChatScreen() {
             <Input
               label="Message"
               placeholder="Message"
+              textStyle={{
+                flex: 1,
+                minHeight: 44,
+                textAlignVertical: "center",
+              }}
               value={state.chatInput}
               onChangeText={(value) =>
                 dispatch({ type: "set_chat_input", value })

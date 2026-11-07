@@ -21,21 +21,21 @@ or Node tests.
 
 ## Checklist
 
-| Area                  | Test                                                                                                    | Status                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05**                |
-| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending                      |
-| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **passed — owner report 2026-11-06**                |
-| Add-form clarity      | Direction/Category labels and subtle divider visible in updated standalone APK                          | **passed — owner visual report 2026-11-06**         |
-| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                                             |
-| LangChain             | Bundle size, tool calling, safe answer display, and reopen behavior recorded on device                  | **failed attempt reported 2026-11-07; fix pending** |
-| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                                             |
-| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                                             |
-| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                                             |
-| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                                             |
-| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                                             |
-| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                                             |
-| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                                             |
+| Area                  | Test                                                                                                    | Status                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05**                                       |
+| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending                                             |
+| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **passed — owner report 2026-11-06**                                       |
+| Add-form clarity      | Direction/Category labels and subtle divider visible in updated standalone APK                          | **passed — owner visual report 2026-11-06**                                |
+| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                                                                    |
+| LangChain             | Bundle size, tool calling, safe answer display, and reopen behavior recorded on device                  | **failed attempt; diagnostics PR #64 merged; keyboard fix/retake pending** |
+| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                                                                    |
+| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                                                                    |
+| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                                                                    |
+| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                                                                    |
+| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                                                                    |
+| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                                                                    |
+| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                                                                    |
 
 ## S33 device record (owner-reported)
 
@@ -114,7 +114,9 @@ is archived outside the repository at
 embedded `assets/index.android.bundle`, Kilo Auto Free/read-only tool markers,
 and SecureStore DEX class. This is build/package evidence only, not device or
 runtime proof. Earlier run #9 (`42273678939`) is a pre-fix historical build and
-is superseded by this merged-head artifact.
+is superseded by this merged-head artifact. This archived APK also predates the
+provider-diagnostics PR #64 and the separate keyboard fix; do not use it to verify
+either change. A fresh post-fix APK has not yet been built.
 
 ## S36 first runtime failure report (user-provided screenshots; 2026-11-07)
 
@@ -150,13 +152,15 @@ is not known.
 
 The user has now provided S36 failure evidence, superseding the earlier note
 that testing was unavailable. Leave S36 acceptance pending until a corrected
-build succeeds on-device; do not infer behavior or mark any row passed. If
-retesting becomes possible, install
-`../S36-builds/s36-final-merged-standalone.apk` (it has an embedded JavaScript
-bundle and does not need Metro). Use synthetic data. First use Kilo Auto Free without a key; it is
-keyless but may route prompts to upstream providers that log them. Do not enter
-a key unless testing with the owner's own Kilo key. Any entered key should be
-checked only for save/remove/reopen status; never copy the value into a report.
+build succeeds on-device; do not infer behavior or mark any row passed. The
+archived APK above predates the follow-up fixes and must not be used to verify
+them. After the keyboard PR merges, build and archive a fresh standalone APK,
+then update this section with its workflow ID and hash before requesting a
+retest. The APK should embed JavaScript and not need Metro. Use synthetic data.
+For the first comparison, remove the optional saved key and try Kilo Auto Free
+keyless; it may route prompts to upstream providers that log them. If separately
+testing key auth, only use the owner's own key. Verify save/remove/reopen status;
+never copy the key into a report.
 
 1. Open Settings → Model and keys; confirm Kilo Auto Free is available with no
    key. Optionally save the owner's own Kilo Gateway key and verify it is

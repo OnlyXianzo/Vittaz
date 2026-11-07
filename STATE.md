@@ -2,11 +2,11 @@
 current_phase: "Phase I Android"
 current_step: "S36 LangChain check"
 current_step_status: "in_progress"
-blocked_on: "User-provided S36 screenshots dated 2026-11-07 show repeated generic chat failures and a reported keyboard/composer issue; installed build and provider error are unknown. Safe failure diagnostics and Android keyboard handling are being fixed. No successful S36 device acceptance yet."
+blocked_on: "User-provided S36 screenshots dated 2026-11-07 show repeated generic chat failures and a keyboard-open screen without the composer; installed build and provider error are unknown. Provider diagnostics merged in PR #64; the keyboard fix is on a separate local branch. Fresh post-fix APK and successful S36 device acceptance are pending."
 last_updated: "2026-11-07"
-last_green_commit: "10e31794dbec8653b165959104d0bc703c1b578b"
+last_green_commit: "c6c57d467953824bd91e0ed8ad48887eaf1eca13"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
-ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. User-provided screenshots dated 2026-11-07 show repeated generic assistant failures after key-save UI and report a keyboard/composer issue; exact build, provider status, device model/version, and cause are unknown. One anonymous synthetic Kilo endpoint probe returned HTTP 200 SSE, but does not validate the saved key or app path. Safe error classification and Android keyboard fix are in progress; successful device acceptance remains pending."}}
+ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. User-provided screenshots dated 2026-11-07 show repeated generic assistant failures after key-save UI and report a keyboard/composer issue; exact build, provider status, device model/version, and cause are unknown. One anonymous synthetic Kilo endpoint probe returned HTTP 200 SSE, but does not validate the saved key or app path. PR #64 (`5a88a7e`) merged as `c6c57d467953824bd91e0ed8ad48887eaf1eca13`; all required PR checks and main quality/privacy/test/security/build/native checks passed. Keyboard/composer handling is a separate branch with local regression green; a fresh post-fix APK and successful device acceptance remain pending."}}
 ---
 
 # STATE
@@ -130,20 +130,24 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - PR #60 protected CI: quality, privacy, test, security, build, and native all
   succeeded. Grouping update merged as `ee274c5`; S35 core work merged earlier as
   PR #56 (`a533288`).
-- S36 follow-up diagnostics step is green locally: **354 root tests / 56 files;
-  statements, branches, functions, and lines all 100%**. Root typecheck, lint,
-  format, build, privacy, audit (0 findings), and secret scan pass.
+- S36 provider diagnostics merged in PR #64 (`5a88a7e`) as
+  `c6c57d467953824bd91e0ed8ad48887eaf1eca13`. PR checks and main quality,
+  privacy, test, security, build and native checks passed. Root local suite on
+  this keyboard branch: **355 tests / 57 files; statements, branches, functions,
+  and lines all 100%**; root typecheck, lint, format, build, privacy, audit (0
+  findings), and secret scan pass.
 - Native app: **21 tests / 4 suites**, typecheck, lint, and format pass. Provider
-  auth, rate-limit, and rejected-request failures are now classified separately;
-  UI copy is fixed/actionable and never includes raw provider text. Keyboard
-  changes are being handled as a separate follow-up step. The
-  standalone Android JS export succeeds (1,411 modules; SHA-256
-  `7835ded50eb7a7121072b3dd214883d3cdf3c3230059837b4664defa0084b085`,
-  5,581,887 bytes). Bundle contains Kilo Auto Free, read-only tool, secure-key
-  identifier and SecureStore methods. Expo autolinking reports SecureStore,
-  SQLite and LinearGradient present. The S36 Settings screen does not present
-  inert approval/name-replacement/note-sharing toggles as active controls; it
-  states the actual read-only cloud boundary and the limits of name replacement.
+  auth, rate-limit, and rejected-request failures map to fixed actionable copy
+  without raw provider text. Android keyboard handling is tested locally on a
+  separate PR branch; no on-device confirmation. The keyboard-branch Android JS
+  export succeeds (1,411 modules; SHA-256
+  `b175234646a7eca6e6b9887daf74877aff4855e2750fa84be7190f68092a023b`,
+  5,584,002 bytes). Resolved Expo public config reports SDK 58.0.0 and
+  `android.softwareKeyboardLayoutMode=resize`. Export/config prove packaging
+  only, not device keyboard behavior. The bundle retains Kilo Auto Free,
+  read-only tools, SecureStore methods and native modules. The S36 Settings
+  screen states the actual read-only cloud boundary and limits of name
+  replacement.
 - PR #62 merged after required PR and main CI/Native checks passed. Merge commit
   `10e31794dbec8653b165959104d0bc703c1b578b`; the branch is closed.
 - Final merged-head APK run `42279488717` succeeded on `main`: Node 24.22.2,
@@ -182,12 +186,12 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 
 ## Next actions
 
-1. Push the green provider-error diagnostics step through its own PR/CI. Then
-   implement the Android keyboard/composer correction on a separate branch/PR;
-   after it merges, build a fresh standalone APK. Ask the user to remove the
-   optional key and use a synthetic keyless query for a safe comparison; never
-   ask for or log the key. Keep answer/tool and force-stop/reopen acceptance
-   pending until a successful user report.
+1. Push the Android keyboard/composer change through its own PR/CI. After it
+   merges, build a fresh standalone APK and update the artifact/test instructions;
+   the archived APK predates both follow-up fixes and must not be used to verify
+   them. Ask the user to remove the optional key and use a synthetic keyless
+   query for a safe comparison; never ask for or log the key. Keep answer/tool
+   and force-stop/reopen acceptance pending until a successful user report.
 2. S37/G4: remaining persistence scope, Keystore, local model/benchmark,
    Telegram, voice and OCR checklist. Each row needs its own owner report.
 3. Do not point the blank `s33-android-proof-apk` at the preview Metro server;
@@ -258,8 +262,12 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - One anonymous, synthetic Kilo Gateway request using the app's route/model and
   streaming/tool request shape returned HTTP 200 with SSE completion and usage.
   This narrows the failure but cannot validate the user's saved key or full app
-  QA path. Provider failure classification and safe mobile copy pass local
-  regressions; keyboard work is being isolated into its own follow-up branch.
+  QA path. Provider failure classification and fixed mobile copy merged in PR
+  #64 as `c6c57d4`; required PR and main checks passed. The separate keyboard
+  branch explicitly requests Android `resize`, uses Android `KeyboardAvoidingView`
+  height behavior, and protects composer input height/alignment. Its static
+  regression passes locally, but device behavior is not established. The old
+  archived APK predates both follow-ups; a new artifact is pending.
 
 ## Owner-owned open items (do not decide)
 

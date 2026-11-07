@@ -14,6 +14,7 @@
     },
     "android": {
       "package": "com.vittaz.preview",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#07120a",
         "foregroundImage": "./assets/android-icon-foreground.png",
