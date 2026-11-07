@@ -285,7 +285,10 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   misleading suggestion to remove a key from the generic fallback. Local proof:
   root coverage 357 tests / 57 files at 100%; root typecheck/lint/format/build/
   privacy/secret scan/audit passed; mobile 21/21 tests, typecheck/lint/format
-  passed; Expo Android export bundled 1,411 modules. No PR, merge, or new APK yet.
+  passed; Expo Android export bundled 1,411 modules. PR #67 is open; its first
+  required quality run failed only at `format:check` for `docs/device_tests.md`.
+  That formatting issue is corrected locally; follow-up CI, merge, and a new APK
+  remain pending.
 
 ## Owner-owned open items (do not decide)
 
