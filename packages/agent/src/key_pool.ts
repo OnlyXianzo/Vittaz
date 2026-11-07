@@ -25,6 +25,11 @@ export interface KeyFailureRecord {
   reason:
     | "unauthorized"
     | "rate_limited"
+    | "connection_error"
+    | "access_denied"
+    | "provider_unavailable"
+    | "provider_http_error"
+    | "protocol_error"
     | "provider_error"
     | "disabled"
     | "cooldown";

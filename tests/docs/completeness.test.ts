@@ -21,6 +21,12 @@ test("docs_s32_readme_and_device_tests_are_current", () => {
   expect(device).toContain("All S36 acceptance rows remain pending");
   expect(device).toContain("S36 first runtime failure report");
   expect(device).toContain("installed APK/build are unknown");
+  expect(device).toContain("S36 post-fix run #12 retest");
+  expect(device).toContain("both Wi-Fi and mobile data");
+  expect(device).toContain("optional key field is blank");
+  expect(device).toContain(
+    "Do not ask the user to clear data or remove a key again",
+  );
   expect(device).toContain("failed attempt");
   expect(device).toContain("S36 post-follow-up APK build evidence");
   expect(device).toContain("42343693444");

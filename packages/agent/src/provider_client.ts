@@ -209,6 +209,11 @@ class HttpFailure extends Error {
     super("Provider HTTP failure");
   }
 }
+class ClassifiedFailure extends Error {
+  constructor(readonly reason: KeyFailureRecord["reason"]) {
+    super("Provider request failed");
+  }
+}
 function cancelled(): Error {
   const e = new Error("Provider request cancelled or timed out");
   e.name = "AbortError";
@@ -393,29 +398,35 @@ export class OpenAICompatibleClient {
       }
       tried.add(entry.nickname);
       try {
-        const response = await this.#fetch(this.#url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(entry.apiKey
-              ? { Authorization: `Bearer ${entry.apiKey}` }
-              : {}),
-          },
-          body: JSON.stringify({
-            model: entry.model,
-            messages: wire.messages,
-            stream: wire.stream ?? false,
-            ...(params.stream
-              ? { stream_options: { include_usage: true } }
-              : {}),
-            ...(wire.tools?.length ? { tools: wire.tools } : {}),
-            ...(wire.maxCompletionTokens
-              ? { max_completion_tokens: wire.maxCompletionTokens }
-              : {}),
-          }),
-          redirect: "error",
-          signal,
-        });
+        let response: Response;
+        try {
+          response = await this.#fetch(this.#url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(entry.apiKey
+                ? { Authorization: `Bearer ${entry.apiKey}` }
+                : {}),
+            },
+            body: JSON.stringify({
+              model: entry.model,
+              messages: wire.messages,
+              stream: wire.stream ?? false,
+              ...(params.stream
+                ? { stream_options: { include_usage: true } }
+                : {}),
+              ...(wire.tools?.length ? { tools: wire.tools } : {}),
+              ...(wire.maxCompletionTokens
+                ? { max_completion_tokens: wire.maxCompletionTokens }
+                : {}),
+            }),
+            redirect: "error",
+            signal,
+          });
+        } catch {
+          if (signal.aborted) throw cancelled();
+          throw new ClassifiedFailure("connection_error");
+        }
         if (!response.ok) {
           await response.body?.cancel().catch(() => undefined);
           if (response.status === 400) throw new BadRequestNoFallbackError();
@@ -424,11 +435,14 @@ export class OpenAICompatibleClient {
             retryAfter(response.headers.get("retry-after"), this.#now()),
           );
         }
-        const result = await parseResponse(
-          response,
-          wire.stream ?? false,
-          params,
-        );
+        let result: Omit<ChatCompletionResult, "keyNickname">;
+        try {
+          result = await parseResponse(response, wire.stream ?? false, params);
+        } catch (error) {
+          if (error instanceof CallbackError) throw error;
+          if (signal.aborted) throw cancelled();
+          throw new ClassifiedFailure("protocol_error");
+        }
         if (signal.aborted) throw cancelled();
         return { ...result, keyNickname: entry.nickname };
       } catch (error) {
@@ -445,8 +459,23 @@ export class OpenAICompatibleClient {
         } else if (error instanceof HttpFailure && error.status === 429) {
           this.#pool.markRateLimited(entry.nickname, error.retryAfterMs);
           failures.push({ nickname: entry.nickname, reason: "rate_limited" });
-        } else
+        } else if (error instanceof HttpFailure && error.status === 403) {
+          failures.push({ nickname: entry.nickname, reason: "access_denied" });
+        } else if (error instanceof HttpFailure && error.status >= 500) {
+          failures.push({
+            nickname: entry.nickname,
+            reason: "provider_unavailable",
+          });
+        } else if (error instanceof HttpFailure) {
+          failures.push({
+            nickname: entry.nickname,
+            reason: "provider_http_error",
+          });
+        } else if (error instanceof ClassifiedFailure) {
+          failures.push({ nickname: entry.nickname, reason: error.reason });
+        } else {
           failures.push({ nickname: entry.nickname, reason: "provider_error" });
+        }
       }
     }
   }

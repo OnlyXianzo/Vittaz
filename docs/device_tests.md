@@ -2,10 +2,13 @@
 
 Status: **S33 executed and owner-accepted 2026-11-05.** S35 SQLite basic
 persistence was owner-reported passed on 2026-11-06. The user supplied S36
-screenshots on 2026-11-07 showing a failed chat attempt and reporting a keyboard
-composer issue; the installed build is unidentified and no successful S36 test
-is established. All S36 acceptance rows remain pending. The agent never observed
-the phone; do not extend the screenshot evidence beyond what is recorded below.
+screenshots on 2026-11-07 showing failed chat attempts and earlier keyboard
+composer concerns. The user later confirmed run #12 standalone APK was installed,
+and reports that clearing app data plus uninstall/reinstall did not resolve chat
+failures on either Wi-Fi or mobile data; the optional key field is blank. No
+successful S36 answer is established, and the latest captures do not retest
+keyboard-open behavior. All S36 acceptance rows remain pending; the agent never observed the phone.
+Do not extend the user report beyond what is recorded below.
 
 This file is the place to record actual device runs only after they happen. Do
 not mark a row complete from emulator assumptions, Expo Go behavior, web preview,
@@ -21,21 +24,21 @@ or Node tests.
 
 ## Checklist
 
-| Area                  | Test                                                                                                    | Status                                                                       |
-| --------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05**                                         |
-| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending                                               |
-| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **passed — owner report 2026-11-06**                                         |
-| Add-form clarity      | Direction/Category labels and subtle divider visible in updated standalone APK                          | **passed — owner visual report 2026-11-06**                                  |
-| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                                                                      |
-| LangChain             | Bundle size, tool calling, safe answer display, and reopen behavior recorded on device                  | **failed attempt; fixes merged #64/#65; post-fix APK built; retest pending** |
-| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                                                                      |
-| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                                                                      |
-| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                                                                      |
-| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                                                                      |
-| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                                                                      |
-| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                                                                      |
-| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                                                                      |
+| Area                  | Test                                                                                                    | Status                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| S33 environment       | Owner installs `s33-preview-standalone-apk` and opens Vittaz on phone                                   | **passed — owner report 2026-11-05**                                 |
+| S34 wiring            | `apps/mobile` imports `packages/core`; core symbols are in the Android bundle                           | build verified; device pending                                       |
+| S35 SQLite            | Corrected `expo-sqlite` APK; synthetic manual entry survives close/reopen                               | **passed — owner report 2026-11-06**                                 |
+| Add-form clarity      | Direction/Category labels and subtle divider visible in updated standalone APK                          | **passed — owner visual report 2026-11-06**                          |
+| S35 assistant         | Shared assistant, local tasks, conversation persistence, and approval queue work through native storage | pending                                                              |
+| LangChain             | Bundle size, tool calling, safe answer display, and reopen behavior recorded on device                  | **run #12 failed; safe diagnostics pending; S36 acceptance pending** |
+| Persistence           | Ledger survives force-stop/reopen; migrations and readonly connections behave as expected               | pending                                                              |
+| Keystore              | Sensitive credentials stored/retrieved via Android Keystore; no plaintext secret export                 | pending                                                              |
+| Local model           | Download, checksum, memory, latency, and failure handling recorded on target hardware                   | pending                                                              |
+| Telegram              | Optional connector foreground/background behavior and privacy boundary observed on device               | pending                                                              |
+| Notification listener | Android notification access, synthetic SMS/UPI fixtures, sensitive filtering before persistence/network | pending                                                              |
+| Voice                 | On-device speech-to-text quality/privacy with synthetic audio                                           | pending                                                              |
+| OCR                   | On-device OCR quality/privacy with synthetic images                                                     | pending                                                              |
 
 ## S33 device record (owner-reported)
 
@@ -140,8 +143,26 @@ sets 7-day artifact retention.
   owner retest; it embeds JavaScript and needs no Metro server.
 - ZIP inspection confirms `assets/index.android.bundle` (4,611,096 bytes),
   Android native libraries, and DEX files. These are package facts only. The
-  agent did not install or run this APK on a device; the user has not yet
-  reported a retest.
+  agent did not install or run this APK on a device. The user later confirmed
+  this run #12 standalone APK was on the phone; that identity is owner-reported,
+  not independently verified by the agent.
+
+## S36 post-fix run #12 retest (owner-reported; 2026-11-07)
+
+- The user selected the run #12 standalone APK from the artifact/archive described
+  above as the installed build. The agent did not inspect the phone's installed
+  package or independently verify its hash.
+- The user reports that clearing app data and uninstalling/reinstalling did not
+  resolve chat failures; the optional key field is blank and the failure occurs
+  on both Wi-Fi and mobile data. This reduces the likelihood of a stale saved key
+  or a single-network issue but does not identify the failure stage.
+- The latest screenshots show the composer with the keyboard closed. They do not
+  confirm or disprove the keyboard-open fix.
+- Result: **failed attempt; no successful answer, tool call, or S36 acceptance is
+  established.** Do not ask the user to clear data or remove a key again. Run
+  #12's `provider_error` fallback merges several distinct failure classes. A
+  local branch now maps these to fixed safe codes; PR, merge, and new APK are
+  pending. No raw response, request prompt, or credential is requested or recorded.
 
 ## S36 first runtime failure report (user-provided screenshots; 2026-11-07)
 
@@ -175,31 +196,34 @@ enter real financial data in further tests. The app cannot retract prompts that
 may already have been sent; Kilo's current routing/retention for those requests
 is not known.
 
-The user has now provided S36 failure evidence, superseding the earlier note
-that testing was unavailable. Leave acceptance pending until the user retests a
-corrected build; do not infer behavior or mark any row passed. Use the fresh
-standalone artifact recorded above or the archive at
-`../S36-builds/s36-merged-post-chat-fixes-standalone.apk`; do not use the older
-pre-follow-up APK. It embeds JavaScript and needs no Metro server. Use synthetic
-data only. For the first comparison, remove the optional saved key and try Kilo
-Auto Free keyless; it may route prompts to upstream providers that log them. If
-separately testing key auth, only use the owner's own key. Verify save/remove/
-reopen status; never copy the key into a report.
+The user has now provided S36 failure evidence and confirmed installing the
+run #12 standalone APK. They report the same generic chat failure after clearing
+app data and uninstalling/reinstalling; the optional key field is blank, and the
+failure occurs on both Wi-Fi and mobile data. This is owner-reported evidence,
+not a device observation by the agent. The repeated generic fallback does not
+identify whether the cause is a local validation error, network transport,
+HTTP response, or unexpected SSE/protocol reply. Leave acceptance pending; do
+not ask the user to clear data or remove a key again. The standalone APK embeds
+JavaScript and needs no Metro server. Use synthetic data only. Auto Free may
+route prompts to upstream providers that log them.
 
-1. Open Settings → Model and keys; remove any optional saved key for the first
-   keyless comparison. Confirm Kilo Auto Free is available without a key. If
-   separately testing auth, use only the owner's own key and never report it.
+1. Open Settings → Model and keys and verify Kilo Auto Free remains selected and
+   the optional key field is blank. Do not re-clear data or repeat uninstall/
+   reinstall. If separately testing key auth, use only the owner's own key and
+   never report it.
 2. Open Assistant/Chat, tap the message field, and type a synthetic word. Verify
    the composer, typed text, and send control all stay visible above the Android
    keyboard; send and keyboard-dismiss controls should remain usable. Report only
-   whether they are visible, not personal message text.
+   whether they are visible, not personal message text. This acceptance remains
+   unverified by the latest keyboard-closed screenshot.
 3. From Home choose “Add or ask by message”, enter a synthetic read-only question
    such as “What did I spend this month?”, then tap Ask Assistant. The app
    navigates to Chat and sends it. Verify the local read-only summary tool is
    called and no ledger row or proposal is written. Record whether an answer
-   arrives or which fixed safe failure category appears (auth, rate limit,
-   rejected request, or generic connection failure). Never provide a key or raw
-   response body in the report.
+   arrives or only the fixed diagnostic code appears (connection, unavailable,
+   access denied, HTTP error, protocol, auth, rate limit, request rejected, or
+   unknown).
+   Never provide a key, prompt text, or raw provider response in the report.
 4. The app requests SSE, but buffers provider output until the bounded Q&A loop
    validates the complete answer; only then does the UI reveal safe chunks. This
    is not raw real-time token streaming. Record visible progression/timing

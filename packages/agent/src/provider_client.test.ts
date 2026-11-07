@@ -75,6 +75,103 @@ test("baseline_4_1_provider_400_no_fallback_401_disable_429_cooldown_all_keys_fa
   });
 });
 
+test("provider_failures_classify_connection_http_and_protocol_causes_without_raw_details", async () => {
+  const cases: Array<{
+    fetch_impl: typeof fetch;
+    reason: string;
+  }> = [
+    {
+      fetch_impl: vi.fn(async () => {
+        throw new Error("private_network_failure");
+      }) as typeof fetch,
+      reason: "connection_error",
+    },
+    {
+      fetch_impl: vi.fn(
+        async () => new Response("private_body", { status: 403 }),
+      ) as typeof fetch,
+      reason: "access_denied",
+    },
+    {
+      fetch_impl: vi.fn(
+        async () => new Response("private_body", { status: 503 }),
+      ) as typeof fetch,
+      reason: "provider_unavailable",
+    },
+    {
+      fetch_impl: vi.fn(
+        async () => new Response("private_body", { status: 404 }),
+      ) as typeof fetch,
+      reason: "provider_http_error",
+    },
+    {
+      fetch_impl: vi.fn(async () =>
+        Object.defineProperty({} as Response, "ok", {
+          get() {
+            throw new Error("private_response_failure");
+          },
+        }),
+      ) as typeof fetch,
+      reason: "provider_error",
+    },
+    {
+      fetch_impl: vi.fn(
+        async () => new Response("data: {private_json}\\n\\n"),
+      ) as typeof fetch,
+      reason: "protocol_error",
+    },
+  ];
+
+  for (const { fetch_impl, reason } of cases) {
+    const client = new OpenAICompatibleClient({
+      baseUrl: "https://example.invalid",
+      keyPool: new KeyPool([configs[0]!]),
+      fetch: fetch_impl,
+    });
+    try {
+      await client.chatCompletion({ messages, stream: true });
+      expect.fail("expected provider failure");
+    } catch (error) {
+      expect(error).toBeInstanceOf(AllKeysFailedError);
+      expect(error).toMatchObject({
+        failures: [{ nickname: "alpha", reason }],
+      });
+      expect(String(error)).not.toContain("private_");
+    }
+  }
+});
+
+test("provider_abort_during_stream_parse_error_stays_cancellation_not_protocol_failure", async () => {
+  const controller = new AbortController();
+  const fetch_impl = vi.fn(
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(stream) {
+            setTimeout(() => {
+              controller.abort();
+              stream.error(new Error("private_stream_failure"));
+            }, 0);
+          },
+        }),
+      ),
+  ) as typeof fetch;
+  const client = new OpenAICompatibleClient({
+    baseUrl: "https://example.invalid",
+    keyPool: new KeyPool([configs[0]!]),
+    fetch: fetch_impl,
+  });
+
+  await expect(
+    client.chatCompletion({
+      messages,
+      stream: true,
+      signal: controller.signal,
+    }),
+  ).rejects.toMatchObject({ name: "AbortError" });
+  expect(fetch_impl).toHaveBeenCalledTimes(1);
+});
+
 test("baseline_4_2_provider_truncated_stream_resets_before_clean_next_key", async () => {
   const s = await open((r) =>
     r.index === 0
