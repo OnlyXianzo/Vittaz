@@ -18,8 +18,11 @@ test("docs_s32_readme_and_device_tests_are_current", () => {
   // S33 was owner-accepted on 2026-11-05. The checklist must record that one
   // executed row without implying any later device row was executed.
   expect(device).toContain("S33 executed and owner-accepted 2026-11-05");
-  expect(device).toContain("All later rows remain");
-  expect(device).toContain("The agent never observed the phone");
+  expect(device).toContain("All S36 acceptance rows remain pending");
+  expect(device).toContain("S36 first runtime failure report");
+  expect(device).toContain("installed APK/build are unknown");
+  expect(device).toContain("failed attempt");
+  expect(device).toContain("agent never observed");
   expect(device).toContain("42044273087");
   expect(device).toContain("adb devices");
   expect(device).toContain("Keystore");

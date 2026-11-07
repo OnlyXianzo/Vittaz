@@ -15,7 +15,10 @@ import {
 } from "@vittaz/core";
 import type { LedgerStore, ProposalRow, TransactionRow } from "@vittaz/core";
 import * as SecureStore from "expo-secure-store";
-import { create_mobile_qa_agent } from "./assistant/mobile_qa";
+import {
+  create_mobile_qa_agent,
+  mobile_qa_failure_message,
+} from "./assistant/mobile_qa";
 import { read_kilo_key } from "./assistant/secure_key";
 import type { Action, AppState, Transaction } from "./domain";
 import { mobileLedgerRuntime } from "./ledger_runtime";
@@ -383,7 +386,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             },
           });
-          if (!result.answered || !result.answer) throw new Error("qa_failed");
+          if (!result.answered || !result.answer) {
+            if (mounted_ref.current) {
+              setState((value) => ({
+                ...value,
+                chatMode: "idle",
+                chatMessages: value.chatMessages.map((message) =>
+                  message.id === assistant_id
+                    ? {
+                        ...message,
+                        text: mobile_qa_failure_message(result.stopReason),
+                      }
+                    : message,
+                ),
+              }));
+            }
+            return;
+          }
           const tool_copy: Record<string, { label: string; detail: string }> = {
             get_month_summary: {
               label: "Checked this month's totals",
@@ -438,7 +457,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 message.id === assistant_id
                   ? {
                       ...message,
-                      text: "I couldn't get a safe answer. Check your connection and try again.",
+                      text: mobile_qa_failure_message("provider_error"),
                     }
                   : message,
               ),
