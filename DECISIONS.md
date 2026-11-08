@@ -841,3 +841,73 @@ All 24 workflow/promotion regression tests pass. The local runner has JDK 11
 and no Android SDK/ADB, so no APK/Gradle build or
 physical-device SAF verification has been performed. No workflow run/APK has
 been produced. No root cause for `KILO_UNKNOWN` is established.
+
+## S38 diagnosis and fix — assistant fails on device; add-provider flow (2026-11-08)
+
+Verified-implementation workflow (Research → Verify → Implement → Prove) applied
+to the owner-supplied diagnostics export and the `OnlyXianzo/Vittaz` checkout.
+
+### Root cause (resolves the long-standing S36 "KILO_UNKNOWN")
+
+The diagnostics show, for every question and for both `kilo` and
+`openai_compatible`, `langchain_invoke_started` immediately followed (~1 ms) by
+`langchain_invoke_failed` with `reason_code: langchain_error`,
+`failure_stage: provider_call`, and **no** `provider_request_started` /
+`provider_http_response` events. The failure is therefore before any HTTP call.
+
+`@langchain/core@1.3.4` `BaseChatModel.invoke` reaches
+`CallbackManager.handleChatModelStart`, which mints a UUID v7 run id via
+`utils/uuid/rng.js` → the global `crypto.getRandomValues`. Hermes (React Native)
+ships no Web Crypto global, so this throws a generic error that the adapter
+classifies as `langchain_error`. Node and the jest-expo runner provide a global
+`crypto`, which is why every unit test passed while the device failed. The S35
+fix injected `expo-crypto` `randomUUID` for ledger ids only; it never installed a
+global `getRandomValues`, so the chat path kept failing.
+
+### Verified approach
+
+Install a global `crypto.getRandomValues` backed by the already-present
+`expo-crypto` at app entry (`apps/mobile/index.ts` imports
+`src/assistant/web_crypto.ts` first), before any LangChain import is evaluated.
+Idempotent and non-destructive (never replaces an existing native impl). Chosen
+over adding `react-native-get-random-values` to avoid a new native dependency and
+to stay consistent with the owner-approved S35 Expo Crypto approach. The
+framework adapter (`packages/agent`) is unchanged; the fix lives only at the
+mobile platform boundary. Sources recorded in `docs/references.md`.
+
+### Blast radius
+
+Consumers of the chat path: `apps/mobile/src/assistant/mobile_qa.ts`,
+`store.tsx` chat action, and the bounded `ReadOnlyQaLoop` (unchanged). A new
+end-to-end regression test removes the global `crypto`, reproduces the
+`provider_error` with zero HTTP calls, then confirms a synthetic question answers
+once the polyfill is installed.
+
+### Add-provider flow redesign (owner request)
+
+`ModelsScreen` previously rendered all three providers' endpoint and key cards at
+once, with three separate Save buttons across disconnected cards. Redesigned to
+progressive disclosure: only the selected provider's configuration is shown;
+OpenAI-compatible endpoint + model + key share one card with a single "Save and
+use" action and inline field-level validation that blocks an incomplete save;
+Anthropic uses the same one-step save; Kilo stays keyless with an optional key.
+All security guarantees are preserved (keys in SecureStore, never shown; removing
+a key never switches providers; selection persisted; no silent fallback). Shell
+tests updated to the new flow; progressive-disclosure and inline-validation tests
+added.
+
+### Secondary finding — diagnostic export (not changed in this pass)
+
+The export log shows four `export_permission_denied` results before a successful
+export. `save_diagnostic_log` only accepts the Downloads root or an existing
+`Vittaz-Diagnostics` folder; any other granted folder (or a cancelled picker)
+maps to `export_permission_denied`. This is a UX/SAF-classification issue, not the
+chat failure. Changing SAF acceptance needs owner device verification, so it is
+left as a separate planned step rather than bundled here.
+
+### Verification
+
+Mobile: 57 tests / 9 suites pass; mobile TypeScript, ESLint, and Prettier checks
+pass. Repository privacy gate passes; deep secret scan reports zero findings in
+history and working tree. No live provider request, real key, APK build, or
+physical-device run was performed; on-device confirmation remains owner-only.

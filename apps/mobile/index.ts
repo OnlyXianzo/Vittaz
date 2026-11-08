@@ -1,3 +1,8 @@
+// Must be the first import: install a Web Crypto getRandomValues polyfill for
+// Hermes before any module (notably LangChain) can call it. Without this, every
+// assistant question fails at provider_call on device. See web_crypto.ts.
+import "./src/assistant/web_crypto";
+
 import { registerRootComponent } from "expo";
 
 import App from "./App";
