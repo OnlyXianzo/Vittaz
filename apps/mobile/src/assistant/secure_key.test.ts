@@ -2,12 +2,16 @@ import { describe, expect, it, jest } from "@jest/globals";
 import {
   KILO_KEY_NAME,
   OPENAI_COMPATIBLE_KEY_NAME,
+  ANTHROPIC_API_KEY_NAME,
   ASSISTANT_PROVIDER_PROFILE_NAME,
+  read_anthropic_api_key,
   read_assistant_provider_profile,
   read_kilo_key,
   read_openai_compatible_key,
+  remove_anthropic_api_key,
   remove_kilo_key,
   remove_openai_compatible_key,
+  save_anthropic_api_key,
   save_assistant_provider_profile,
   save_kilo_key,
   save_openai_compatible_key,
@@ -103,6 +107,31 @@ describe("OpenAI-compatible credential storage", () => {
       OPENAI_COMPATIBLE_KEY_NAME,
     );
     expect(await read_openai_compatible_key(store)).toBeNull();
+  });
+});
+
+describe("Anthropic API-key credential storage", () => {
+  it("stores only a synthetic API key under its isolated SecureStore name", async () => {
+    const store = secret_store();
+    await save_anthropic_api_key(store, "fake-key");
+    expect(store.setItemAsync).toHaveBeenCalledWith(
+      ANTHROPIC_API_KEY_NAME,
+      "fake-key",
+    );
+    expect(await read_anthropic_api_key(store)).toBe("fake-key");
+    expect(store.values.has(KILO_KEY_NAME)).toBe(false);
+    expect(store.values.has(OPENAI_COMPATIBLE_KEY_NAME)).toBe(false);
+  });
+
+  it("removes the Anthropic key independently and rejects malformed values", async () => {
+    const store = secret_store();
+    await save_anthropic_api_key(store, "fake-key");
+    await remove_anthropic_api_key(store);
+    expect(store.deleteItemAsync).toHaveBeenCalledWith(ANTHROPIC_API_KEY_NAME);
+    expect(await read_anthropic_api_key(store)).toBeNull();
+    await expect(save_anthropic_api_key(store, "bad key")).rejects.toThrow(
+      "invalid_api_key",
+    );
   });
 });
 
