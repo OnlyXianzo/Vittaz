@@ -781,3 +781,24 @@ sharing toggles with an explicit read-only/privacy-limit notice; inert controls
 must not imply protections or permissions that are not wired. Other providers/
 local backends are not wired in S36; Ollama local inference remains a separate
 possible keyless route, but requires a reachable local server.
+
+## Owner-approved native BYOK provider scope
+
+The owner selected three separate choices for native read-only chat: keep Kilo
+Auto Free as an optional keyless route, add OpenAI-compatible BYOK, and add
+Anthropic API-key BYOK. The supported Claude path is direct Anthropic API-key
+use only. Do not add Claude.ai subscription/OAuth login or handle subscription
+credentials; Anthropic's current developer policy says third-party apps must
+not offer that login or route subscription credentials for users.
+
+Provider choice is explicit: do not silently move a prompt between providers.
+Keep all provider API keys in Expo SecureStore; never put them in app source,
+logs, SQLite, backups, analytics, fixtures, or tests. Tests use synthetic
+credential strings and fake HTTP/SSE responses only. Continue to pass requests
+through the existing privacy filter, bounded read-only QA loop, and answer
+validation; AI must never write to the database or create proposals. No real
+provider key or personal prompt is authorized for development or testing.
+
+S36's owner-reported run #13 failure remains unresolved and is not evidence for
+or against the new provider integrations. Do not claim a device fix or infer a
+root cause from `KILO_UNKNOWN`.

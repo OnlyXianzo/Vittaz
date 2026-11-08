@@ -19,7 +19,13 @@ export type Mode = "Cash" | "UPI" | "Card" | "SMS";
 export type LedgerFilter = "all" | "cash" | "upi" | "unverified";
 export type InboxFilter = "all" | "upi" | "sms";
 export type ModelId =
-  "auto" | "qwen-1.5b" | "qwen-3b" | "claude" | "gemini" | "free";
+  | "auto"
+  | "openai-compatible"
+  | "qwen-1.5b"
+  | "qwen-3b"
+  | "claude"
+  | "gemini"
+  | "free";
 export type ChatMode = "idle" | "thinking" | "approval";
 
 export interface Transaction {

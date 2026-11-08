@@ -7,6 +7,7 @@ import type { DispatchAction } from "../components";
 
 const MODEL_LABEL: Record<AppState["model"], string> = {
   auto: "Auto, Qwen 1.5B",
+  "openai-compatible": "OpenAI-compatible BYOK",
   "qwen-1.5b": "Qwen 1.5B",
   "qwen-3b": "Qwen 3B",
   claude: "Auto, Claude",

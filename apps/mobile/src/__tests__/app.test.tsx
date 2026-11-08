@@ -9,7 +9,12 @@ import { createProposal } from "@vittaz/core";
 import { randomUUID } from "expo-crypto";
 import App from "../../App";
 import * as SecureStore from "expo-secure-store";
-import { KILO_KEY_NAME } from "../assistant/secure_key";
+import {
+  ASSISTANT_PROVIDER_PROFILE_NAME,
+  KILO_KEY_NAME,
+  OPENAI_COMPATIBLE_KEY_NAME,
+} from "../assistant/secure_key";
+import { create_mobile_qa_agent } from "../assistant/mobile_qa";
 
 jest.mock("expo-secure-store", () => {
   const values = new Map<string, string>();
@@ -85,6 +90,8 @@ async function withoutGlobalCrypto<T>(operation: () => Promise<T>): Promise<T> {
 beforeEach(async () => {
   resetMemoryLedger();
   await SecureStore.deleteItemAsync(KILO_KEY_NAME);
+  await SecureStore.deleteItemAsync(OPENAI_COMPATIBLE_KEY_NAME);
+  await SecureStore.deleteItemAsync(ASSISTANT_PROVIDER_PROFILE_NAME);
   jest.clearAllMocks();
 });
 
@@ -246,21 +253,151 @@ describe("Vittaz native shell backed by core", () => {
     expect(screen.getByText(/no key is required/i)).toBeTruthy();
     const key_input = screen.getByLabelText("Kilo Gateway API key");
     expect(key_input.props.secureTextEntry).toBe(true);
-    await fireEvent.changeText(key_input, "synthetic_user_key_123");
+    await fireEvent.changeText(key_input, "fake-kilo-key");
     await fireEvent.press(screen.getByRole("button", { name: "Save key" }));
     await waitFor(() =>
       expect(screen.getByText("Kilo key saved securely.")).toBeTruthy(),
     );
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
       KILO_KEY_NAME,
-      "synthetic_user_key_123",
+      "fake-kilo-key",
     );
-    expect(screen.queryByText("synthetic_user_key_123")).toBeNull();
+    expect(screen.queryByText("fake-kilo-key")).toBeNull();
     await fireEvent.press(screen.getByRole("button", { name: "Remove key" }));
     await waitFor(() =>
       expect(screen.getByText(/Kilo key removed/)).toBeTruthy(),
     );
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(KILO_KEY_NAME);
+  });
+
+  it("selects OpenAI-compatible BYOK and keeps its key in SecureStore", async () => {
+    await open();
+    await tab("Settings");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Model and keys" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("OpenAI-compatible API base URL"),
+      "https://compatible.example/api/v1",
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("OpenAI-compatible model"),
+      "synthetic-compatible-model",
+    );
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Save provider settings" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }).props
+          .accessibilityState.checked,
+      ).toBe(true),
+    );
+    const key_input = screen.getByLabelText("OpenAI-compatible API key");
+    expect(key_input.props.secureTextEntry).toBe(true);
+    await fireEvent.changeText(key_input, "test-key");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Save OpenAI-compatible key" }),
+    );
+    await waitFor(() =>
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+        OPENAI_COMPATIBLE_KEY_NAME,
+        "test-key",
+      ),
+    );
+    expect(screen.queryByText("test-key")).toBeNull();
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+      ASSISTANT_PROVIDER_PROFILE_NAME,
+      JSON.stringify({
+        selected_provider: "openai_compatible",
+        base_url: "https://compatible.example/api/v1",
+        model: "synthetic-compatible-model",
+      }),
+    );
+
+    await fireEvent.press(screen.getByRole("button", { name: "Back" }));
+    await tab("Home");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add or ask by message" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Question"),
+      "Synthetic balance question",
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Ask Assistant" }),
+    );
+    await waitFor(() =>
+      expect(create_mobile_qa_agent).toHaveBeenCalledWith(expect.anything(), {
+        kind: "openai_compatible",
+        api_key: "test-key",
+        base_url: "https://compatible.example/api/v1",
+        model: "synthetic-compatible-model",
+      }),
+    );
+    expect(
+      screen.getByRole("button", { name: "OpenAI-compatible BYOK" }),
+    ).toBeTruthy();
+    expect(getMemoryRows("transactions")).toHaveLength(0);
+  });
+
+  it("does not silently fall back to Kilo after the selected BYOK key is removed", async () => {
+    await open();
+    await tab("Settings");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Model and keys" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("OpenAI-compatible model"),
+      "synthetic-compatible-model",
+    );
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Save provider settings" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("OpenAI-compatible API key"),
+      "test-key",
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Save OpenAI-compatible key" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Remove OpenAI-compatible key" }),
+    );
+    await waitFor(() =>
+      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        OPENAI_COMPATIBLE_KEY_NAME,
+      ),
+    );
+    expect(
+      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }).props
+        .accessibilityState.checked,
+    ).toBe(true);
+    await fireEvent.press(screen.getByRole("button", { name: "Back" }));
+    await tab("Home");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add or ask by message" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Question"),
+      "Synthetic balance question",
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Ask Assistant" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText(/No OpenAI-compatible API key is saved/i),
+      ).toBeTruthy(),
+    );
+    expect(create_mobile_qa_agent).not.toHaveBeenCalled();
+    expect(getMemoryRows("transactions")).toHaveLength(0);
   });
 
   it("never creates a ledger entry or proposal from an assistant reply", async () => {
@@ -289,7 +426,7 @@ describe("Vittaz native shell backed by core", () => {
     await open();
     await tab("Settings");
     expect(
-      screen.getByText(/currently answers read-only ledger questions/i),
+      screen.getByText(/selected provider answers read-only ledger questions/i),
     ).toBeTruthy();
     expect(
       screen.queryByRole("switch", { name: "Send notes to cloud" }),

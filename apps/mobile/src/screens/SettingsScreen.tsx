@@ -12,6 +12,7 @@ import {
 
 const MODEL_LABEL: Record<AppState["model"], string> = {
   auto: "Kilo Auto Free (read-only questions)",
+  "openai-compatible": "OpenAI-compatible BYOK (read-only questions)",
   "qwen-1.5b": "Qwen 1.5B on this phone",
   "qwen-3b": "Qwen 3B on this phone",
   claude: "Auto, Claude",
@@ -21,6 +22,12 @@ const MODEL_LABEL: Record<AppState["model"], string> = {
 
 export function SettingsScreen() {
   const { state, dispatch } = useApp();
+  const model_status =
+    state.model === "openai-compatible"
+      ? "Your key"
+      : state.model === "auto"
+        ? "Free / optional key"
+        : "Not configured";
   const digest =
     state.settings.reviewDigest === "off"
       ? "Off"
@@ -37,7 +44,7 @@ export function SettingsScreen() {
           first
           title="Model and keys"
           subtitle={MODEL_LABEL[state.model]}
-          right={<M>Free</M>}
+          right={<M>{model_status}</M>}
           onPress={() => dispatch({ type: "navigate", screen: "models" })}
         />
         <SettingRow
@@ -56,11 +63,12 @@ export function SettingsScreen() {
       <SectionLabel>Assistant privacy and permissions</SectionLabel>
       <Card>
         <M style={{ lineHeight: 19 }}>
-          Kilo Auto Free currently answers read-only ledger questions. It cannot
-          draft, save, or approve entries. Ledger notes and notifications are
-          not included in read-only tool results, but anything you type in a
-          question may be sent to Kilo. Name replacement is not guaranteed
-          anonymization; use synthetic data only.
+          The selected provider answers read-only ledger questions. It cannot
+          draft, save, or approve entries. Questions and read-only ledger
+          context may leave this device; Kilo Auto Free can route to providers
+          that log prompts, and BYOK services follow their own policies. Do not
+          treat name replacement as guaranteed anonymization; use synthetic data
+          only.
         </M>
       </Card>
 

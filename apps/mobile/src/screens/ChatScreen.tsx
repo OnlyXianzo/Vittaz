@@ -29,6 +29,7 @@ import {
 
 const MODEL_LABEL: Record<AppState["model"], string> = {
   auto: "Auto, Kilo Auto Free",
+  "openai-compatible": "OpenAI-compatible BYOK",
   "qwen-1.5b": "Qwen 1.5B",
   "qwen-3b": "Qwen 3B",
   claude: "Auto, Claude",
@@ -110,8 +111,9 @@ export function ChatScreen() {
           ) : null}
 
           <M size={12} style={{ lineHeight: 17 }}>
-            Kilo Auto Free may route prompts to providers that log them. Do not
-            enter personal or confidential data; use synthetic data only.
+            {state.model === "openai-compatible"
+              ? "Questions and read-only ledger context are sent to your configured service. Check its data policy; use synthetic data only."
+              : "Kilo Auto Free may route prompts to providers that log them. Do not enter personal or confidential data; use synthetic data only."}
           </M>
 
           {state.chatMessages.map((m) =>
@@ -233,7 +235,11 @@ export function ChatScreen() {
           ) : null}
 
           {state.chatMode === "thinking" ? (
-            <M size={12}>Asking Kilo Auto Free…</M>
+            <M size={12}>
+              {state.model === "openai-compatible"
+                ? "Asking your selected provider…"
+                : "Asking Kilo Auto Free…"}
+            </M>
           ) : null}
 
           {proposal && state.chatMode === "approval" ? (

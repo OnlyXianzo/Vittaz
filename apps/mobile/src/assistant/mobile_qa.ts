@@ -8,7 +8,18 @@ import { OpenAICompatibleClient } from "../../../../packages/agent/src/provider_
 export const KILO_GATEWAY_BASE_URL = "https://ai-gateway.kilo.ai/api";
 export const KILO_FREE_MODEL = "kilo-auto/free";
 
-const failure_copy: Record<QaStopReason, string> = {
+export type MobileQaProvider =
+  | { kind: "kilo"; api_key: string | null }
+  | {
+      kind: "openai_compatible";
+      api_key: string;
+      base_url: string;
+      model: string;
+    };
+
+export type MobileQaProviderKind = MobileQaProvider["kind"];
+
+const kilo_failure_copy: Record<QaStopReason, string> = {
   completed: "The assistant could not produce a safe answer.",
   message_rejected:
     "This question was blocked by the assistant's safety rules.",
@@ -42,26 +53,110 @@ const failure_copy: Record<QaStopReason, string> = {
   aborted: "The request was canceled.",
 };
 
-export function mobile_qa_failure_message(reason: QaStopReason): string {
-  return failure_copy[reason];
+const openai_compatible_failure_copy: Record<QaStopReason, string> = {
+  completed: "The assistant could not produce a safe answer.",
+  message_rejected:
+    "This question was blocked by the assistant's safety rules.",
+  sensitive_dropped:
+    "This question may contain sensitive information. Use synthetic data only.",
+  provider_auth_failed:
+    "The OpenAI-compatible service rejected authentication. Check the key in Model settings. Code: BYOK_AUTH. No ledger changes were made.",
+  provider_rate_limited:
+    "The OpenAI-compatible service is rate-limiting requests. Try again later. Code: BYOK_RATE_LIMIT. No ledger changes were made.",
+  provider_request_rejected:
+    "The OpenAI-compatible service rejected this request format. Code: BYOK_REQUEST_REJECTED. No ledger changes were made.",
+  provider_connection_failed:
+    "The app could not connect to the selected OpenAI-compatible service. Check the endpoint and network. Code: BYOK_CONNECTION. No ledger changes were made.",
+  provider_unavailable:
+    "The selected OpenAI-compatible service is temporarily unavailable. Try again later. Code: BYOK_UNAVAILABLE. No ledger changes were made.",
+  provider_access_denied:
+    "The selected OpenAI-compatible service denied access to this model. Check its model settings. Code: BYOK_ACCESS. No ledger changes were made.",
+  provider_protocol_error:
+    "The OpenAI-compatible service replied in an unsupported format, so no answer was accepted. Code: BYOK_PROTOCOL. No ledger changes were made.",
+  provider_http_error:
+    "The OpenAI-compatible service returned an HTTP error. Code: BYOK_HTTP. No ledger changes were made.",
+  provider_error:
+    "The selected provider request failed for an unclassified reason. If it continues, report code BYOK_UNKNOWN. No ledger changes were made.",
+  tool_rejected:
+    "I couldn't safely finish the read-only ledger lookup. No ledger changes were made.",
+  step_limit:
+    "I couldn't safely complete that question within the request limits.",
+  token_budget:
+    "I couldn't safely complete that question within the response limit.",
+  timeout:
+    "The selected provider request timed out. Check your connection and try again.",
+  aborted: "The request was canceled.",
+};
+
+export function mobile_qa_failure_message(
+  reason: QaStopReason,
+  provider: MobileQaProviderKind = "kilo",
+): string {
+  return provider === "openai_compatible"
+    ? openai_compatible_failure_copy[reason]
+    : kilo_failure_copy[reason];
 }
 
-/** S36 uses only the bounded, read-only ledger Q&A loop. */
+function validate_openai_compatible_provider(provider: {
+  api_key: string;
+  base_url: string;
+  model: string;
+}): { base_url: string; model: string } {
+  try {
+    const key = provider.api_key.trim();
+    const has_control_character = Array.from(key).some((character) => {
+      const code = character.charCodeAt(0);
+      return code <= 0x1f || code === 0x7f;
+    });
+    const url = new URL(provider.base_url.trim());
+    const model = provider.model.trim();
+    if (
+      !key ||
+      key.length > 4096 ||
+      /\s/.test(key) ||
+      has_control_character ||
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(model)
+    )
+      throw new Error();
+    url.pathname = url.pathname.replace(/\/+$/, "").replace(/\/v1$/i, "");
+    return { base_url: url.origin + url.pathname, model };
+  } catch {
+    throw new Error("Invalid provider configuration");
+  }
+}
+
+/** S37 reuses the bounded, read-only ledger Q&A loop for explicitly selected providers. */
 export function create_mobile_qa_agent(
   ledger: LedgerStore,
-  api_key: string | null,
+  provider: MobileQaProvider,
   fetch_impl: typeof fetch = fetch,
 ) {
   const redactor = new PrivacyRedactor();
+  const kilo_selected = provider.kind === "kilo";
+  const profile = kilo_selected
+    ? null
+    : validate_openai_compatible_provider(provider);
   const client = new OpenAICompatibleClient({
-    baseUrl: KILO_GATEWAY_BASE_URL,
+    baseUrl: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
     keyPool: new KeyPool([
-      {
-        nickname: "kilo_free",
-        apiKey: api_key ?? "",
-        provider: "kilo_gateway",
-        model: KILO_FREE_MODEL,
-      },
+      kilo_selected
+        ? {
+            nickname: "kilo_free",
+            apiKey: provider.api_key ?? "",
+            provider: "kilo_gateway",
+            model: KILO_FREE_MODEL,
+          }
+        : {
+            nickname: "openai_compatible_byok",
+            apiKey: provider.api_key,
+            provider: "openai_compatible",
+            model: profile!.model,
+          },
     ]),
     fetch: fetch_impl,
     timeoutMs: 45000,
