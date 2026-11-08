@@ -261,3 +261,29 @@ notes: <anything the next agent must know>
 ## 14. Deferred, not in this plan
 
 Gmail, WhatsApp, Discord, MCP server and client, automatic long-term memory, voice, OCR, and the notification listener beyond its parser. Each needs its own step list when its time comes. Future connector tools such as `gmail_search_messages` are documented in `docs/CONNECTORS.md` and are not to be built now.
+
+## 15. Native BYOK provider extensions (owner-approved scope)
+
+S36 remains pending: the owner-confirmed run #13 screenshot reports two
+`KILO_UNKNOWN` failures, with no established root cause or successful device
+acceptance. Continue to report this separately; provider additions must not be
+represented as fixing that failure.
+
+- [x] **S37a. OpenAI-compatible BYOK route.** Add an explicitly user-selected
+      OpenAI-compatible endpoint/model/key profile to native read-only chat.
+      Preserve Kilo Auto Free as a separate optional keyless route. Keep keys in
+      Expo SecureStore only; use synthetic credentials and fake-provider tests.
+      Reuse the existing bounded QA loop and provider adapter; no AI database
+      writes, no silent provider fallback, no bundled/default API key.
+- [ ] **S37b. Anthropic API-key BYOK route.** Add direct Anthropic Messages API
+      requests and tool-use translation through the same bounded read-only QA
+      behavior. Use only a user-supplied Anthropic API key in Expo SecureStore.
+      Do not implement Claude subscription/OAuth login or collect subscription
+      credentials. Test with fake HTTP/SSE responses only.
+- [ ] **S37c. Native provider disclosure and selection checks.** Verify the
+      chosen route is visible, provider-specific credential removal works, prompts
+      are disclosed as leaving the device, and provider failures never mutate the
+      ledger. No real keys or personal prompts.
+- [ ] **S37d. Device verification.** After a successful test APK is delivered,
+      ask the owner to test each available route with synthetic prompts. Record
+      owner-reported evidence separately from agent-observed build/test evidence.

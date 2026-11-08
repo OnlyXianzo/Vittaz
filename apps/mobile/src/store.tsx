@@ -19,7 +19,12 @@ import {
   create_mobile_qa_agent,
   mobile_qa_failure_message,
 } from "./assistant/mobile_qa";
-import { read_kilo_key } from "./assistant/secure_key";
+import type { MobileQaProviderKind } from "./assistant/mobile_qa";
+import {
+  read_assistant_provider_profile,
+  read_kilo_key,
+  read_openai_compatible_key,
+} from "./assistant/secure_key";
 import type { Action, AppState, Transaction } from "./domain";
 import { mobileLedgerRuntime } from "./ledger_runtime";
 import { openMobileLedgerStore } from "./storage/open_ledger_store";
@@ -289,6 +294,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     mounted_ref.current = true;
+    void read_assistant_provider_profile(SecureStore)
+      .then((profile) => {
+        if (!mounted_ref.current) return;
+        setState((current) => ({
+          ...current,
+          model:
+            profile.selected_provider === "openai_compatible"
+              ? "openai-compatible"
+              : "auto",
+        }));
+      })
+      .catch(() => undefined);
     void openMobileLedgerStore()
       .then(async (store) => {
         if (!mounted_ref.current) {
@@ -364,12 +381,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
             { id: assistant_id, role: "assistant", text: "" },
           ],
         }));
+        let provider_kind: MobileQaProviderKind =
+          state_ref.current.model === "openai-compatible"
+            ? "openai_compatible"
+            : "kilo";
         void (async () => {
           let streamed_answer = "";
-          const agent = create_mobile_qa_agent(
-            store,
-            await read_kilo_key(SecureStore),
-          );
+          const profile = await read_assistant_provider_profile(SecureStore);
+          provider_kind = profile.selected_provider;
+          const provider =
+            profile.selected_provider === "openai_compatible"
+              ? {
+                  kind: "openai_compatible" as const,
+                  api_key:
+                    (await read_openai_compatible_key(SecureStore)) ?? "",
+                  base_url: profile.base_url,
+                  model: profile.model,
+                }
+              : {
+                  kind: "kilo" as const,
+                  api_key: await read_kilo_key(SecureStore),
+                };
+          const missing_provider_setup =
+            provider.kind === "openai_compatible" && !provider.api_key
+              ? "No OpenAI-compatible API key is saved. Add one in Model settings. No ledger changes were made."
+              : provider.kind === "openai_compatible" &&
+                  (!provider.base_url || !provider.model)
+                ? "Complete the HTTPS endpoint and model in Model settings before asking. No ledger changes were made."
+                : null;
+          if (missing_provider_setup) {
+            if (mounted_ref.current) {
+              setState((value) => ({
+                ...value,
+                chatMode: "idle",
+                chatMessages: value.chatMessages.map((message) =>
+                  message.id === assistant_id
+                    ? { ...message, text: missing_provider_setup }
+                    : message,
+                ),
+              }));
+            }
+            return;
+          }
+          const agent = create_mobile_qa_agent(store, provider);
           const result = await agent.answerQuestion(question, {
             signal: controller.signal,
             onValidatedChunk: (chunk: string) => {
@@ -395,7 +449,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   message.id === assistant_id
                     ? {
                         ...message,
-                        text: mobile_qa_failure_message(result.stopReason),
+                        text: mobile_qa_failure_message(
+                          result.stopReason,
+                          provider_kind,
+                        ),
                       }
                     : message,
                 ),
@@ -457,7 +514,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 message.id === assistant_id
                   ? {
                       ...message,
-                      text: mobile_qa_failure_message("provider_error"),
+                      text: mobile_qa_failure_message(
+                        "provider_error",
+                        provider_kind,
+                      ),
                     }
                   : message,
               ),
