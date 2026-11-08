@@ -614,6 +614,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           );
           const result = await agent.answerQuestion(question, {
             signal: controller.signal,
+            // The QA loop's timeout is a single budget shared across every
+            // tool step, and each provider call may take up to 45s. The Kilo
+            // free tier can take ~25s per call, so the 30s default ran out
+            // mid-second-step and timed out a healthy multi-step answer. Give
+            // the bounded loop its maximum total budget so multi-step answers
+            // complete; the per-call 45s timeout still fails a hung call fast.
+            timeoutMs: 120000,
             onValidatedChunk: (chunk: string) => {
               streamed_answer += chunk;
               if (mounted_ref.current) {
