@@ -47,6 +47,40 @@ npm run android:env
 The checker prints JSON with snake_case keys and masks serials. It is only an
 environment report. A passing report still does not prove app behavior.
 
+## Current S38 diagnostics test APK — synthetic data only
+
+The manual workflow
+`.github/workflows/mobile-diagnostics-test-apk.yml` builds the **actual
+Vittaz app** with a diagnostics-only app identity. In GitHub, open **Actions** →
+**Vittaz mobile diagnostics test APK** → **Run workflow**. Download the
+`vittaz-diagnostics-test-apk` artifact and install `app-release.apk`.
+
+This APK is named **Vittaz TEST ONLY**, displays a persistent **TEST BUILD ONLY
+— SYNTHETIC DATA ONLY** banner, and uses Android package
+`com.vittaz.diagnostics.test`. It can be installed beside personal Vittaz; do
+not uninstall or overwrite your personal app to use it. The diagnostics screen
+is in Settings. It displays the most recent safe operational events and has an
+explicit **Save test log to Downloads** button. The first save asks Android for
+folder permission: select Downloads (the app creates `Vittaz-Diagnostics`) or
+select that existing folder. The resulting JSON is stored under
+`Downloads/Vittaz-Diagnostics/` on the device. Exporting is user-triggered; do
+not share the file until you have checked it.
+
+**Use synthetic data only. Do not enter personal questions, ledger records,
+provider credentials, or API keys.** Kilo requests may leave the device, even
+when no key is used. Diagnostics intentionally exclude prompts, replies, ledger
+values, keys/tokens, full URLs, provider bodies, and exception text; they record
+only safe operational event codes, fixed reasons, stages, provider kind, status,
+elapsed time, and allowlisted tool names. Use the event timestamp, provider,
+HTTP category and stage to describe the failure; don't add private input to a
+report.
+
+Please report whether it installed/opened, whether Kilo returns an answer using
+a synthetic question, whether the export button wrote a JSON file under the
+expected Downloads folder, and the phone model/Android version. An APK build,
+static bundle check, or log export **does not claim device behavior** and does
+not by itself prove the cause of `KILO_UNKNOWN`.
+
 ## 3. Build a blank Expo development build
 
 S33 uses a blank Expo development build to prove the native toolchain before
@@ -189,12 +223,13 @@ The blank debug APK also has a second limitation: `assembleDebug` does not embed
 a JavaScript bundle (the generated Gradle config skips bundling for debuggable
 variants), so it always needs a reachable Metro server.
 
-## CI preview workflow: `s33-preview-apk`
+## Historical CI preview workflow (S33 through S36; renamed for S38)
 
-`.github/workflows/s33-preview-apk.yml` builds the **owner preview itself**, so
-the native binary and the JavaScript bundle match. It is `workflow_dispatch`
-only, uses `permissions: contents: read`, uses no secrets, and pins every action
-to a commit SHA.
+The former `.github/workflows/s33-preview-apk.yml` built the **owner preview
+itself**, so the native binary and JavaScript bundle matched. Its historical
+build and device records are retained below. S38 replaced that active workflow
+with `.github/workflows/mobile-diagnostics-test-apk.yml`; use the current
+instructions in the S38 section above rather than these old artifact instructions.
 
 It never modifies the checkout. Since S34 it copies `apps/mobile` into the
 runner temp directory; the shared domain travels with it at `ui/src`, preserving
@@ -233,15 +268,13 @@ The dev-client artifact is the debug variant. Use it only when you want live
 reload, and only against a Metro server started from
 `apps/mobile` — not against the blank proof app.
 
-### Run it
+### Historical run instructions (workflow name retired)
 
-1. GitHub → **Actions** → **S33 preview APK** → **Run workflow**.
-2. Wait for the `preview-apk` job.
-3. Download `s33-preview-standalone-apk`, extract the ZIP, tap `app-release.apk`.
-4. Allow unknown-source installs for the app opening the APK
-   (**Settings → Apps → Special app access → Install unknown apps**).
-5. Open **Vittaz**. It installs as package `com.vittaz.preview`, separate from the
-   blank proof app, so both can coexist.
+At the time, the owner selected **Actions** → **S33 preview APK** → **Run workflow**,
+then downloaded `s33-preview-standalone-apk`. These steps describe historical
+builds only; the active S33 filename was replaced for S38. 4. Allow unknown-source installs for the app opening the APK
+(**Settings → Apps → Special app access → Install unknown apps**). 5. Open **Vittaz**. It installs as package `com.vittaz.preview`, separate from the
+blank proof app, so both can coexist.
 
 If a previous preview APK was signed with a different key, Android will refuse
 the update; uninstall the old Vittaz preview first.
@@ -379,8 +412,9 @@ only S35 basic manual-save persistence. The owner did not provide phone model or
 Android version; the agent did not run or observe the device. See
 `docs/device_tests.md` for the report details and still-pending checks.
 
-The standalone workflow remains the way to test a later change. Use the current
-S36 workflow run/artifact once generated; install `s33-preview-standalone-apk`
-(`app-release.apk`) following the steps above. S36 device testing is pending and
-must use synthetic questions/data. Do not treat Metro export or APK static
-inspection as device behavior.
+For the current Kilo investigation, use the S38 diagnostics APK instructions at
+the top of this guide and the artifact `vittaz-diagnostics-test-apk`. It is a
+separate app identity, explicitly marked TEST ONLY, and must be used with
+synthetic questions/data only. S36's Kilo failure remains unresolved; APK
+installation and an exported log are evidence to investigate, not automatic
+proof of a root cause.

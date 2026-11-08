@@ -99,12 +99,17 @@ describe("Vittaz native shell backed by core", () => {
   it("opens on an empty local ledger instead of demo transactions", async () => {
     await open();
     expect(screen.getByRole("header", { name: "Vittaz" })).toBeTruthy();
+    expect(screen.queryByText(/TEST BUILD ONLY/)).toBeNull();
     expect(screen.getByText("Net spend this month")).toBeTruthy();
     expect(screen.getAllByText("₹0").length).toBeGreaterThan(0);
     expect(screen.queryByText("Tea stall")).toBeNull();
     expect(screen.queryByText("Reliance BP")).toBeNull();
     for (const name of ["Home", "Inbox", "Ledger", "People", "Settings"])
       expect(screen.getByRole("tab", { name })).toBeTruthy();
+    await tab("Settings");
+    expect(
+      screen.queryByRole("button", { name: "Save test log to Downloads" }),
+    ).toBeNull();
   });
 
   it("creates a manual transaction through packages/core and reloads it from the store", async () => {

@@ -110,6 +110,45 @@ test("qa_classifies_provider_failures_without_returning_raw_error_text", async (
   }
 });
 
+test("qa_reports_static_stage_for_unknown_failure_without_exposing_exception", async () => {
+  const f = await fixture();
+  const events: unknown[] = [];
+  const qa = new ReadOnlyQaLoop({
+    client: {
+      chatCompletion: vi.fn(async () => {
+        throw new Error("synthetic_private_exception_marker");
+      }),
+    },
+    data: f.source,
+    redactor: f.redactor,
+    onDiagnostic: (event) => events.push(event),
+  });
+
+  const result = await qa.answerQuestion("Synthetic connectivity test");
+  const serialized = JSON.stringify(events);
+  expect(result.stopReason).toBe("provider_error");
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event_code: "qa_started",
+        outcome: "started",
+      }),
+      expect.objectContaining({
+        event_code: "qa_stage_failed",
+        outcome: "failed",
+        reason_code: "provider_error",
+        failure_stage: "provider_call",
+      }),
+      expect.objectContaining({
+        event_code: "qa_failed",
+        outcome: "failed",
+        reason_code: "provider_error",
+      }),
+    ]),
+  );
+  expect(serialized).not.toContain("synthetic_private_exception_marker");
+});
+
 async function fixture() {
   const dir = mkdtempSync(join(tmpdir(), "vittaz_qa_"));
   cleanup.push(async () => rmSync(dir, { recursive: true, force: true }));

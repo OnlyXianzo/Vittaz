@@ -802,3 +802,42 @@ provider key or personal prompt is authorized for development or testing.
 S36's owner-reported run #13 failure remains unresolved and is not evidence for
 or against the new provider integrations. Do not claim a device fix or infer a
 root cause from `KILO_UNKNOWN`.
+
+## 2026-11-05 — S38 Android diagnostics build scope (owner-requested)
+
+Owner requested an intensive test-only build, detailed logs, user-triggered log
+export to a dedicated Downloads folder, and a descriptive replacement for the
+active S33 preview APK workflow. This is recorded as S38 in Plan.md. The device
+uses private financial data, so “everything in logs” is implemented as every
+relevant _operational stage and outcome_, not raw inputs/outputs: event names,
+static stage/reason codes, provider kind, HTTP status, elapsed time, and
+allowlisted tool names only. Prompts, replies, ledger records, keys, tokens, full
+URLs, response bodies, arbitrary exception text and stacks remain prohibited in
+console, memory, and exported logs. Logs are bounded and local; export requires
+an explicit tap and Android folder-picker permission. The build must say
+“TEST ONLY — synthetic data only”, use a distinct package ID so it cannot
+replace personal Vittaz, and keep diagnostics disabled in ordinary builds. The
+active preview workflow is replaced with a descriptive manual diagnostics APK
+workflow; historical S33 records remain historical and are not erased. This
+implementation does not claim a cause for KILO_UNKNOWN until a real device run
+of the diagnostics build establishes one. SDK 58 Expo FileSystem/legacy SAF
+documentation is recorded in `docs/references.md`; the implementation uses the
+Android Storage Access Framework picker.
+
+### S38 implementation checkpoint (2026-11-05)
+
+The mobile bounded allowlist logger, agent/provider/LangChain/QA event forwarding,
+synthetic-only diagnostics panel, explicit Android SAF Downloads export, and
+safe export service are implemented in the feature branch. Test results so far:
+52 focused agent tests passed; all 46 mobile tests passed; mobile and root
+TypeScript checks passed; the repository privacy gate passed; and a no-bytecode
+Android Expo export confirmed the TEST ONLY banner and Downloads button in the
+bundle. A temp-only Expo Android prebuild confirmed the test label, distinct
+`com.vittaz.diagnostics.test` package ID, and `expo-file-system` autolinking.
+The owner selected the actual Vittaz app preview workflow as the S38 target.
+`.github/workflows/mobile-diagnostics-test-apk.yml` now replaces the old
+`s33-preview-apk.yml`; the unrelated blank Expo proof workflow remains intact.
+All 24 workflow/promotion regression tests pass. The local runner has JDK 11
+and no Android SDK/ADB, so no APK/Gradle build or
+physical-device SAF verification has been performed. No workflow run/APK has
+been produced. No root cause for `KILO_UNKNOWN` is established.

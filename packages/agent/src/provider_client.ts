@@ -3,6 +3,11 @@ import { z } from "zod";
 import { checkSensitiveMessage, PrivacyRedactor } from "@vittaz/core";
 import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
 import type { KeyFailureRecord, KeyPool } from "./key_pool.js";
+import { report_agent_diagnostic } from "./diagnostics.js";
+import type {
+  AgentDiagnosticReason,
+  AgentDiagnosticReporter,
+} from "./diagnostics.js";
 const toolCall = z.object({
   id: z.string().max(128).optional(),
   type: z.literal("function").optional(),
@@ -99,6 +104,8 @@ export interface ChatCompletionParams {
   onStreamDelta?: ((delta: string) => void) | null;
   onStreamReset?: (() => void) | null;
   maxCompletionTokens?: number;
+  /** Optional codebook-only reporter. Never receives request or response content. */
+  onDiagnostic?: AgentDiagnosticReporter;
 }
 export interface CompletionClient {
   chatCompletion(params: ChatCompletionParams): Promise<ChatCompletionResult>;
@@ -231,6 +238,31 @@ const zeroUsage = (): TokenUsage => ({
   completion_tokens: 0,
   total_tokens: 0,
 });
+function diagnostic_failure_reason(
+  reason: KeyFailureRecord["reason"] | undefined,
+): AgentDiagnosticReason {
+  switch (reason) {
+    case "unauthorized":
+    case "rate_limited":
+    case "connection_error":
+    case "access_denied":
+    case "provider_unavailable":
+    case "provider_http_error":
+    case "protocol_error":
+    case "provider_error":
+      return reason;
+    default:
+      return "provider_error";
+  }
+}
+function http_failure_reason(status: number) {
+  if (status === 400) return "request_rejected" as const;
+  if (status === 401) return "unauthorized" as const;
+  if (status === 403) return "access_denied" as const;
+  if (status === 429) return "rate_limited" as const;
+  if (status >= 500) return "provider_unavailable" as const;
+  return "provider_http_error" as const;
+}
 function retryAfter(value: string | null, now: number): number | undefined {
   if (!value) return undefined;
   if (/^\d+$/.test(value)) return Math.min(Number(value) * 1000, 86400000);
@@ -397,6 +429,12 @@ export class OpenAICompatibleClient {
         throw new AllKeysFailedError(failures);
       }
       tried.add(entry.nickname);
+      const request_started_at = this.#now();
+      report_agent_diagnostic(params.onDiagnostic, {
+        event_code: "provider_request_started",
+        source: "provider_http",
+        outcome: "started",
+      });
       try {
         let response: Response;
         try {
@@ -424,9 +462,32 @@ export class OpenAICompatibleClient {
             signal,
           });
         } catch {
+          const was_cancelled = callerSignal?.aborted === true;
+          report_agent_diagnostic(params.onDiagnostic, {
+            event_code: "provider_fetch_failed",
+            source: "provider_http",
+            outcome: "failed",
+            reason_code: signal.aborted
+              ? was_cancelled
+                ? "cancelled"
+                : "timeout"
+              : "connection_error",
+            elapsed_ms: Math.max(0, this.#now() - request_started_at),
+          });
           if (signal.aborted) throw cancelled();
           throw new ClassifiedFailure("connection_error");
         }
+        const response_reason = response.ok
+          ? "ok"
+          : http_failure_reason(response.status);
+        report_agent_diagnostic(params.onDiagnostic, {
+          event_code: "provider_http_response",
+          source: "provider_http",
+          outcome: response.ok ? "completed" : "failed",
+          reason_code: response_reason,
+          http_status: response.status,
+          elapsed_ms: Math.max(0, this.#now() - request_started_at),
+        });
         if (!response.ok) {
           await response.body?.cancel().catch(() => undefined);
           if (response.status === 400) throw new BadRequestNoFallbackError();
@@ -439,10 +500,28 @@ export class OpenAICompatibleClient {
         try {
           result = await parseResponse(response, wire.stream ?? false, params);
         } catch (error) {
-          if (error instanceof CallbackError) throw error;
+          const callback_failed = error instanceof CallbackError;
+          report_agent_diagnostic(params.onDiagnostic, {
+            event_code: "provider_response_parsed",
+            source: "provider_protocol",
+            outcome: "failed",
+            reason_code: callback_failed ? "callback_error" : "protocol_error",
+            http_status: response.status,
+            elapsed_ms: Math.max(0, this.#now() - request_started_at),
+          });
+          if (callback_failed) throw error;
           if (signal.aborted) throw cancelled();
           throw new ClassifiedFailure("protocol_error");
         }
+        report_agent_diagnostic(params.onDiagnostic, {
+          event_code: "provider_response_parsed",
+          source: "provider_protocol",
+          outcome: "completed",
+          reason_code: "ok",
+          http_status: response.status,
+          elapsed_ms: Math.max(0, this.#now() - request_started_at),
+          count: result.toolCalls.length,
+        });
         if (signal.aborted) throw cancelled();
         return { ...result, keyNickname: entry.nickname };
       } catch (error) {
@@ -476,6 +555,15 @@ export class OpenAICompatibleClient {
         } else {
           failures.push({ nickname: entry.nickname, reason: "provider_error" });
         }
+        const latest_failure = failures[failures.length - 1];
+        report_agent_diagnostic(params.onDiagnostic, {
+          event_code: "provider_failure_classified",
+          source: "provider_protocol",
+          outcome: "failed",
+          reason_code: diagnostic_failure_reason(latest_failure?.reason),
+          http_status: error instanceof HttpFailure ? error.status : undefined,
+          elapsed_ms: Math.max(0, this.#now() - request_started_at),
+        });
       }
     }
   }

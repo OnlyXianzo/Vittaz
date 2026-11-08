@@ -66,6 +66,42 @@ test("langchain_buffers_provider_sse_for_validated_answer_delivery", async () =>
     expect.objectContaining({ stream: true }),
   );
 });
+test("langchain_diagnostics_report_unexpected_stage_without_exception_text", async () => {
+  const events: unknown[] = [];
+  const raw = {
+    chatCompletion: vi.fn(async () => {
+      throw new Error("synthetic_private_exception_marker");
+    }),
+  };
+  const client = new LangChainCompletionClient(raw);
+
+  await expect(
+    client.chatCompletion({
+      ...request,
+      onDiagnostic: (event) => events.push(event),
+    }),
+  ).rejects.toBeInstanceOf(LangChainAdapterError);
+
+  const serialized = JSON.stringify(events);
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event_code: "langchain_invoke_started",
+        source: "langchain",
+        outcome: "started",
+      }),
+      expect.objectContaining({
+        event_code: "langchain_invoke_failed",
+        source: "langchain",
+        outcome: "failed",
+        reason_code: "langchain_error",
+        failure_stage: "provider_call",
+      }),
+    ]),
+  );
+  expect(serialized).not.toContain("synthetic_private_exception_marker");
+});
+
 test("langchain_sensitive_malformed_stream_callback_and_aborted_input_never_invoke_framework_or_provider", async () => {
   const spy = vi.spyOn(BaseChatModel.prototype, "invoke");
   const raw = { chatCompletion: vi.fn(async () => result) };

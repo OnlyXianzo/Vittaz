@@ -19,6 +19,35 @@ import type {
   QuestionAnsweringAgent,
 } from "./qa_loop.js";
 import type { QaDataSource } from "./tools.js";
+import { report_agent_diagnostic } from "./diagnostics.js";
+import type {
+  AgentDiagnosticFailureStage,
+  AgentDiagnosticReason,
+} from "./diagnostics.js";
+function adapter_failure_reason(error: unknown): AgentDiagnosticReason {
+  if (error instanceof BadRequestNoFallbackError) return "request_rejected";
+  if (error instanceof AllKeysFailedError) {
+    const reasons = new Set(error.failures.map((failure) => failure.reason));
+    if (reasons.size === 1) {
+      const [reason] = reasons;
+      if (
+        reason === "unauthorized" ||
+        reason === "rate_limited" ||
+        reason === "connection_error" ||
+        reason === "access_denied" ||
+        reason === "provider_unavailable" ||
+        reason === "provider_http_error" ||
+        reason === "protocol_error"
+      )
+        return reason;
+    }
+    return "provider_error";
+  }
+  if (error instanceof Error && error.name === "AbortError") return "cancelled";
+  if (error instanceof Error && error instanceof LangChainAdapterError)
+    return "callback_error";
+  return "langchain_error";
+}
 export class LangChainAdapterError extends Error {
   constructor() {
     super("LangChain adapter request could not be completed safely");
@@ -108,6 +137,7 @@ export class LangChainCompletionClient implements CompletionClient {
   async chatCompletion(
     params: ChatCompletionParams,
   ): Promise<ChatCompletionResult> {
+    let failure_stage: AgentDiagnosticFailureStage = "request_validation";
     try {
       const { wire, callerSignal } = validateCompletionRequest(
         params,
@@ -120,8 +150,18 @@ export class LangChainCompletionClient implements CompletionClient {
       )
         throw new LangChainAdapterError();
       const bridge = new CompletionBridge(() =>
-        this.#client.chatCompletion({ ...wire, signal: callerSignal }),
+        this.#client.chatCompletion({
+          ...wire,
+          signal: callerSignal,
+          onDiagnostic: params.onDiagnostic,
+        }),
       );
+      failure_stage = "provider_call";
+      report_agent_diagnostic(params.onDiagnostic, {
+        event_code: "langchain_invoke_started",
+        source: "langchain",
+        outcome: "started",
+      });
       const message = await bridge.invoke(
         wire.messages.map(
           (message) =>
@@ -138,11 +178,25 @@ export class LangChainCompletionClient implements CompletionClient {
           configurable: {},
         },
       );
+      failure_stage = "completion_validation";
+      report_agent_diagnostic(params.onDiagnostic, {
+        event_code: "langchain_invoke_succeeded",
+        source: "langchain",
+        outcome: "completed",
+        reason_code: "ok",
+      });
       // Preserve raw malformed tool arguments for the authoritative S22 validation boundary.
       return structuredClone(
         message.response_metadata.vittaz_completion as ChatCompletionResult,
       );
     } catch (error) {
+      report_agent_diagnostic(params.onDiagnostic, {
+        event_code: "langchain_invoke_failed",
+        source: "langchain",
+        outcome: "failed",
+        reason_code: adapter_failure_reason(error),
+        failure_stage,
+      });
       if (
         error instanceof BadRequestNoFallbackError ||
         error instanceof AllKeysFailedError
@@ -164,6 +218,7 @@ export class LangChainQaAgent implements QuestionAnsweringAgent {
     client: CompletionClient;
     data: QaDataSource;
     redactor: PrivacyRedactor;
+    onDiagnostic?: import("./diagnostics.js").AgentDiagnosticReporter;
   }) {
     this.#loop = new ReadOnlyQaLoop({
       ...params,

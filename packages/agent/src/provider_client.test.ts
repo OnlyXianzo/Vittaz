@@ -75,6 +75,45 @@ test("baseline_4_1_provider_400_no_fallback_401_disable_429_cooldown_all_keys_fa
   });
 });
 
+test("diagnostic_callbacks_report_safe_request_stage_and_http_category_only", async () => {
+  const events: unknown[] = [];
+  const client = new OpenAICompatibleClient({
+    baseUrl: "https://example.invalid",
+    keyPool: new KeyPool([configs[0]!]),
+    fetch: vi.fn(
+      async () => new Response("synthetic_private_body", { status: 403 }),
+    ),
+  });
+
+  await expect(
+    client.chatCompletion({
+      messages,
+      onDiagnostic: (event) => events.push(event),
+    }),
+  ).rejects.toBeInstanceOf(AllKeysFailedError);
+
+  const serialized = JSON.stringify(events);
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event_code: "provider_request_started",
+        source: "provider_http",
+        outcome: "started",
+      }),
+      expect.objectContaining({
+        event_code: "provider_http_response",
+        source: "provider_http",
+        outcome: "failed",
+        reason_code: "access_denied",
+        http_status: 403,
+      }),
+    ]),
+  );
+  expect(serialized).not.toContain("synthetic_private_body");
+  expect(serialized).not.toContain("synthetic_alpha");
+  expect(serialized).not.toMatch(/prompt|api_key|url|stack|response_body/i);
+});
+
 test("provider_failures_classify_connection_http_and_protocol_causes_without_raw_details", async () => {
   const cases: Array<{
     fetch_impl: typeof fetch;

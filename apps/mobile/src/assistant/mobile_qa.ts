@@ -1,9 +1,13 @@
 import { getWalletSummary, PrivacyRedactor } from "@vittaz/core";
 import type { LedgerStore } from "@vittaz/core";
 import type { QaStopReason } from "../../../../packages/agent/src/qa_loop";
+export type { QaStopReason };
 import { LangChainQaAgent } from "../../../../packages/agent/src/langchain_adapter";
 import { KeyPool } from "../../../../packages/agent/src/key_pool";
 import { OpenAICompatibleClient } from "../../../../packages/agent/src/provider_client";
+import type { AgentDiagnosticEvent } from "../../../../packages/agent/src/diagnostics";
+import { mobile_diagnostics } from "./diagnostics";
+import type { MobileDiagnostics } from "./diagnostics";
 
 export const KILO_GATEWAY_BASE_URL = "https://ai-gateway.kilo.ai/api";
 export const KILO_FREE_MODEL = "kilo-auto/free";
@@ -135,8 +139,22 @@ export function create_mobile_qa_agent(
   ledger: LedgerStore,
   provider: MobileQaProvider,
   fetch_impl: typeof fetch = fetch,
+  diagnostics: Pick<MobileDiagnostics, "record"> = mobile_diagnostics,
 ) {
   const redactor = new PrivacyRedactor();
+  const on_diagnostic = (event: AgentDiagnosticEvent) =>
+    diagnostics.record(
+      event.event_code,
+      event.source,
+      event.outcome,
+      provider.kind,
+      event.reason_code,
+      event.http_status,
+      event.elapsed_ms,
+      event.tool_name,
+      event.count,
+      event.failure_stage,
+    );
   const kilo_selected = provider.kind === "kilo";
   const profile = kilo_selected
     ? null
@@ -165,6 +183,7 @@ export function create_mobile_qa_agent(
   return new LangChainQaAgent({
     client,
     redactor,
+    onDiagnostic: on_diagnostic,
     data: {
       listTransactions: () => ledger.read((repos) => repos.transactions.list()),
       getWalletSummary: (wallet_id) => getWalletSummary(ledger, wallet_id),
