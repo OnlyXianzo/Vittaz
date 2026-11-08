@@ -31,6 +31,7 @@ jest.mock("expo-secure-store", () => {
 });
 
 jest.mock("../assistant/mobile_qa", () => ({
+  ...(jest.requireActual("../assistant/mobile_qa") as object),
   create_mobile_qa_agent: jest.fn(() => ({
     answerQuestion: jest.fn(
       async (
@@ -555,6 +556,123 @@ describe("Vittaz native shell backed by core", () => {
     // The loop timeout is shared across all tool steps and must exceed the
     // 45s per-call provider timeout so a slow multi-step answer can finish.
     expect(options.timeoutMs).toBeGreaterThanOrEqual(90000);
+  });
+
+  describe("S37c — provider disclosure and selection checks", () => {
+    async function ask(question: string) {
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Add or ask by message" }),
+      );
+      await fireEvent.changeText(screen.getByLabelText("Question"), question);
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Ask Assistant" }),
+      );
+    }
+    async function select_provider(name: string) {
+      await tab("Settings");
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Model and keys" }),
+      );
+      await fireEvent.press(screen.getByRole("radio", { name }));
+      await fireEvent.press(screen.getByRole("button", { name: "Back" }));
+      await tab("Home");
+    }
+
+    it("shows the selected Kilo route and a leaves-device disclosure in chat", async () => {
+      await open();
+      await ask("Synthetic question");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Auto, Kilo Auto Free" }),
+        ).toBeTruthy(),
+      );
+      expect(
+        screen.getByText(
+          /Kilo Auto Free may route prompts to providers that log them/,
+        ),
+      ).toBeTruthy();
+      expect(screen.getAllByText(/synthetic data only/).length).toBeGreaterThan(
+        0,
+      );
+    });
+
+    it("shows the selected OpenAI-compatible route and its disclosure", async () => {
+      await open();
+      await select_provider("OpenAI-compatible BYOK");
+      await ask("Synthetic question");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "OpenAI-compatible BYOK" }),
+        ).toBeTruthy(),
+      );
+      expect(screen.getByText(/sent to your configured service/)).toBeTruthy();
+    });
+
+    it("shows the selected Anthropic route and its disclosure", async () => {
+      await open();
+      await select_provider("Anthropic API-key BYOK");
+      await ask("Synthetic question");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Claude API-key BYOK" }),
+        ).toBeTruthy(),
+      );
+      expect(
+        screen.getByText(/sent directly to Anthropic's Messages API/),
+      ).toBeTruthy();
+    });
+
+    it("removes the Anthropic credential without switching the selected route", async () => {
+      await open();
+      await tab("Settings");
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Model and keys" }),
+      );
+      await fireEvent.press(
+        screen.getByRole("radio", { name: "Anthropic API-key BYOK" }),
+      );
+      await fireEvent.changeText(
+        screen.getByLabelText("Anthropic API key"),
+        "fake-key",
+      );
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Save and use" }),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Remove key" })).toBeTruthy(),
+      );
+      await fireEvent.press(screen.getByRole("button", { name: "Remove key" }));
+      await waitFor(() =>
+        expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
+          ANTHROPIC_API_KEY_NAME,
+        ),
+      );
+      expect(
+        screen.getByRole("radio", { name: "Anthropic API-key BYOK" }).props
+          .accessibilityState.checked,
+      ).toBe(true);
+    });
+
+    it("never mutates the ledger when the provider fails", async () => {
+      jest.mocked(create_mobile_qa_agent).mockImplementationOnce(
+        () =>
+          ({
+            answerQuestion: jest.fn(async () => ({
+              answered: false,
+              stopReason: "provider_auth_failed",
+              stepsUsed: 1,
+              tokensUsed: 0,
+              toolsUsed: [],
+              answer: null,
+            })),
+          }) as unknown as ReturnType<typeof create_mobile_qa_agent>,
+      );
+      await open();
+      await ask("Synthetic question");
+      await waitFor(() => expect(screen.getByText(/KILO_AUTH/)).toBeTruthy());
+      expect(getMemoryRows("transactions")).toHaveLength(0);
+      expect(getMemoryRows("proposals")).toHaveLength(0);
+    });
   });
 
   it("never creates a ledger entry or proposal from an assistant reply", async () => {

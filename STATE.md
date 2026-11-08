@@ -403,3 +403,23 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - Local verification with Node 24.22.2: mobile 58 tests / 9 suites pass; mobile
   typecheck/lint/format pass; privacy gate passes; deep secret scan zero findings.
 - No merge performed; awaiting owner review. On-device retest remains owner-only.
+
+## S37c checkpoint — provider disclosure and selection checks (2026-11-08)
+
+- Branch `feat/s37c-provider-disclosure-checks` from main `8d11cd3`. Added a
+  dedicated shell audit suite (S37c) verifying, for Kilo / OpenAI-compatible /
+  Anthropic: the selected route label is visible in chat; the provider-specific
+  "leaves this device" disclosure is shown; removing a provider key keeps the
+  selection (Anthropic gap filled; Kilo/OpenAI-compatible already covered); and a
+  provider failure shows safe static copy with zero transactions/proposals created.
+- The provider-failure test surfaced an incomplete test mock (mobile_qa mocked
+  without mobile_qa_failure_message); the mock now uses the real failure-copy
+  function while keeping the agent mocked. No application code change was needed —
+  the disclosure/selection guarantees already held; S37c locks them with tests.
+- Local verification with Node 24.22.2: mobile 62 tests / 9 suites pass; mobile
+  typecheck/lint/format pass; privacy gate passes; deep secret scan zero findings.
+- Also performed owner-requested remote cleanup: deleted 70 confirmed-merged
+  branches (ancestors of main or squash/rebase-merged PR heads with matching tips).
+  Kept main, the open PR #73 branch, and feat/privacy-sensitive-filter (PR #9 merged
+  but the branch has newer unmerged commits). Backup SHAs retained for recovery.
+- No merge performed; awaiting owner review. S37d device verification owner-only.
