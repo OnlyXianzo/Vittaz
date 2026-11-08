@@ -21,6 +21,7 @@ import {
 } from "./assistant/mobile_qa";
 import type { MobileQaProviderKind } from "./assistant/mobile_qa";
 import {
+  read_anthropic_api_key,
   read_assistant_provider_profile,
   read_kilo_key,
   read_openai_compatible_key,
@@ -302,7 +303,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           model:
             profile.selected_provider === "openai_compatible"
               ? "openai-compatible"
-              : "auto",
+              : profile.selected_provider === "anthropic"
+                ? "claude"
+                : "auto",
         }));
       })
       .catch(() => undefined);
@@ -384,7 +387,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         let provider_kind: MobileQaProviderKind =
           state_ref.current.model === "openai-compatible"
             ? "openai_compatible"
-            : "kilo";
+            : state_ref.current.model === "claude"
+              ? "anthropic"
+              : "kilo";
         void (async () => {
           let streamed_answer = "";
           const profile = await read_assistant_provider_profile(SecureStore);
@@ -398,17 +403,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   base_url: profile.base_url,
                   model: profile.model,
                 }
-              : {
-                  kind: "kilo" as const,
-                  api_key: await read_kilo_key(SecureStore),
-                };
+              : profile.selected_provider === "anthropic"
+                ? {
+                    kind: "anthropic" as const,
+                    api_key: (await read_anthropic_api_key(SecureStore)) ?? "",
+                  }
+                : {
+                    kind: "kilo" as const,
+                    api_key: await read_kilo_key(SecureStore),
+                  };
           const missing_provider_setup =
             provider.kind === "openai_compatible" && !provider.api_key
               ? "No OpenAI-compatible API key is saved. Add one in Model settings. No ledger changes were made."
               : provider.kind === "openai_compatible" &&
                   (!provider.base_url || !provider.model)
                 ? "Complete the HTTPS endpoint and model in Model settings before asking. No ledger changes were made."
-                : null;
+                : provider.kind === "anthropic" && !provider.api_key
+                  ? "No Anthropic API key is saved. Add one in Model settings. No ledger changes were made."
+                  : null;
           if (missing_provider_setup) {
             if (mounted_ref.current) {
               setState((value) => ({

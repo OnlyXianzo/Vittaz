@@ -32,7 +32,7 @@ const MODEL_LABEL: Record<AppState["model"], string> = {
   "openai-compatible": "OpenAI-compatible BYOK",
   "qwen-1.5b": "Qwen 1.5B",
   "qwen-3b": "Qwen 3B",
-  claude: "Auto, Claude",
+  claude: "Claude API-key BYOK",
   gemini: "Auto, Gemini",
   free: "Free tier",
 };
@@ -113,7 +113,9 @@ export function ChatScreen() {
           <M size={12} style={{ lineHeight: 17 }}>
             {state.model === "openai-compatible"
               ? "Questions and read-only ledger context are sent to your configured service. Check its data policy; use synthetic data only."
-              : "Kilo Auto Free may route prompts to providers that log them. Do not enter personal or confidential data; use synthetic data only."}
+              : state.model === "claude"
+                ? "Questions and read-only ledger context are sent directly to Anthropic's Messages API using your API key. Check Anthropic's data policy; use synthetic data only."
+                : "Kilo Auto Free may route prompts to providers that log them. Do not enter personal or confidential data; use synthetic data only."}
           </M>
 
           {state.chatMessages.map((m) =>
@@ -238,7 +240,9 @@ export function ChatScreen() {
             <M size={12}>
               {state.model === "openai-compatible"
                 ? "Asking your selected provider…"
-                : "Asking Kilo Auto Free…"}
+                : state.model === "claude"
+                  ? "Asking Anthropic Claude…"
+                  : "Asking Kilo Auto Free…"}
             </M>
           ) : null}
 

@@ -15,7 +15,7 @@ const MODEL_LABEL: Record<AppState["model"], string> = {
   "openai-compatible": "OpenAI-compatible BYOK (read-only questions)",
   "qwen-1.5b": "Qwen 1.5B on this phone",
   "qwen-3b": "Qwen 3B on this phone",
-  claude: "Auto, Claude",
+  claude: "Claude API-key BYOK (read-only questions)",
   gemini: "Auto, Gemini",
   free: "Free tier models",
 };
@@ -25,9 +25,11 @@ export function SettingsScreen() {
   const model_status =
     state.model === "openai-compatible"
       ? "Your key"
-      : state.model === "auto"
-        ? "Free / optional key"
-        : "Not configured";
+      : state.model === "claude"
+        ? "Anthropic API key"
+        : state.model === "auto"
+          ? "Free / optional key"
+          : "Not configured";
   const digest =
     state.settings.reviewDigest === "off"
       ? "Off"
