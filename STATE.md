@@ -1,8 +1,8 @@
 ---
 current_phase: "Phase I Android"
 current_step: "S37b Anthropic API-key BYOK route"
-current_step_status: "local_gates_green_commit_unpushed"
-blocked_on: "S37b implementation is committed locally and local gates are green; push, PR, and required CI remain. S36 acceptance remains independently pending: owner-confirmed run #13 showed KILO_UNKNOWN twice with no established cause; keyboard-open behavior remains untested."
+current_step_status: "pr_open_required_ci_pending"
+blocked_on: "PR #70 is open on pushed implementation commit 7f3e4b6; required CI is pending. S36 acceptance remains independently pending: owner-confirmed run #13 showed KILO_UNKNOWN twice with no established cause; keyboard-open behavior remains untested."
 last_updated: "2026-11-05"
 last_green_commit: "d588ec8816d18f5548d089fdf0f3816078bd8672"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
@@ -335,7 +335,7 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 
 - Branch `feat/s37b-anthropic-api-key-byok` is based on S37a merge `d588ec8`.
   Test-first specification is in commit `9b9ed20`; implementation commit
-  exists locally but is not yet pushed. PR and required CI remain pending.
+  `7f3e4b6` is pushed and PR #70 is open; required CI is running.
 - Implemented direct Anthropic Messages requests, tool/message translation,
   bounded request payloads, streaming SSE handling, safe static provider failure
   categories, and explicit user-selected provider routing. Anthropic credentials
@@ -350,8 +350,8 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   in `docs/references.md`. No live provider request, real API key, APK build, or
   device test was performed. This work does not resolve S36: run #13 remains
   owner-reported evidence of two `KILO_UNKNOWN` failures; cause is unknown.
-- Next: push the S37b branch, open its PR, and wait for required CI before
-  marking S37b complete. S37c disclosure/selection
+- Next: wait for PR #70 required CI; then record its result and continue with
+  S37c disclosure/selection checks. S37d device verification remains separate. S37c disclosure/selection
   and S37d device verification remain separate planned steps.
 
 ## Owner-owned open items (do not decide)
