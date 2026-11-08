@@ -27,6 +27,17 @@ it("uses provider-neutral safe failure copy for OpenAI-compatible BYOK", () => {
   expect(failure).toContain("No ledger changes were made.");
 });
 
+it("uses Anthropic-specific safe failure copy for API-key BYOK", () => {
+  const failure = mobile_qa_failure_message(
+    "provider_auth_failed",
+    "anthropic",
+  );
+  expect(failure).toContain("ANTHROPIC_AUTH");
+  expect(failure).toContain("No ledger changes were made.");
+  expect(failure).not.toContain("KILO_");
+  expect(failure).not.toContain("BYOK_");
+});
+
 it("shows safe provider diagnostics without suggesting a blank key must be removed", () => {
   const failures = [
     ["provider_connection_failed", "KILO_CONNECTION"],
@@ -50,6 +61,38 @@ it("shows safe provider diagnostics without suggesting a blank key must be remov
 function sse_response(payload: unknown) {
   const wire = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`;
   return new Response(wire, {
+    headers: { "content-type": "text/event-stream" },
+  });
+}
+
+function anthropic_sse_response(
+  content_blocks: Array<Record<string, unknown>>,
+  stop_reason: string,
+) {
+  const frames = [
+    `event: message_start\ndata: ${JSON.stringify({ type: "message_start", message: { usage: { input_tokens: 10, output_tokens: 1 } } })}\n\n`,
+  ];
+  content_blocks.forEach((block, index) => {
+    if (block.type === "text") {
+      frames.push(
+        `event: content_block_start\ndata: ${JSON.stringify({ type: "content_block_start", index, content_block: { type: "text", text: "" } })}\n\n`,
+        `event: content_block_delta\ndata: ${JSON.stringify({ type: "content_block_delta", index, delta: { type: "text_delta", text: block.text } })}\n\n`,
+      );
+    } else {
+      frames.push(
+        `event: content_block_start\ndata: ${JSON.stringify({ type: "content_block_start", index, content_block: { type: "tool_use", id: block.id, name: block.name, input: {} } })}\n\n`,
+        `event: content_block_delta\ndata: ${JSON.stringify({ type: "content_block_delta", index, delta: { type: "input_json_delta", partial_json: JSON.stringify(block.input) } })}\n\n`,
+      );
+    }
+    frames.push(
+      `event: content_block_stop\ndata: ${JSON.stringify({ type: "content_block_stop", index })}\n\n`,
+    );
+  });
+  frames.push(
+    `event: message_delta\ndata: ${JSON.stringify({ type: "message_delta", delta: { stop_reason }, usage: { output_tokens: 8 } })}\n\n`,
+    `event: message_stop\ndata: ${JSON.stringify({ type: "message_stop" })}\n\n`,
+  );
+  return new Response(frames.join(""), {
     headers: { "content-type": "text/event-stream" },
   });
 }
@@ -213,6 +256,79 @@ it("routes explicitly selected OpenAI-compatible BYOK to the configured endpoint
   });
   expect(String(requests[0]?.init.body)).not.toContain("test-key");
   expect(requests[0]?.url).not.toContain("kilo.ai");
+  expect(ledger.transaction).not.toHaveBeenCalled();
+});
+
+it("runs Anthropic Messages API tool-use through the same bounded read-only Q&A loop", async () => {
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({ transactions: { list: async () => [] } } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  const requests: Array<{ url: string; init: RequestInit }> = [];
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), init: init ?? {} });
+      const index = requests.length - 1;
+      return index === 0
+        ? anthropic_sse_response(
+            [
+              {
+                type: "tool_use",
+                id: "toolu_synthetic",
+                name: "get_month_summary",
+                input: { year_month: "2026-11" },
+              },
+            ],
+            "tool_use",
+          )
+        : anthropic_sse_response(
+            [{ type: "text", text: "Synthetic month total is zero." }],
+            "end_turn",
+          );
+    },
+  ) as typeof fetch;
+  const chunks: string[] = [];
+  const answer = await create_mobile_qa_agent(
+    ledger,
+    { kind: "anthropic", api_key: "fake-key" },
+    fetch_impl,
+  ).answerQuestion("Synthetic November total", {
+    maxSteps: 3,
+    onValidatedChunk: (chunk: string) => chunks.push(chunk),
+  });
+
+  expect(answer).toMatchObject({
+    answered: true,
+    answer: "Synthetic month total is zero.",
+    toolsUsed: ["get_month_summary"],
+  });
+  expect(chunks.join("")).toBe(answer.answer);
+  expect(requests).toHaveLength(2);
+  for (const request of requests) {
+    expect(request.url).toBe("https://api.anthropic.com/v1/messages");
+    expect(request.init.headers).toMatchObject({
+      "x-api-key": "fake-key",
+      "anthropic-version": "2026-10-21",
+    });
+    expect(JSON.parse(String(request.init.body))).toMatchObject({
+      model: "claude-sonnet-5-5",
+      stream: true,
+    });
+    expect(String(request.init.body)).not.toContain("fake-key");
+  }
+  const follow_up = JSON.parse(String(requests[1]?.init.body));
+  expect(follow_up.messages.at(-1)).toEqual({
+    role: "user",
+    content: [
+      {
+        type: "tool_result",
+        tool_use_id: "qa_1_0",
+        content: expect.any(String),
+      },
+    ],
+  });
   expect(ledger.transaction).not.toHaveBeenCalled();
 });
 

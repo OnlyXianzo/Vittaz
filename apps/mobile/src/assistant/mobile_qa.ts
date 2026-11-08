@@ -4,6 +4,12 @@ import type { QaStopReason } from "../../../../packages/agent/src/qa_loop";
 import { LangChainQaAgent } from "../../../../packages/agent/src/langchain_adapter";
 import { KeyPool } from "../../../../packages/agent/src/key_pool";
 import { OpenAICompatibleClient } from "../../../../packages/agent/src/provider_client";
+import {
+  AnthropicMessagesClient,
+  ANTHROPIC_DEFAULT_MODEL,
+} from "../../../../packages/agent/src/anthropic_messages_client";
+export { ANTHROPIC_DEFAULT_MODEL };
+import type { CompletionClient } from "../../../../packages/agent/src/provider_client";
 
 export const KILO_GATEWAY_BASE_URL = "https://ai-gateway.kilo.ai/api";
 export const KILO_FREE_MODEL = "kilo-auto/free";
@@ -15,7 +21,8 @@ export type MobileQaProvider =
       api_key: string;
       base_url: string;
       model: string;
-    };
+    }
+  | { kind: "anthropic"; api_key: string };
 
 export type MobileQaProviderKind = MobileQaProvider["kind"];
 
@@ -88,13 +95,50 @@ const openai_compatible_failure_copy: Record<QaStopReason, string> = {
   aborted: "The request was canceled.",
 };
 
+const anthropic_failure_copy: Record<QaStopReason, string> = {
+  completed: "The assistant could not produce a safe answer.",
+  message_rejected:
+    "This question was blocked by the assistant's safety rules.",
+  sensitive_dropped:
+    "This question may contain sensitive information. Use synthetic data only.",
+  provider_auth_failed:
+    "Anthropic rejected API-key authentication. Verify the key in Model settings. Code: ANTHROPIC_AUTH. No ledger changes were made.",
+  provider_rate_limited:
+    "Anthropic is rate-limiting requests. Try again later. Code: ANTHROPIC_RATE_LIMIT. No ledger changes were made.",
+  provider_request_rejected:
+    "Anthropic rejected this Messages API request. Check the selected model and request settings. Code: ANTHROPIC_REQUEST_REJECTED. No ledger changes were made.",
+  provider_connection_failed:
+    "The app could not connect to Anthropic. Check the network and try again. Code: ANTHROPIC_CONNECTION. No ledger changes were made.",
+  provider_unavailable:
+    "Anthropic is temporarily unavailable. Try again later. Code: ANTHROPIC_UNAVAILABLE. No ledger changes were made.",
+  provider_access_denied:
+    "Anthropic denied access to the selected model or account. Check Console access. Code: ANTHROPIC_ACCESS. No ledger changes were made.",
+  provider_protocol_error:
+    "Anthropic replied in an unsupported format, so no answer was accepted. Code: ANTHROPIC_PROTOCOL. No ledger changes were made.",
+  provider_http_error:
+    "Anthropic returned an HTTP error. Check the account and API request. Code: ANTHROPIC_HTTP. No ledger changes were made.",
+  provider_error:
+    "The Anthropic request failed for an unclassified reason. If it continues, report code ANTHROPIC_UNKNOWN. No ledger changes were made.",
+  tool_rejected:
+    "I couldn't safely finish the read-only ledger lookup. No ledger changes were made.",
+  step_limit:
+    "I couldn't safely complete that question within the request limits.",
+  token_budget:
+    "I couldn't safely complete that question within the response limit.",
+  timeout:
+    "The Anthropic request timed out. Check your connection and try again.",
+  aborted: "The request was canceled.",
+};
+
 export function mobile_qa_failure_message(
   reason: QaStopReason,
   provider: MobileQaProviderKind = "kilo",
 ): string {
-  return provider === "openai_compatible"
-    ? openai_compatible_failure_copy[reason]
-    : kilo_failure_copy[reason];
+  return provider === "anthropic"
+    ? anthropic_failure_copy[reason]
+    : provider === "openai_compatible"
+      ? openai_compatible_failure_copy[reason]
+      : kilo_failure_copy[reason];
 }
 
 function validate_openai_compatible_provider(provider: {
@@ -137,31 +181,41 @@ export function create_mobile_qa_agent(
   fetch_impl: typeof fetch = fetch,
 ) {
   const redactor = new PrivacyRedactor();
-  const kilo_selected = provider.kind === "kilo";
-  const profile = kilo_selected
-    ? null
-    : validate_openai_compatible_provider(provider);
-  const client = new OpenAICompatibleClient({
-    baseUrl: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
-    keyPool: new KeyPool([
-      kilo_selected
-        ? {
-            nickname: "kilo_free",
-            apiKey: provider.api_key ?? "",
-            provider: "kilo_gateway",
-            model: KILO_FREE_MODEL,
-          }
-        : {
-            nickname: "openai_compatible_byok",
-            apiKey: provider.api_key,
-            provider: "openai_compatible",
-            model: profile!.model,
-          },
-    ]),
-    fetch: fetch_impl,
-    timeoutMs: 45000,
-    redactor,
-  });
+  let client: CompletionClient;
+  if (provider.kind === "anthropic") {
+    client = new AnthropicMessagesClient({
+      apiKey: provider.api_key,
+      fetch: fetch_impl,
+      timeoutMs: 45000,
+      redactor,
+    });
+  } else {
+    const kilo_selected = provider.kind === "kilo";
+    const profile = kilo_selected
+      ? null
+      : validate_openai_compatible_provider(provider);
+    client = new OpenAICompatibleClient({
+      baseUrl: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
+      keyPool: new KeyPool([
+        kilo_selected
+          ? {
+              nickname: "kilo_free",
+              apiKey: provider.api_key ?? "",
+              provider: "kilo_gateway",
+              model: KILO_FREE_MODEL,
+            }
+          : {
+              nickname: "openai_compatible_byok",
+              apiKey: provider.api_key,
+              provider: "openai_compatible",
+              model: profile!.model,
+            },
+      ]),
+      fetch: fetch_impl,
+      timeoutMs: 45000,
+      redactor,
+    });
+  }
   return new LangChainQaAgent({
     client,
     redactor,
