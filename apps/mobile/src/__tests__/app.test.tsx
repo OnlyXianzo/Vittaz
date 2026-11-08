@@ -10,6 +10,7 @@ import { randomUUID } from "expo-crypto";
 import App from "../../App";
 import * as SecureStore from "expo-secure-store";
 import {
+  ANTHROPIC_API_KEY_NAME,
   ASSISTANT_PROVIDER_PROFILE_NAME,
   KILO_KEY_NAME,
   OPENAI_COMPATIBLE_KEY_NAME,
@@ -346,6 +347,90 @@ describe("Vittaz native shell backed by core", () => {
     expect(
       screen.getByRole("button", { name: "OpenAI-compatible BYOK" }),
     ).toBeTruthy();
+    expect(getMemoryRows("transactions")).toHaveLength(0);
+  });
+
+  it("selects direct Anthropic API-key BYOK, stores the key securely, and routes read-only chat", async () => {
+    await open();
+    await tab("Settings");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Model and keys" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "Anthropic API-key BYOK" }),
+    );
+    const key_input = screen.getByLabelText("Anthropic API key");
+    expect(key_input.props.secureTextEntry).toBe(true);
+    await fireEvent.changeText(key_input, "fake-key");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Save Anthropic API key" }),
+    );
+    await waitFor(() =>
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+        ANTHROPIC_API_KEY_NAME,
+        "fake-key",
+      ),
+    );
+    expect(screen.queryByText("fake-key")).toBeNull();
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+      ASSISTANT_PROVIDER_PROFILE_NAME,
+      JSON.stringify({
+        selected_provider: "anthropic",
+        base_url: "https://api.openai.com/v1",
+        model: "",
+      }),
+    );
+
+    await fireEvent.press(screen.getByRole("button", { name: "Back" }));
+    await tab("Home");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add or ask by message" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Question"),
+      "Synthetic balance question",
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Ask Assistant" }),
+    );
+    await waitFor(() =>
+      expect(create_mobile_qa_agent).toHaveBeenCalledWith(expect.anything(), {
+        kind: "anthropic",
+        api_key: "fake-key",
+      }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Claude API-key BYOK" }),
+    ).toBeTruthy();
+    expect(getMemoryRows("transactions")).toHaveLength(0);
+  });
+
+  it("does not silently fall back to Kilo when the selected Anthropic key is absent", async () => {
+    await SecureStore.deleteItemAsync(ANTHROPIC_API_KEY_NAME);
+    await open();
+    await tab("Settings");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Model and keys" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "Anthropic API-key BYOK" }),
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Back" }));
+    await tab("Home");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add or ask by message" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Question"),
+      "Synthetic balance question",
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Ask Assistant" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/No Anthropic API key is saved/i)).toBeTruthy(),
+    );
+    expect(create_mobile_qa_agent).not.toHaveBeenCalled();
     expect(getMemoryRows("transactions")).toHaveLength(0);
   });
 

@@ -1,5 +1,6 @@
 export const KILO_KEY_NAME = "kilo_gateway_api_key";
 export const OPENAI_COMPATIBLE_KEY_NAME = "openai_compatible_api_key";
+export const ANTHROPIC_API_KEY_NAME = "anthropic_api_key";
 export const ASSISTANT_PROVIDER_PROFILE_NAME = "assistant_provider_profile";
 
 export interface SecureKeyStore {
@@ -8,7 +9,8 @@ export interface SecureKeyStore {
   deleteItemAsync(key: string): Promise<void>;
 }
 
-export type AssistantProviderSelection = "kilo" | "openai_compatible";
+export type AssistantProviderSelection =
+  "kilo" | "openai_compatible" | "anthropic";
 
 export interface AssistantProviderProfile {
   selected_provider: AssistantProviderSelection;
@@ -42,7 +44,8 @@ function validate_profile(
   if (
     !profile ||
     (profile.selected_provider !== "kilo" &&
-      profile.selected_provider !== "openai_compatible") ||
+      profile.selected_provider !== "openai_compatible" &&
+      profile.selected_provider !== "anthropic") ||
     typeof profile.base_url !== "string" ||
     typeof profile.model !== "string" ||
     profile.base_url.length > 2048 ||
@@ -141,6 +144,27 @@ export async function remove_openai_compatible_key(
   store: SecureKeyStore,
 ): Promise<void> {
   await store.deleteItemAsync(OPENAI_COMPATIBLE_KEY_NAME);
+}
+
+/** Store a direct Anthropic API key in Expo SecureStore only. */
+export async function save_anthropic_api_key(
+  store: SecureKeyStore,
+  value: string,
+): Promise<void> {
+  await save_key(store, ANTHROPIC_API_KEY_NAME, value);
+}
+
+/** Returns null for absent or malformed Anthropic API keys. */
+export async function read_anthropic_api_key(
+  store: SecureKeyStore,
+): Promise<string | null> {
+  return read_key(store, ANTHROPIC_API_KEY_NAME);
+}
+
+export async function remove_anthropic_api_key(
+  store: SecureKeyStore,
+): Promise<void> {
+  await store.deleteItemAsync(ANTHROPIC_API_KEY_NAME);
 }
 
 /** Persist provider selection and endpoint metadata; API keys are stored separately. */

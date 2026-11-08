@@ -4,9 +4,11 @@ import * as SecureStore from "expo-secure-store";
 import { useApp } from "../store";
 import {
   DEFAULT_ASSISTANT_PROVIDER_PROFILE,
+  read_anthropic_api_key,
   read_assistant_provider_profile,
   read_kilo_key,
   read_openai_compatible_key,
+  save_anthropic_api_key,
   save_assistant_provider_profile,
   save_kilo_key,
   save_openai_compatible_key,
@@ -15,6 +17,7 @@ import type {
   AssistantProviderProfile,
   AssistantProviderSelection,
 } from "../assistant/secure_key";
+import { ANTHROPIC_DEFAULT_MODEL } from "../assistant/mobile_qa";
 import {
   B,
   Button,
@@ -41,8 +44,11 @@ export function ModelsScreen() {
   const [kilo_key_value, set_kilo_key_value] = useState("");
   const [openai_key_value, set_openai_key_value] = useState("");
   const [has_kilo_key, set_has_kilo_key] = useState(false);
+  const [anthropic_key_value, set_anthropic_key_value] = useState("");
+  const [has_anthropic_key, set_has_anthropic_key] = useState(false);
   const [has_openai_key, set_has_openai_key] = useState(false);
   const [saving_kilo, set_saving_kilo] = useState(false);
+  const [saving_anthropic, set_saving_anthropic] = useState(false);
   const [saving_openai, set_saving_openai] = useState(false);
   const [saving_profile, set_saving_profile] = useState(false);
 
@@ -52,26 +58,31 @@ export function ModelsScreen() {
       read_assistant_provider_profile(SecureStore),
       read_kilo_key(SecureStore),
       read_openai_compatible_key(SecureStore),
+      read_anthropic_api_key(SecureStore),
     ])
-      .then(([saved_profile, kilo_key, openai_key]) => {
+      .then(([saved_profile, kilo_key, openai_key, anthropic_key]) => {
         if (!active) return;
         set_profile(saved_profile);
         set_base_url(saved_profile.base_url);
         set_model(saved_profile.model);
         set_has_kilo_key(kilo_key !== null);
         set_has_openai_key(openai_key !== null);
+        set_has_anthropic_key(anthropic_key !== null);
         dispatch({
           type: "select_model",
           model:
             saved_profile.selected_provider === "openai_compatible"
               ? "openai-compatible"
-              : "auto",
+              : saved_profile.selected_provider === "anthropic"
+                ? "claude"
+                : "auto",
         });
       })
       .catch(() => {
         if (!active) return;
         set_has_kilo_key(false);
         set_has_openai_key(false);
+        set_has_anthropic_key(false);
       });
     return () => {
       active = false;
@@ -92,7 +103,9 @@ export function ModelsScreen() {
       model:
         selected_provider === "openai_compatible"
           ? "openai-compatible"
-          : "auto",
+          : selected_provider === "anthropic"
+            ? "claude"
+            : "auto",
     });
     try {
       await save_assistant_provider_profile(SecureStore, next_profile);
@@ -101,7 +114,9 @@ export function ModelsScreen() {
         message:
           selected_provider === "openai_compatible"
             ? "OpenAI-compatible provider selected."
-            : "Kilo Auto Free selected.",
+            : selected_provider === "anthropic"
+              ? "Anthropic Messages API selected."
+              : "Kilo Auto Free selected.",
       });
     } catch {
       set_profile(profile);
@@ -110,7 +125,9 @@ export function ModelsScreen() {
         model:
           profile.selected_provider === "openai_compatible"
             ? "openai-compatible"
-            : "auto",
+            : profile.selected_provider === "anthropic"
+              ? "claude"
+              : "auto",
       });
       dispatch({
         type: "show_toast",
@@ -186,6 +203,28 @@ export function ModelsScreen() {
       });
     } finally {
       set_saving_openai(false);
+    }
+  };
+
+  const save_anthropic_credential = async (value: string) => {
+    set_saving_anthropic(true);
+    try {
+      await save_anthropic_api_key(SecureStore, value);
+      set_has_anthropic_key(value.trim().length > 0);
+      set_anthropic_key_value("");
+      dispatch({
+        type: "show_toast",
+        message: value.trim()
+          ? "Anthropic API key saved securely."
+          : "Anthropic API key removed. Provider selection was not changed.",
+      });
+    } catch {
+      dispatch({
+        type: "show_toast",
+        message: "Could not save that key. Check its format and try again.",
+      });
+    } finally {
+      set_saving_anthropic(false);
     }
   };
 
@@ -340,6 +379,70 @@ export function ModelsScreen() {
               variant="ghost"
               disabled={saving_openai}
               onPress={() => void save_openai_credential("")}
+              style={{ flex: 1 }}
+            />
+          ) : null}
+        </Row>
+      </Card>
+
+      <Pressable
+        accessibilityRole="radio"
+        accessibilityLabel="Anthropic API-key BYOK"
+        accessibilityState={{ checked: state.model === "claude" }}
+        onPress={() => void set_provider("anthropic")}
+        style={({ pressed }) => [pressed && { opacity: 0.8 }]}
+      >
+        <Card
+          style={{
+            marginTop: 16,
+            borderColor:
+              state.model === "claude" ? "rgba(184,242,60,0.5)" : undefined,
+          }}
+        >
+          <Row start gap={12} style={{ alignItems: "flex-start" }}>
+            <Radio on={state.model === "claude"} />
+            <View style={{ flex: 1 }}>
+              <B>Anthropic Claude API-key BYOK</B>
+              <M style={{ marginTop: 4, lineHeight: 18 }}>
+                Direct Anthropic Messages API using your own API key and
+                {` ${ANTHROPIC_DEFAULT_MODEL}`}. API key only; Claude.ai
+                subscription sign-in is not supported. This route never falls
+                back to Kilo.
+              </M>
+            </View>
+            {state.model === "claude" ? <Pill>Selected</Pill> : null}
+          </Row>
+        </Card>
+      </Pressable>
+
+      <SectionLabel>Anthropic API key</SectionLabel>
+      <Card style={{ gap: 12 }}>
+        <M style={{ lineHeight: 18 }}>
+          {has_anthropic_key
+            ? "An Anthropic API key is stored in Expo SecureStore and is never shown."
+            : "Add your own Anthropic Console API key. No subscription credential, OAuth login, or bundled key is used."}
+        </M>
+        <Input
+          label="Anthropic API key"
+          value={anthropic_key_value}
+          onChangeText={set_anthropic_key_value}
+          placeholder="Paste your API key"
+          secure
+          textStyle={{ minHeight: 48 }}
+        />
+        <Row gap={8}>
+          <Button
+            label={saving_anthropic ? "Saving…" : "Save Anthropic API key"}
+            disabled={saving_anthropic || !anthropic_key_value.trim()}
+            onPress={() => void save_anthropic_credential(anthropic_key_value)}
+            style={{ flex: 1 }}
+          />
+          {has_anthropic_key ? (
+            <Button
+              label="Remove Anthropic API key"
+              variant="ghost"
+              disabled={saving_anthropic}
+              onPress={() => void save_anthropic_credential("")}
               style={{ flex: 1 }}
             />
           ) : null}

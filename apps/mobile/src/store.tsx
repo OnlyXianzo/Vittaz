@@ -26,6 +26,7 @@ import type {
   DiagnosticReason,
 } from "./assistant/diagnostics";
 import {
+  read_anthropic_api_key,
   read_assistant_provider_profile,
   read_kilo_key,
   read_openai_compatible_key,
@@ -358,7 +359,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           model:
             profile.selected_provider === "openai_compatible"
               ? "openai-compatible"
-              : "auto",
+              : profile.selected_provider === "anthropic"
+                ? "claude"
+                : "auto",
         }));
       })
       .catch(() => {
@@ -468,7 +471,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         let provider_kind: MobileQaProviderKind =
           state_ref.current.model === "openai-compatible"
             ? "openai_compatible"
-            : "kilo";
+            : state_ref.current.model === "claude"
+              ? "anthropic"
+              : "kilo";
         mobile_diagnostics.record(
           "question_accepted",
           "request_preflight",
@@ -511,7 +516,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             "started",
             provider_kind,
           );
-          let provider;
+          let provider: Parameters<typeof create_mobile_qa_agent>[1];
           try {
             provider =
               profile.selected_provider === "openai_compatible"
@@ -522,10 +527,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     base_url: profile.base_url,
                     model: profile.model,
                   }
-                : {
-                    kind: "kilo" as const,
-                    api_key: await read_kilo_key(SecureStore),
-                  };
+                : profile.selected_provider === "anthropic"
+                  ? {
+                      kind: "anthropic" as const,
+                      api_key: (await read_anthropic_api_key(SecureStore)) ?? "",
+                    }
+                  : {
+                      kind: "kilo" as const,
+                      api_key: await read_kilo_key(SecureStore),
+                    };
           } catch (error) {
             mobile_diagnostics.record(
               "secure_credential_read_failed",
@@ -553,7 +563,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
               : provider.kind === "openai_compatible" &&
                   (!provider.base_url || !provider.model)
                 ? "Complete the HTTPS endpoint and model in Model settings before asking. No ledger changes were made."
-                : null;
+                : provider.kind === "anthropic" && !provider.api_key
+                  ? "No Anthropic API key is saved. Add one in Model settings. No ledger changes were made."
+                  : null;
           if (missing_provider_setup) {
             mobile_diagnostics.record(
               "question_rejected",

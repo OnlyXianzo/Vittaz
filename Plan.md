@@ -285,11 +285,13 @@ represented as fixing that failure.
       Expo SecureStore only; use synthetic credentials and fake-provider tests.
       Reuse the existing bounded QA loop and provider adapter; no AI database
       writes, no silent provider fallback, no bundled/default API key.
-- [ ] **S37b. Anthropic API-key BYOK route.** Add direct Anthropic Messages API
+- [x] **S37b. Anthropic API-key BYOK route.** Add direct Anthropic Messages API
       requests and tool-use translation through the same bounded read-only QA
       behavior. Use only a user-supplied Anthropic API key in Expo SecureStore.
       Do not implement Claude subscription/OAuth login or collect subscription
-      credentials. Test with fake HTTP/SSE responses only.
+      credentials. Test with fake HTTP/SSE responses only. PR #70 checks passed
+      on `250f0453d8cf8851a76c4e5820b929d736afa518`; PR remains open pending owner
+      merge authorization. No APK/device test or live provider request was run.
 - [ ] **S37c. Native provider disclosure and selection checks.** Verify the
       chosen route is visible, provider-specific credential removal works, prompts
       are disclosed as leaving the device, and provider failures never mutate the
