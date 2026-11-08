@@ -282,6 +282,15 @@ describe("Vittaz native shell backed by core", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Model and keys" }),
     );
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }).props
+          .accessibilityState.checked,
+      ).toBe(true),
+    );
     await fireEvent.changeText(
       screen.getByLabelText("OpenAI-compatible API base URL"),
       "https://compatible.example/api/v1",
@@ -290,24 +299,10 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByLabelText("OpenAI-compatible model"),
       "synthetic-compatible-model",
     );
-    await fireEvent.press(
-      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
-    );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Save provider settings" }),
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }).props
-          .accessibilityState.checked,
-      ).toBe(true),
-    );
     const key_input = screen.getByLabelText("OpenAI-compatible API key");
     expect(key_input.props.secureTextEntry).toBe(true);
     await fireEvent.changeText(key_input, "test-key");
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Save OpenAI-compatible key" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
     await waitFor(() =>
       expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
         OPENAI_COMPATIBLE_KEY_NAME,
@@ -362,9 +357,7 @@ describe("Vittaz native shell backed by core", () => {
     const key_input = screen.getByLabelText("Anthropic API key");
     expect(key_input.props.secureTextEntry).toBe(true);
     await fireEvent.changeText(key_input, "fake-key");
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Save Anthropic API key" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
     await waitFor(() =>
       expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
         ANTHROPIC_API_KEY_NAME,
@@ -440,26 +433,22 @@ describe("Vittaz native shell backed by core", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Model and keys" }),
     );
-    await fireEvent.changeText(
-      screen.getByLabelText("OpenAI-compatible model"),
-      "synthetic-compatible-model",
-    );
     await fireEvent.press(
       screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Save provider settings" }),
+    await fireEvent.changeText(
+      screen.getByLabelText("OpenAI-compatible model"),
+      "synthetic-compatible-model",
     );
     await fireEvent.changeText(
       screen.getByLabelText("OpenAI-compatible API key"),
       "test-key",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Save OpenAI-compatible key" }),
+    await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Remove key" })).toBeTruthy(),
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Remove OpenAI-compatible key" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Remove key" }));
     await waitFor(() =>
       expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
         OPENAI_COMPATIBLE_KEY_NAME,
@@ -487,6 +476,57 @@ describe("Vittaz native shell backed by core", () => {
       ).toBeTruthy(),
     );
     expect(create_mobile_qa_agent).not.toHaveBeenCalled();
+    expect(getMemoryRows("transactions")).toHaveLength(0);
+  });
+
+  it("shows only the selected provider's configuration (progressive disclosure)", async () => {
+    await open();
+    await tab("Settings");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Model and keys" }),
+    );
+    // Kilo is selected by default; only its key field is shown.
+    expect(screen.getByLabelText("Kilo Gateway API key")).toBeTruthy();
+    expect(
+      screen.queryByLabelText("OpenAI-compatible API base URL"),
+    ).toBeNull();
+    expect(screen.queryByLabelText("Anthropic API key")).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
+    );
+    expect(
+      screen.getByLabelText("OpenAI-compatible API base URL"),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText("Kilo Gateway API key")).toBeNull();
+    expect(screen.queryByLabelText("Anthropic API key")).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "Anthropic API-key BYOK" }),
+    );
+    expect(screen.getByLabelText("Anthropic API key")).toBeTruthy();
+    expect(
+      screen.queryByLabelText("OpenAI-compatible API base URL"),
+    ).toBeNull();
+  });
+
+  it("blocks saving an incomplete OpenAI-compatible provider with inline errors", async () => {
+    await open();
+    await tab("Settings");
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Model and keys" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
+    );
+    // The default base URL is valid HTTPS, but model and key are empty.
+    await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
+    expect(screen.getByText("Enter a valid model name.")).toBeTruthy();
+    expect(
+      screen.getByText("Enter an API key for this endpoint."),
+    ).toBeTruthy();
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith(
+      OPENAI_COMPATIBLE_KEY_NAME,
+      expect.anything(),
+    );
     expect(getMemoryRows("transactions")).toHaveLength(0);
   });
 
