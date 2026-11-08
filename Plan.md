@@ -269,7 +269,7 @@ S36 remains pending: the owner-confirmed run #13 screenshot reports two
 acceptance. Continue to report this separately; provider additions must not be
 represented as fixing that failure.
 
-- [ ] **S37a. OpenAI-compatible BYOK route.** Add an explicitly user-selected
+- [x] **S37a. OpenAI-compatible BYOK route.** Add an explicitly user-selected
       OpenAI-compatible endpoint/model/key profile to native read-only chat.
       Preserve Kilo Auto Free as a separate optional keyless route. Keep keys in
       Expo SecureStore only; use synthetic credentials and fake-provider tests.
