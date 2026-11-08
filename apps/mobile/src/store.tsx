@@ -530,7 +530,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : profile.selected_provider === "anthropic"
                   ? {
                       kind: "anthropic" as const,
-                      api_key: (await read_anthropic_api_key(SecureStore)) ?? "",
+                      api_key:
+                        (await read_anthropic_api_key(SecureStore)) ?? "",
                     }
                   : {
                       kind: "kilo" as const,
