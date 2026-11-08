@@ -363,3 +363,27 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - The original native preview reused the web demo reducer through Metro
   `watchFolders`; S35 replaces that native state path with core + `expo-sqlite`.
   The browser preview continues using its own reducer.
+
+## S38 diagnosis checkpoint — device chat failure root-caused and fixed (2026-11-08)
+
+- Branch `fix/s38-langchain-crypto-and-provider-flow`. Root cause of the
+  owner-supplied diagnostics (the unresolved S36 `KILO_UNKNOWN`): LangChain
+  `@langchain/core@1.3.4` mints a UUID v7 run id via the global
+  `crypto.getRandomValues` before any provider HTTP call; Hermes has no Web Crypto
+  global, so `BaseChatModel.invoke` threw and every question failed at
+  `provider_call` with `langchain_error` and no HTTP events. Node/jest provide
+  `crypto`, so tests passed while the device failed. The S35 fix covered ledger
+  `randomUUID` only, not the global `getRandomValues`.
+- Fix: `apps/mobile/src/assistant/web_crypto.ts` installs a global
+  `getRandomValues` from the existing `expo-crypto`, imported first in
+  `apps/mobile/index.ts`. No new dependency; `packages/agent` unchanged.
+  Regression test reproduces the failure without the polyfill (provider_error,
+  zero HTTP) and confirms an end-to-end synthetic answer with it.
+- Add-provider flow redesigned (owner request): progressive disclosure, one
+  "Save and use" per provider, inline validation; all security guarantees kept.
+- Local verification with Node 24.22.2: mobile 57 tests / 9 suites pass; mobile
+  typecheck, lint, and format pass; root privacy gate passes; deep secret scan
+  reports zero findings. Root Vitest suite re-run after a Node 24 native rebuild.
+- No live provider call, real key, APK build, or device run. On-device acceptance
+  and the separate diagnostic-export SAF UX item remain owner-only / unplanned.
+  No merge performed; awaiting owner review.
