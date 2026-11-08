@@ -116,12 +116,11 @@ export type QaStopReason =
   | "provider_http_error"
   | "provider_protocol_error"
   | "provider_error";
+type QaFailureStopReason = Exclude<QaStopReason, "completed">;
 function diagnostic_reason_for_stop(
-  reason: QaStopReason,
+  reason: QaFailureStopReason,
 ): AgentDiagnosticReason {
   switch (reason) {
-    case "completed":
-      return "ok";
     case "message_rejected":
     case "provider_request_rejected":
       return "request_rejected";
@@ -246,7 +245,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     let stepsUsed = 0;
     let tokensUsed = 0;
     const toolsUsed: string[] = [];
-    const stopped = (stopReason: QaStopReason): AnswerQuestionResult => {
+    const stopped = (stopReason: QaFailureStopReason): AnswerQuestionResult => {
       report_agent_diagnostic(this.params.onDiagnostic, {
         event_code: "qa_failed",
         source: "qa_loop",
@@ -488,7 +487,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       }
       return stopped("step_limit");
     } catch (error) {
-      let stop_reason: QaStopReason = "provider_error";
+      let stop_reason: QaFailureStopReason = "provider_error";
       let diagnostic_reason: AgentDiagnosticReason = "provider_error";
       if (cancelled()) {
         stop_reason = caller?.aborted ? "aborted" : "timeout";

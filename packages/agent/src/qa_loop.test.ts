@@ -644,3 +644,30 @@ test("qa_abort_during_local_redaction_prevents_first_provider_request_and_privat
     "private_synthetic_storage_error",
   );
 });
+
+test("qa_success_diagnostics_report_a_safe_completed_result", async () => {
+  const f = await fixture();
+  const events: unknown[] = [];
+  const result = await new ReadOnlyQaLoop({
+    client: {
+      chatCompletion: vi.fn(async () =>
+        completion({ content: "Synthetic safe answer" }),
+      ),
+    },
+    data: f.source,
+    redactor: f.redactor,
+    onDiagnostic: (event) => events.push(event),
+  }).answerQuestion("Synthetic question");
+
+  expect(result).toMatchObject({ answered: true, stopReason: "completed" });
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event_code: "qa_completed",
+        source: "qa_loop",
+        outcome: "completed",
+        reason_code: "ok",
+      }),
+    ]),
+  );
+});

@@ -426,6 +426,12 @@ export class OpenAICompatibleClient {
           for (const s of this.#pool.getStatusSnapshot())
             if (s.state !== "healthy")
               failures.push({ nickname: s.nickname, reason: s.state });
+        report_agent_diagnostic(params.onDiagnostic, {
+          event_code: "provider_failure_classified",
+          source: "provider_protocol",
+          outcome: "failed",
+          reason_code: diagnostic_failure_reason(failures.at(-1)?.reason),
+        });
         throw new AllKeysFailedError(failures);
       }
       tried.add(entry.nickname);
