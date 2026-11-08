@@ -1,6 +1,7 @@
 import { expect, it, jest } from "@jest/globals";
 import type { LedgerStore } from "@vittaz/core";
 import { create_mobile_qa_agent, mobile_qa_failure_message } from "./mobile_qa";
+import { MobileDiagnostics } from "./diagnostics";
 
 it("shows safe actionable copy for rejected keys and rate limits", () => {
   expect(mobile_qa_failure_message("provider_auth_failed")).toContain(
@@ -364,4 +365,54 @@ it("rejects an insecure or credential-less OpenAI-compatible profile before HTTP
     ),
   ).toThrow("Invalid provider configuration");
   expect(fetch_impl).not.toHaveBeenCalled();
+});
+
+it("forwards only allowlisted assistant stage metadata into mobile logs", async () => {
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({ transactions: { list: async () => [] } } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  const diagnostics = new MobileDiagnostics({
+    enabled: true,
+    console_sink: () => undefined,
+  });
+  const fetch_impl = jest.fn(
+    async () =>
+      new Response("synthetic_private_response_marker", { status: 403 }),
+  ) as unknown as typeof fetch;
+
+  const agent = create_mobile_qa_agent(
+    ledger,
+    { kind: "kilo", api_key: null },
+    fetch_impl,
+    diagnostics,
+  );
+  const answer = await agent.answerQuestion("synthetic_private_prompt_marker");
+  const serialized = diagnostics.dump_json();
+
+  expect(answer.stopReason).toBe("provider_access_denied");
+  expect(diagnostics.snapshot()).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event_code: "provider_request_started",
+        source: "provider_http",
+        provider_kind: "kilo",
+      }),
+      expect.objectContaining({
+        event_code: "provider_http_response",
+        http_status: 403,
+        reason_code: "access_denied",
+      }),
+      expect.objectContaining({
+        event_code: "qa_stage_failed",
+        failure_stage: "provider_call",
+      }),
+    ]),
+  );
+  expect(serialized).not.toContain("synthetic_private_response_marker");
+  expect(serialized).not.toContain("synthetic_private_prompt_marker");
+  expect(serialized).not.toMatch(/api_key|response_body|stack|authorization/i);
+  expect(ledger.transaction).not.toHaveBeenCalled();
 });

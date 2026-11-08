@@ -10,7 +10,8 @@ import {
   PlusJakartaSans_800ExtraBold,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { AppProvider, useApp } from "./src/store";
-import { BottomNav, NAV_SCREENS, Toast } from "./src/ui";
+import { BottomNav, NAV_SCREENS, T, Toast } from "./src/ui";
+import { DIAGNOSTICS_BUILD_ENABLED } from "./src/assistant/diagnostics";
 import { colors } from "./src/theme";
 import { selectPending } from "./src/domain";
 import { HomeScreen } from "./src/screens/HomeScreen";
@@ -89,6 +90,13 @@ function Shell() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
+      {DIAGNOSTICS_BUILD_ENABLED ? (
+        <View accessibilityRole="alert" style={styles.diagnosticsBanner}>
+          <T size={12} weight="bold" color="#fff">
+            TEST BUILD ONLY — SYNTHETIC DATA ONLY
+          </T>
+        </View>
+      ) : null}
       <ScreenView />
       {showNav ? (
         <BottomNav current={state.screen} pendingCount={pendingCount} />
@@ -110,4 +118,10 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  diagnosticsBanner: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: "center",
+    backgroundColor: "#9a3d05",
+  },
 });

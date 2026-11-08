@@ -17,7 +17,11 @@ import {
 } from "../../storage/src/repositories.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 import { OpenAICompatibleClient } from "./provider_client.js";
-import { KeyPool, BadRequestNoFallbackError } from "./key_pool.js";
+import {
+  AllKeysFailedError,
+  KeyPool,
+  BadRequestNoFallbackError,
+} from "./key_pool.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -66,6 +70,42 @@ test("langchain_buffers_provider_sse_for_validated_answer_delivery", async () =>
     expect.objectContaining({ stream: true }),
   );
 });
+test("langchain_diagnostics_report_unexpected_stage_without_exception_text", async () => {
+  const events: unknown[] = [];
+  const raw = {
+    chatCompletion: vi.fn(async () => {
+      throw new Error("synthetic_private_exception_marker");
+    }),
+  };
+  const client = new LangChainCompletionClient(raw);
+
+  await expect(
+    client.chatCompletion({
+      ...request,
+      onDiagnostic: (event) => events.push(event),
+    }),
+  ).rejects.toBeInstanceOf(LangChainAdapterError);
+
+  const serialized = JSON.stringify(events);
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event_code: "langchain_invoke_started",
+        source: "langchain",
+        outcome: "started",
+      }),
+      expect.objectContaining({
+        event_code: "langchain_invoke_failed",
+        source: "langchain",
+        outcome: "failed",
+        reason_code: "langchain_error",
+        failure_stage: "provider_call",
+      }),
+    ]),
+  );
+  expect(serialized).not.toContain("synthetic_private_exception_marker");
+});
+
 test("langchain_sensitive_malformed_stream_callback_and_aborted_input_never_invoke_framework_or_provider", async () => {
   const spy = vi.spyOn(BaseChatModel.prototype, "invoke");
   const raw = { chatCompletion: vi.fn(async () => result) };
@@ -354,4 +394,76 @@ test("langchain_registered_ambient_context_handler_is_rejected_before_it_sees_pa
   );
   expect(observe).not.toHaveBeenCalled();
   expect(raw.chatCompletion).not.toHaveBeenCalled();
+});
+
+test("langchain_mixed_key_failures_use_static_provider_error_reason", async () => {
+  const events: unknown[] = [];
+  const failure = new AllKeysFailedError([
+    { nickname: "synthetic_alpha", reason: "unauthorized" },
+    { nickname: "synthetic_bravo", reason: "rate_limited" },
+  ]);
+  const client = new LangChainCompletionClient({
+    chatCompletion: vi.fn(async () => {
+      throw failure;
+    }),
+  });
+
+  await expect(
+    client.chatCompletion({
+      ...request,
+      onDiagnostic: (event) => events.push(event),
+    }),
+  ).rejects.toBe(failure);
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event_code: "langchain_invoke_failed",
+        reason_code: "provider_error",
+        failure_stage: "provider_call",
+      }),
+    ]),
+  );
+  expect(JSON.stringify(events)).not.toContain("synthetic_alpha");
+  expect(JSON.stringify(events)).not.toContain("synthetic_bravo");
+});
+
+test("langchain_maps_all_single_key_failure_categories_without_echoing_key_metadata", async () => {
+  const cases = [
+    ["unauthorized", "unauthorized"],
+    ["rate_limited", "rate_limited"],
+    ["connection_error", "connection_error"],
+    ["access_denied", "access_denied"],
+    ["provider_unavailable", "provider_unavailable"],
+    ["provider_http_error", "provider_http_error"],
+    ["protocol_error", "protocol_error"],
+    ["provider_error", "provider_error"],
+    ["disabled", "provider_error"],
+    ["cooldown", "provider_error"],
+  ] as const;
+
+  for (const [failure_reason, diagnostic_reason] of cases) {
+    const events: unknown[] = [];
+    const client = new LangChainCompletionClient({
+      chatCompletion: vi.fn(async () => {
+        throw new AllKeysFailedError([
+          { nickname: "synthetic_only", reason: failure_reason },
+        ]);
+      }),
+    });
+    await expect(
+      client.chatCompletion({
+        ...request,
+        onDiagnostic: (event) => events.push(event),
+      }),
+    ).rejects.toBeInstanceOf(AllKeysFailedError);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event_code: "langchain_invoke_failed",
+          reason_code: diagnostic_reason,
+        }),
+      ]),
+    );
+    expect(JSON.stringify(events)).not.toContain("synthetic_only");
+  }
 });

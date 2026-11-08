@@ -1,4 +1,6 @@
 import { useApp } from "../store";
+import { DIAGNOSTICS_BUILD_ENABLED } from "../assistant/diagnostics";
+import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import type { AppState } from "../domain";
 import {
   Card,
@@ -116,6 +118,8 @@ export function SettingsScreen() {
           }
         />
       </Card>
+
+      {DIAGNOSTICS_BUILD_ENABLED ? <DiagnosticsPanel enabled /> : null}
 
       <SectionLabel>Preview</SectionLabel>
       <Card style={{ paddingVertical: 2 }}>

@@ -19,7 +19,12 @@ import {
   create_mobile_qa_agent,
   mobile_qa_failure_message,
 } from "./assistant/mobile_qa";
-import type { MobileQaProviderKind } from "./assistant/mobile_qa";
+import type { MobileQaProviderKind, QaStopReason } from "./assistant/mobile_qa";
+import { mobile_diagnostics } from "./assistant/diagnostics";
+import type {
+  DiagnosticFailureStage,
+  DiagnosticReason,
+} from "./assistant/diagnostics";
 import {
   read_anthropic_api_key,
   read_assistant_provider_profile,
@@ -275,6 +280,44 @@ function error_message(error: unknown): string {
   return error instanceof Error ? error.message : "storage_operation_failed";
 }
 
+function diagnostic_reason_for_stop(reason: QaStopReason): DiagnosticReason {
+  switch (reason) {
+    case "completed":
+      return "ok";
+    case "message_rejected":
+    case "provider_request_rejected":
+      return "request_rejected";
+    case "sensitive_dropped":
+      return "sensitive_input_blocked";
+    case "provider_auth_failed":
+      return "unauthorized";
+    case "provider_rate_limited":
+      return "rate_limited";
+    case "provider_connection_failed":
+      return "connection_error";
+    case "provider_unavailable":
+      return "provider_unavailable";
+    case "provider_access_denied":
+      return "access_denied";
+    case "provider_http_error":
+      return "provider_http_error";
+    case "provider_protocol_error":
+      return "protocol_error";
+    case "provider_error":
+      return "provider_error";
+    case "tool_rejected":
+      return "tool_rejected";
+    case "step_limit":
+      return "step_limit";
+    case "token_budget":
+      return "token_budget";
+    case "timeout":
+      return "timeout";
+    case "aborted":
+      return "cancelled";
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(default_state);
   const [ready, setReady] = useState(false);
@@ -295,8 +338,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     mounted_ref.current = true;
+    mobile_diagnostics.record("app_started", "app", "completed");
+    mobile_diagnostics.record(
+      "provider_profile_read_started",
+      "secure_store",
+      "started",
+    );
     void read_assistant_provider_profile(SecureStore)
       .then((profile) => {
+        mobile_diagnostics.record(
+          "provider_profile_read_succeeded",
+          "secure_store",
+          "completed",
+          profile.selected_provider,
+          "ok",
+        );
         if (!mounted_ref.current) return;
         setState((current) => ({
           ...current,
@@ -308,9 +364,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : "auto",
         }));
       })
-      .catch(() => undefined);
+      .catch(() => {
+        mobile_diagnostics.record(
+          "provider_profile_read_failed",
+          "secure_store",
+          "failed",
+          undefined,
+          "secure_store_error",
+        );
+      });
+    mobile_diagnostics.record("ledger_open_started", "ledger", "started");
     void openMobileLedgerStore()
       .then(async (store) => {
+        mobile_diagnostics.record(
+          "ledger_open_succeeded",
+          "ledger",
+          "completed",
+        );
         if (!mounted_ref.current) {
           await store.close();
           return;
@@ -320,6 +390,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setReady(true);
       })
       .catch((reason: unknown) => {
+        mobile_diagnostics.record(
+          "ledger_open_failed",
+          "ledger",
+          "failed",
+          undefined,
+          "local_storage_error",
+        );
         if (!mounted_ref.current) return;
         const message = error_message(reason);
         setError(message);
@@ -359,6 +436,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
               ? action.text.trim()
               : current.quickInput.trim();
         if (!question) {
+          mobile_diagnostics.record(
+            "question_rejected",
+            "request_preflight",
+            "rejected",
+            undefined,
+            "invalid_question",
+          );
           setState((value) => toast(value, "Enter a question first."));
           return;
         }
@@ -390,28 +474,90 @@ export function AppProvider({ children }: { children: ReactNode }) {
             : state_ref.current.model === "claude"
               ? "anthropic"
               : "kilo";
+        mobile_diagnostics.record(
+          "question_accepted",
+          "request_preflight",
+          "completed",
+          provider_kind,
+          "ok",
+        );
+        let failure_stage: DiagnosticFailureStage = "context_build";
         void (async () => {
           let streamed_answer = "";
-          const profile = await read_assistant_provider_profile(SecureStore);
+          mobile_diagnostics.record(
+            "provider_profile_read_started",
+            "secure_store",
+            "started",
+          );
+          let profile;
+          try {
+            profile = await read_assistant_provider_profile(SecureStore);
+          } catch (error) {
+            mobile_diagnostics.record(
+              "provider_profile_read_failed",
+              "secure_store",
+              "failed",
+              provider_kind,
+              "secure_store_error",
+            );
+            throw error;
+          }
           provider_kind = profile.selected_provider;
-          const provider =
-            profile.selected_provider === "openai_compatible"
-              ? {
-                  kind: "openai_compatible" as const,
-                  api_key:
-                    (await read_openai_compatible_key(SecureStore)) ?? "",
-                  base_url: profile.base_url,
-                  model: profile.model,
-                }
-              : profile.selected_provider === "anthropic"
+          mobile_diagnostics.record(
+            "provider_profile_read_succeeded",
+            "secure_store",
+            "completed",
+            provider_kind,
+            "ok",
+          );
+          mobile_diagnostics.record(
+            "secure_credential_read_started",
+            "secure_store",
+            "started",
+            provider_kind,
+          );
+          let provider: Parameters<typeof create_mobile_qa_agent>[1];
+          try {
+            provider =
+              profile.selected_provider === "openai_compatible"
                 ? {
-                    kind: "anthropic" as const,
-                    api_key: (await read_anthropic_api_key(SecureStore)) ?? "",
+                    kind: "openai_compatible" as const,
+                    api_key:
+                      (await read_openai_compatible_key(SecureStore)) ?? "",
+                    base_url: profile.base_url,
+                    model: profile.model,
                   }
-                : {
-                    kind: "kilo" as const,
-                    api_key: await read_kilo_key(SecureStore),
-                  };
+                : profile.selected_provider === "anthropic"
+                  ? {
+                      kind: "anthropic" as const,
+                      api_key:
+                        (await read_anthropic_api_key(SecureStore)) ?? "",
+                    }
+                  : {
+                      kind: "kilo" as const,
+                      api_key: await read_kilo_key(SecureStore),
+                    };
+          } catch (error) {
+            mobile_diagnostics.record(
+              "secure_credential_read_failed",
+              "secure_store",
+              "failed",
+              provider_kind,
+              "secure_store_error",
+            );
+            throw error;
+          }
+          mobile_diagnostics.record(
+            "secure_credential_read_succeeded",
+            "secure_store",
+            "completed",
+            provider_kind,
+            "ok",
+            undefined,
+            undefined,
+            undefined,
+            provider.api_key ? 1 : 0,
+          );
           const missing_provider_setup =
             provider.kind === "openai_compatible" && !provider.api_key
               ? "No OpenAI-compatible API key is saved. Add one in Model settings. No ledger changes were made."
@@ -422,6 +568,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   ? "No Anthropic API key is saved. Add one in Model settings. No ledger changes were made."
                   : null;
           if (missing_provider_setup) {
+            mobile_diagnostics.record(
+              "question_rejected",
+              "request_preflight",
+              "rejected",
+              provider_kind,
+              provider.kind === "openai_compatible" && !provider.api_key
+                ? "missing_credential"
+                : "invalid_provider_config",
+            );
             if (mounted_ref.current) {
               setState((value) => ({
                 ...value,
@@ -435,7 +590,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
             return;
           }
+          failure_stage = "agent_create";
+          mobile_diagnostics.record(
+            "qa_agent_create_started",
+            "qa_agent",
+            "started",
+            provider_kind,
+          );
           const agent = create_mobile_qa_agent(store, provider);
+          mobile_diagnostics.record(
+            "qa_agent_create_succeeded",
+            "qa_agent",
+            "completed",
+            provider_kind,
+            "ok",
+          );
+          failure_stage = "provider_call";
+          mobile_diagnostics.record(
+            "qa_started",
+            "qa_agent",
+            "started",
+            provider_kind,
+          );
           const result = await agent.answerQuestion(question, {
             signal: controller.signal,
             onValidatedChunk: (chunk: string) => {
@@ -452,6 +628,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             },
           });
+          mobile_diagnostics.record(
+            "qa_result_received",
+            "qa_agent",
+            result.answered ? "completed" : "failed",
+            provider_kind,
+            diagnostic_reason_for_stop(result.stopReason),
+            undefined,
+            undefined,
+            undefined,
+            result.stepsUsed,
+          );
           if (!result.answered || !result.answer) {
             if (mounted_ref.current) {
               setState((value) => ({
@@ -518,6 +705,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         })()
           .catch(() => {
+            mobile_diagnostics.record(
+              "qa_stage_failed",
+              failure_stage === "context_build"
+                ? "secure_store"
+                : failure_stage === "agent_create"
+                  ? "qa_agent"
+                  : "qa_loop",
+              "failed",
+              provider_kind,
+              controller.signal.aborted
+                ? "cancelled"
+                : failure_stage === "context_build"
+                  ? "secure_store_error"
+                  : failure_stage === "agent_create"
+                    ? "langchain_error"
+                    : "provider_error",
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              failure_stage,
+            );
             if (!mounted_ref.current) return;
             setState((value) => ({
               ...value,

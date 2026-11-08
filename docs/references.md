@@ -408,10 +408,10 @@ directory, adds `expo-dev-client`, runs `expo prebuild --platform android
 --clean`, builds `assembleDebug` with Gradle, and uploads `app-debug.apk` with
 7-day retention. This is build proof only, not device proof.
 
-## S33 preview APK build (2026-11-05)
+## Historical S33 preview APK workflow (2026-11-05; superseded in S38)
 
-`.github/workflows/s33-preview-apk.yml` reuses the runner image and the four
-pinned action SHAs recorded above for `s33-android-proof` (checkout v5.0.0,
+At the time, `.github/workflows/s33-preview-apk.yml` reused the runner image and
+the four pinned action SHAs recorded above for `s33-android-proof` (checkout v5.0.0,
 setup-java v4.7.1, setup-node v4.4.0, upload-artifact v4.6.2), on `ubuntu-24.04`
 with JDK 17 and Node 24.22.2. No new action was introduced.
 
@@ -642,3 +642,10 @@ payloads. The root CI `test:coverage` command still runs the complete suite.
 - Anthropic API versioning: https://platform.claude.com/docs/en/api/versioning — current official page rechecked 2026-11-05; the latest listed API version is `2026-10-21`. Responses may add output values and streaming event variants, so the adapter handles unknown events without treating them as text or tools.
 - Anthropic API errors: https://platform.claude.com/docs/en/api/errors — current official page rechecked 2026-11-05. HTTP categories include 401 authentication, 402 billing, 403 permission, 429 rate limit, 5xx API errors, 504 timeout, and 529 overload; SSE errors can occur after a successful HTTP response. UI receives static provider categories only, never raw error bodies.
 - Anthropic current canonical legal and compliance page: https://code.claude.com/docs/en/legal-and-compliance — consulted 2026-11-05. It states developers building third-party services should use API key authentication and must not offer Claude.ai login or route Free/Pro/Max/Ultra subscription credentials for users. S37b is API-key-only; no subscription/OAuth credentials are collected or used.
+
+### S38 diagnostics test build and Android Downloads export (2026-11-05)
+
+- Expo FileSystem (legacy API) for SDK 58: https://docs.expo.dev/versions/v58.0.0/sdk/filesystem-legacy/ — consulted 2026-11-05. The app uses `expo-file-system@~58.0.13` and `StorageAccessFramework` for the Android directory picker, child listing, directory/file creation, and UTF-8 writes. SAF folder permission is selected explicitly when the user exports; no broad storage permission is requested. Automated Jest tests mock SAF. Downloads-folder navigation, permission persistence, and actual file placement still require owner device verification.
+- React Native native debugging/logging: https://reactnative.dev/docs/debugging-native-code — consulted 2026-11-05. The current guide documents access to Android application logs through `adb logcat` / `ReactNativeJS`; the diagnostics logger emits only serialized allowlisted entries to `console.log`, in addition to its bounded in-memory ring buffer. The in-app JSON export is user-triggered and local.
+- The owner chose the actual Vittaz app workflow as the S38 target: the old `.github/workflows/s33-preview-apk.yml` was renamed/replaced by `.github/workflows/mobile-diagnostics-test-apk.yml`; `.github/workflows/s33-android-proof.yml` remains the separate blank Expo toolchain proof. The new manual workflow uses the mobile lockfile in a temp copy, sets the diagnostics flag only for that build, and uploads `vittaz-diagnostics-test-apk` for 7 days. No workflow run/APK has been produced in this sandbox.
+- This feature's logs deliberately omit prompts, replies, transaction/ledger values, names, keys/tokens, full URLs, provider response bodies, and exception strings/stacks. The build-time flag is set only for the distinct diagnostics test APK; standard builds leave it unset. The APK uses a separate Android application ID so it can coexist with personal Vittaz. No actual cause for `KILO_UNKNOWN` is established by implementation or synthetic tests.

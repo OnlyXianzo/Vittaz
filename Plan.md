@@ -167,6 +167,16 @@ For each step: write the failing test from the inventory, implement, pass, refac
 
 **Gate G4:** device tests pass for SQLite, secure storage, Telegram and the local model.
 
+### Phase L: diagnostics test build
+
+- [ ] **S38. Android diagnostics test build.** Owner-requested diagnostics to investigate the unresolved S36 `KILO_UNKNOWN` failure. Add a conspicuously TEST ONLY, separately installable Android build; structured, high-detail stage/result logs; an in-app log viewer and explicit save-to-Downloads button under `Vittaz-Diagnostics`; and a descriptive manual APK workflow. Use synthetic data only. Log only allowlisted operational metadata (stages, static reason codes, provider kind, HTTP status, elapsed time and tool name). Never log prompts/replies, ledger content, API keys/tokens, raw URLs, provider bodies, or exception text/stack traces. Diagnostics are disabled in ordinary builds. The test build must not replace the personal app. Replace the obsolete active S33 preview workflow name/file with a descriptive diagnostics workflow; retain historical evidence only in docs. Record and follow the current official Expo FileSystem/SAF references; SDK 58 SAF docs are now in `docs/references.md`. Pass app privacy tests, tests asserting `KILO_UNKNOWN` resolves to a specific safe stage/category where possible, native build/export checks, and owner-only device retest before claiming a cause.
+  - [x] Implement bounded allowlisted mobile/agent stage logs; add TEST ONLY banner, safe in-app event viewer, and explicit Downloads/Vittaz-Diagnostics export; use synthetic test inputs.
+  - [x] Tests: full root suite 359/359, all mobile tests 46/46, root/mobile TypeScript checks, root privacy gate, and 24 workflow/promotion tests pass; generic provider failures report fixed safe reason/stage without exception text.
+  - [x] Android JavaScript export contains the test banner/export button; temp Expo prebuild confirms test label, distinct `com.vittaz.diagnostics.test` package ID, and `expo-file-system` autolinking.
+  - [x] Owner selected the actual Vittaz app workflow; replaced it with `.github/workflows/mobile-diagnostics-test-apk.yml` and left the unrelated blank Expo proof workflow unchanged. All 24 workflow/promotion regression tests pass.
+  - [ ] Run the manual workflow and deliver the standalone APK. Local runner lacks JDK 17/Android SDK/ADB (only JDK 11 present), so no Gradle/APK run is available here.
+  - [ ] Owner device retest with synthetic data; validate SAF Downloads permission, folder creation, and saved JSON. Do not claim a root cause until device evidence identifies one.
+
 ### Phase J: UI and UX (only after G3)
 
 Open `canvas/screens.zip`. The HTML screens are the visual specification: reuse their layout, styling and assets. Wire them to the working backend in vertical slices, each with component tests:

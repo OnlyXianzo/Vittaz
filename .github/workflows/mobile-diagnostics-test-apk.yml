@@ -1,0 +1,153 @@
+name: Vittaz mobile diagnostics test APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - name: Resolve diagnostics directory
+        run: echo "DIAGNOSTICS_DIR=$RUNNER_TEMP/vittaz-diagnostics/ui" >> "$GITHUB_ENV"
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node 24.22.2
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.22.2"
+
+      - name: Record runner software
+        run: |
+          uname -a
+          node --version
+          npm --version
+          java -version 2>&1
+
+      - name: Copy actual Vittaz app and shared sources to runner temp
+        run: |
+          mkdir -p "$DIAGNOSTICS_DIR" "$DIAGNOSTICS_DIR/../packages"
+          cp -R apps/mobile "$DIAGNOSTICS_DIR/native"
+          rm -rf "$DIAGNOSTICS_DIR/native/node_modules"
+          cp -R packages/core "$DIAGNOSTICS_DIR/../packages/core"
+          cp -R packages/storage "$DIAGNOSTICS_DIR/../packages/storage"
+          cp -R packages/agent "$DIAGNOSTICS_DIR/../packages/agent"
+          rm -rf "$DIAGNOSTICS_DIR/../packages/core/node_modules"
+          rm -rf "$DIAGNOSTICS_DIR/../packages/storage/node_modules"
+          rm -rf "$DIAGNOSTICS_DIR/../packages/agent/node_modules"
+          test -f "$DIAGNOSTICS_DIR/native/App.tsx"
+          test -f "$DIAGNOSTICS_DIR/native/metro.config.cjs"
+          test -f "$DIAGNOSTICS_DIR/native/ui/src/state.ts"
+          test -f "$DIAGNOSTICS_DIR/../packages/core/src/index.ts"
+          test -f "$DIAGNOSTICS_DIR/../packages/storage/src/expo_sqlite_store.ts"
+          test -f "$DIAGNOSTICS_DIR/../packages/agent/src/qa_loop.ts"
+
+      - name: Install the locked app dependencies in temp
+        run: |
+          cd "$DIAGNOSTICS_DIR/native"
+          npm ci
+          node -e "const p=require('./package.json');const d=p.dependencies;console.log(JSON.stringify({expo:d.expo,expo_file_system:d['expo-file-system'],react_native:d['react-native'],secure_store:d['expo-secure-store'],svg:d['react-native-svg'],linear_gradient:d['expo-linear-gradient']},null,2))"
+
+      - name: Apply diagnostics-only app identity in temp
+        run: |
+          cd "$DIAGNOSTICS_DIR/native"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = './app.json';
+          const config = JSON.parse(fs.readFileSync(file, 'utf8'));
+          config.expo.name = 'Vittaz TEST ONLY';
+          config.expo.slug = 'vittaz-diagnostics-test';
+          config.expo.scheme = 'vittaz-diagnostics-test';
+          config.expo.android.package = 'com.vittaz.diagnostics.test';
+          fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\n');
+          NODE
+
+      - name: Prebuild Android in temp
+        run: |
+          cd "$DIAGNOSTICS_DIR/native"
+          npx expo prebuild --platform android --clean
+          grep -q 'com.vittaz.diagnostics.test' android/app/build.gradle
+          grep -q 'Vittaz TEST ONLY' android/app/src/main/res/values/strings.xml
+
+      - name: Assert required native modules are autolinked
+        run: |
+          cd "$DIAGNOSTICS_DIR/native"
+          npx expo-modules-autolinking react-native-config --platform android --json > "$RUNNER_TEMP/rn-config.json"
+          npx expo-modules-autolinking resolve --platform android --json > "$RUNNER_TEMP/expo-modules.json"
+          node -e '
+            const fs = require("node:fs");
+            const dir = process.env.RUNNER_TEMP;
+            const rn = JSON.parse(fs.readFileSync(`${dir}/rn-config.json`, "utf8"));
+            const expo = JSON.parse(fs.readFileSync(`${dir}/expo-modules.json`, "utf8"));
+            const rnDeps = Object.keys(rn.dependencies ?? {});
+            const expoDeps = (expo.modules ?? []).map((m) => m.packageName);
+            const required = [
+              ["react-native-safe-area-context", rnDeps],
+              ["react-native-svg", rnDeps],
+              ["expo-linear-gradient", expoDeps],
+              ["expo-secure-store", expoDeps],
+              ["expo-file-system", expoDeps],
+            ];
+            const missing = required.filter(([name, list]) => !list.includes(name)).map(([name]) => name);
+            console.log(JSON.stringify({ rn_autolinked: rnDeps, expo_autolinked: expoDeps, missing }, null, 2));
+            if (missing.length > 0) throw new Error(`required native modules not autolinked: ${missing.join(", ")}`);
+          '
+
+      - name: Verify diagnostics UI is in the standalone Android bundle
+        env:
+          EXPO_PUBLIC_VITTAZ_DIAGNOSTICS: "1"
+        run: |
+          cd "$DIAGNOSTICS_DIR/native"
+          npx expo export --platform android --no-minify --no-bytecode --max-workers 2 --output-dir "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
+          grep -R -a -q 'TEST BUILD ONLY' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
+          grep -R -a -q 'SYNTHETIC DATA ONLY' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
+          grep -R -a -q 'Save test log to Downloads' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
+          grep -R -a -q 'Vittaz-Diagnostics' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
+
+      - name: Build standalone diagnostics test APK
+        env:
+          EXPO_PUBLIC_VITTAZ_DIAGNOSTICS: "1"
+        run: |
+          cd "$DIAGNOSTICS_DIR/native/android"
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease \
+            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a \
+            -Pandroid.enableMinifyInReleaseBuilds=false
+
+      - name: Assert standalone APK embeds the JavaScript bundle
+        run: |
+          cd "$DIAGNOSTICS_DIR/native/android/app/build/outputs/apk/release"
+          unzip -l app-release.apk > "$RUNNER_TEMP/vittaz-diagnostics-apk-files.txt"
+          grep -E 'assets/index.android.bundle|lib/arm64-v8a/' "$RUNNER_TEMP/vittaz-diagnostics-apk-files.txt" | head -20 || true
+          grep -q 'assets/index.android.bundle' "$RUNNER_TEMP/vittaz-diagnostics-apk-files.txt"
+          ls -lh app-release.apk
+          sha256sum app-release.apk
+
+      - name: Assert repository working tree is unchanged
+        run: |
+          git diff --exit-code
+          git status --porcelain
+
+      - name: Upload diagnostics test APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vittaz-diagnostics-test-apk
+          path: ${{ runner.temp }}/vittaz-diagnostics/ui/native/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
+          if-no-files-found: error

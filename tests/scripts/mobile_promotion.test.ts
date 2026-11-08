@@ -71,9 +71,9 @@ test("s34_shared_sources_and_ci_are_repointed_without_a_preview_reducer", () => 
   const native_ci = read(".github/workflows/native.yml");
   expect(native_ci).toContain("working-directory: apps/mobile");
   expect(native_ci).not.toContain("apps/mobile/ui/native");
-  const apk = read(".github/workflows/s33-preview-apk.yml");
+  const apk = read(".github/workflows/mobile-diagnostics-test-apk.yml");
   expect(apk).not.toContain("apps/mobile/ui/native");
-  expect(apk).toContain('cp -R apps/mobile "$PREVIEW_DIR/native"');
+  expect(apk).toContain('cp -R apps/mobile "$DIAGNOSTICS_DIR/native"');
 });
 test("s34_apps_mobile_imports_packages_core_through_a_resolvable_bridge", () => {
   const bridge = read("apps/mobile/src/core.ts");
@@ -116,7 +116,7 @@ test("s34_apk_workflow_copies_core_because_metro_watches_it", () => {
   // that root missing and Gradle's createBundleReleaseJsAndAssets failed with
   // "ENOENT ... /vittaz-preview/packages/core/src". A local `expo export`
   // passed because the real repo has packages/core at that relative path.
-  const apk = read(".github/workflows/s33-preview-apk.yml");
+  const apk = read(".github/workflows/mobile-diagnostics-test-apk.yml");
   expect(apk).toContain("packages/core");
   expect(apk).toMatch(/cp -R packages\/core/);
   expect(apk).toContain("packages/storage");

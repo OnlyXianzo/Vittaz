@@ -20,6 +20,13 @@ import {
   ToolExecutionError,
 } from "./tools.js";
 import type { QaDataSource } from "./tools.js";
+import { report_agent_diagnostic } from "./diagnostics.js";
+import type {
+  AgentDiagnosticEvent,
+  AgentDiagnosticFailureStage,
+  AgentDiagnosticReason,
+  AgentDiagnosticReporter,
+} from "./diagnostics.js";
 export class QaValidationError extends Error {
   constructor() {
     super("Invalid Q&A request");
@@ -109,6 +116,44 @@ export type QaStopReason =
   | "provider_http_error"
   | "provider_protocol_error"
   | "provider_error";
+type QaFailureStopReason = Exclude<QaStopReason, "completed">;
+function diagnostic_reason_for_stop(
+  reason: QaFailureStopReason,
+): AgentDiagnosticReason {
+  switch (reason) {
+    case "message_rejected":
+    case "provider_request_rejected":
+      return "request_rejected";
+    case "sensitive_dropped":
+      return "sensitive_input_blocked";
+    case "step_limit":
+      return "step_limit";
+    case "token_budget":
+      return "token_budget";
+    case "timeout":
+      return "timeout";
+    case "aborted":
+      return "cancelled";
+    case "tool_rejected":
+      return "tool_rejected";
+    case "provider_auth_failed":
+      return "unauthorized";
+    case "provider_rate_limited":
+      return "rate_limited";
+    case "provider_connection_failed":
+      return "connection_error";
+    case "provider_unavailable":
+      return "provider_unavailable";
+    case "provider_access_denied":
+      return "access_denied";
+    case "provider_http_error":
+      return "provider_http_error";
+    case "provider_protocol_error":
+      return "protocol_error";
+    case "provider_error":
+      return "provider_error";
+  }
+}
 export interface AnswerQuestionResult {
   answered: boolean;
   stopReason: QaStopReason;
@@ -131,6 +176,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       client: CompletionClient;
       data: QaDataSource;
       redactor: PrivacyRedactor;
+      onDiagnostic?: AgentDiagnosticReporter;
     },
   ) {
     this.tools = createQaToolExecutor(params.data, params.redactor);
@@ -139,9 +185,19 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     question: unknown,
     rawOptions: unknown = {},
   ): Promise<AnswerQuestionResult> {
+    let failure_stage: AgentDiagnosticFailureStage = "request_validation";
     const parsed = z.string().trim().min(1).max(8192).safeParse(question);
     const opts = optionsSchema.safeParse(rawOptions);
-    if (!parsed.success || !opts.success) throw new QaValidationError();
+    if (!parsed.success || !opts.success) {
+      report_agent_diagnostic(this.params.onDiagnostic, {
+        event_code: "qa_stage_failed",
+        source: "qa_loop",
+        outcome: "rejected",
+        reason_code: "invalid_question",
+        failure_stage,
+      });
+      throw new QaValidationError();
+    }
     let presentation: string | undefined;
     try {
       if (opts.data.preferences !== undefined)
@@ -149,6 +205,13 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
           parseAssistantPreferences(opts.data.preferences),
         );
     } catch {
+      report_agent_diagnostic(this.params.onDiagnostic, {
+        event_code: "qa_stage_failed",
+        source: "qa_loop",
+        outcome: "rejected",
+        reason_code: "invalid_question",
+        failure_stage: "request_validation",
+      });
       throw new QaValidationError();
     }
     let behavior: string | undefined;
@@ -163,6 +226,13 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
         behavior = rulesContext(rules);
       }
     } catch {
+      report_agent_diagnostic(this.params.onDiagnostic, {
+        event_code: "qa_stage_failed",
+        source: "qa_loop",
+        outcome: "rejected",
+        reason_code: "invalid_question",
+        failure_stage: "request_validation",
+      });
       throw new QaValidationError();
     }
     const {
@@ -175,16 +245,32 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     let stepsUsed = 0;
     let tokensUsed = 0;
     const toolsUsed: string[] = [];
-    const stopped = (stopReason: QaStopReason): AnswerQuestionResult => ({
-      answered: false,
-      stopReason,
-      stepsUsed,
-      tokensUsed,
-      toolsUsed: [...toolsUsed],
-      answer:
-        stopReason === "sensitive_dropped"
-          ? null
-          : "Could not answer safely within the request limits.",
+    const stopped = (stopReason: QaFailureStopReason): AnswerQuestionResult => {
+      report_agent_diagnostic(this.params.onDiagnostic, {
+        event_code: "qa_failed",
+        source: "qa_loop",
+        outcome: "failed",
+        reason_code: diagnostic_reason_for_stop(stopReason),
+        failure_stage,
+        count: stepsUsed,
+      });
+      return {
+        answered: false,
+        stopReason,
+        stepsUsed,
+        tokensUsed,
+        toolsUsed: [...toolsUsed],
+        answer:
+          stopReason === "sensitive_dropped"
+            ? null
+            : "Could not answer safely within the request limits.",
+      };
+    };
+    failure_stage = "preflight";
+    report_agent_diagnostic(this.params.onDiagnostic, {
+      event_code: "qa_started",
+      source: "qa_loop",
+      outcome: "started",
     });
     if (!allowed) return stopped("message_rejected");
     if (checkSensitiveMessage(parsed.data).sensitive)
@@ -225,6 +311,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       });
     }
     try {
+      failure_stage = "context_build";
       this.params.redactor.discoverAndRegisterInlineNames(parsed.data);
       const user = scrubOutboundText(
         this.params.redactor.redactText(parsed.data),
@@ -267,17 +354,19 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       while (stepsUsed < maxSteps) {
         if (cancelled()) return cancellationResult();
         stepsUsed++;
-        const completion = resultSchema.parse(
-          await bounded(() =>
-            this.params.client.chatCompletion({
-              messages: structuredClone(messages),
-              tools: this.tools.specs,
-              stream: onValidatedChunk !== undefined,
-              maxCompletionTokens: Math.min(8192, tokenBudget - tokensUsed),
-              signal,
-            }),
-          ),
+        failure_stage = "provider_call";
+        const raw_completion = await bounded(() =>
+          this.params.client.chatCompletion({
+            messages: structuredClone(messages),
+            tools: this.tools.specs,
+            stream: onValidatedChunk !== undefined,
+            maxCompletionTokens: Math.min(8192, tokenBudget - tokensUsed),
+            signal,
+            onDiagnostic: this.params.onDiagnostic,
+          }),
         );
+        failure_stage = "completion_validation";
+        const completion = resultSchema.parse(raw_completion);
         if (cancelled()) return cancellationResult();
         const total =
           BigInt(tokensUsed) + BigInt(completion.usage.total_tokens);
@@ -287,6 +376,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
         if (completion.usage.total_tokens === 0 || tokensUsed >= tokenBudget)
           return stopped("token_budget");
         if (!completion.toolCalls.length) {
+          failure_stage = "answer_validation";
           if (
             !completion.content.trim() ||
             checkSensitiveMessage(completion.content).sensitive
@@ -306,6 +396,13 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
               }
             }
           }
+          report_agent_diagnostic(this.params.onDiagnostic, {
+            event_code: "qa_completed",
+            source: "qa_loop",
+            outcome: "completed",
+            reason_code: "ok",
+            count: stepsUsed,
+          });
           return {
             answered: true,
             stopReason: "completed",
@@ -327,8 +424,42 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
           id: `qa_${stepsUsed}_${index}`,
         }));
         const results: ChatMessage[] = [];
+        failure_stage = "tool_execution";
         for (const call of calls) {
-          const value = await bounded(() => this.tools.execute(call));
+          const safe_tool_name = [
+            "query_transactions",
+            "get_balance",
+            "get_month_summary",
+            "find_person",
+            "check_unverified",
+          ].find((name) => name === call.function.name) as
+            AgentDiagnosticEvent["tool_name"] | undefined;
+          report_agent_diagnostic(this.params.onDiagnostic, {
+            event_code: "qa_tool_started",
+            source: "tool",
+            outcome: "started",
+            tool_name: safe_tool_name,
+          });
+          let value: unknown;
+          try {
+            value = await bounded(() => this.tools.execute(call));
+          } catch (error) {
+            report_agent_diagnostic(this.params.onDiagnostic, {
+              event_code: "qa_tool_rejected",
+              source: "tool",
+              outcome: "rejected",
+              reason_code: "tool_rejected",
+              tool_name: safe_tool_name,
+            });
+            throw error;
+          }
+          report_agent_diagnostic(this.params.onDiagnostic, {
+            event_code: "qa_tool_completed",
+            source: "tool",
+            outcome: "completed",
+            reason_code: "ok",
+            tool_name: safe_tool_name,
+          });
           toolsUsed.push(call.function.name);
           results.push({
             role: "tool",
@@ -356,35 +487,53 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
       }
       return stopped("step_limit");
     } catch (error) {
-      if (cancelled()) return cancellationResult();
-      if (error instanceof BadRequestNoFallbackError)
-        return stopped("provider_request_rejected");
-      if (error instanceof AllKeysFailedError) {
+      let stop_reason: QaFailureStopReason = "provider_error";
+      let diagnostic_reason: AgentDiagnosticReason = "provider_error";
+      if (cancelled()) {
+        stop_reason = caller?.aborted ? "aborted" : "timeout";
+        diagnostic_reason = stop_reason === "aborted" ? "cancelled" : "timeout";
+      } else if (error instanceof BadRequestNoFallbackError) {
+        stop_reason = "provider_request_rejected";
+        diagnostic_reason = "request_rejected";
+      } else if (error instanceof AllKeysFailedError) {
         const reasons = new Set(
           error.failures.map((failure) => failure.reason),
         );
         if (reasons.size === 1 && reasons.has("unauthorized"))
-          return stopped("provider_auth_failed");
-        if (reasons.size === 1 && reasons.has("rate_limited"))
-          return stopped("provider_rate_limited");
-        if (reasons.size === 1 && reasons.has("connection_error"))
-          return stopped("provider_connection_failed");
-        if (reasons.size === 1 && reasons.has("provider_unavailable"))
-          return stopped("provider_unavailable");
-        if (reasons.size === 1 && reasons.has("access_denied"))
-          return stopped("provider_access_denied");
-        if (reasons.size === 1 && reasons.has("provider_http_error"))
-          return stopped("provider_http_error");
-        if (reasons.size === 1 && reasons.has("protocol_error"))
-          return stopped("provider_protocol_error");
-      }
-      return stopped(
+          stop_reason = "provider_auth_failed";
+        else if (reasons.size === 1 && reasons.has("rate_limited"))
+          stop_reason = "provider_rate_limited";
+        else if (reasons.size === 1 && reasons.has("connection_error"))
+          stop_reason = "provider_connection_failed";
+        else if (reasons.size === 1 && reasons.has("provider_unavailable"))
+          stop_reason = "provider_unavailable";
+        else if (reasons.size === 1 && reasons.has("access_denied"))
+          stop_reason = "provider_access_denied";
+        else if (reasons.size === 1 && reasons.has("provider_http_error"))
+          stop_reason = "provider_http_error";
+        else if (reasons.size === 1 && reasons.has("protocol_error"))
+          stop_reason = "provider_protocol_error";
+        diagnostic_reason = diagnostic_reason_for_stop(stop_reason);
+      } else if (
         error instanceof ToolValidationError ||
-          error instanceof ReadOnlyViolationError ||
-          error instanceof ToolExecutionError
-          ? "tool_rejected"
-          : "provider_error",
-      );
+        error instanceof ReadOnlyViolationError ||
+        error instanceof ToolExecutionError
+      ) {
+        stop_reason = "tool_rejected";
+        diagnostic_reason = "tool_rejected";
+      } else if (error instanceof z.ZodError) {
+        diagnostic_reason = "invalid_completion";
+      }
+      report_agent_diagnostic(this.params.onDiagnostic, {
+        event_code: "qa_stage_failed",
+        source: "qa_loop",
+        outcome:
+          stop_reason === "provider_request_rejected" ? "rejected" : "failed",
+        reason_code: diagnostic_reason,
+        failure_stage,
+        count: stepsUsed,
+      });
+      return stopped(stop_reason);
     } finally {
       clearTimeout(timer);
     }
