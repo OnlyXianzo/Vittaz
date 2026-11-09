@@ -13,7 +13,10 @@ import {
 } from "../../storage/src/repositories.js";
 import { ReadOnlyQaLoop, QaValidationError } from "./qa_loop.js";
 import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
-import type { ChatCompletionResult } from "./provider_client.js";
+import type {
+  ChatCompletionParams,
+  ChatCompletionResult,
+} from "./provider_client.js";
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const f of cleanup.splice(0).reverse()) await f();
@@ -675,12 +678,10 @@ test("qa_success_diagnostics_report_a_safe_completed_result", async () => {
 test("qa_injects_trusted_indian_clock_and_human_money_status_presentation", async () => {
   const f = await fixture();
   const client = {
-    chatCompletion: vi.fn(
-      async (_request: { messages: Array<{ content: string }> }) => {
-        void _request;
-        return completion({ content: "Synthetic safe answer." });
-      },
-    ),
+    chatCompletion: vi.fn(async (_request: ChatCompletionParams) => {
+      void _request;
+      return completion({ content: "Synthetic safe answer." });
+    }),
   };
   await new ReadOnlyQaLoop({
     client,
@@ -689,7 +690,8 @@ test("qa_injects_trusted_indian_clock_and_human_money_status_presentation", asyn
   }).answerQuestion("Synthetic spending this month", {
     currentTime: "2026-11-09T04:30:00.000Z",
   });
-  const system = client.chatCompletion.mock.calls[0]![0].messages[0]!.content;
+  const system = client.chatCompletion.mock.calls[0]![0].messages[0]!
+    .content as string;
   expect(system).toContain("Asia/Calcutta");
   expect(system).toContain("2026-11");
   expect(system).toContain("this month");
