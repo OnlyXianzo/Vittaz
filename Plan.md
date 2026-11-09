@@ -292,10 +292,18 @@ represented as fixing that failure.
       credentials. Test with fake HTTP/SSE responses only. PR #70 checks passed
       on `250f0453d8cf8851a76c4e5820b929d736afa518`; PR remains open pending owner
       merge authorization. No APK/device test or live provider request was run.
-- [ ] **S37c. Native provider disclosure and selection checks.** Verify the
+- [x] **S37c. Native provider disclosure and selection checks.** Verify the
       chosen route is visible, provider-specific credential removal works, prompts
       are disclosed as leaving the device, and provider failures never mutate the
-      ledger. No real keys or personal prompts.
+      ledger. No real keys or personal prompts. **Verified 2026-11-08** on branch
+      `feat/s37c-provider-disclosure-checks`: a dedicated shell audit suite asserts,
+      for Kilo/OpenAI-compatible/Anthropic, that the selected route label is visible
+      in chat and the provider-specific "leaves this device" disclosure is shown;
+      that removing a provider's key keeps the selection (Anthropic added; Kilo and
+      OpenAI-compatible already covered); and that a provider failure shows safe
+      static copy and creates zero transactions or proposals. Mobile 62 tests pass;
+      typecheck/lint/format, privacy gate, and secret scan pass. No real keys, live
+      provider call, APK, or device run; S37d device verification remains owner-only.
 - [ ] **S37d. Device verification.** After a successful test APK is delivered,
       ask the owner to test each available route with synthetic prompts. Record
       owner-reported evidence separately from agent-observed build/test evidence.

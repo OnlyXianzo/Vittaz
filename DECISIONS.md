@@ -948,3 +948,25 @@ classes were observed:
 Verification: mobile 58 tests / 9 suites pass; mobile typecheck, ESLint, Prettier
 pass; privacy gate passes; deep secret scan zero findings. No live provider call,
 real key, APK, or device run by the agent.
+
+## S37c — provider disclosure and selection checks (2026-11-08)
+
+S37c is a verification step, not a feature. The disclosure/selection guarantees
+already existed in the UI (ChatScreen per-provider "leaves device" copy and route
+label; SettingsScreen privacy card; ModelsScreen per-provider key removal; the
+read-only chat path). S37c adds a focused, auditable shell test suite that locks
+these guarantees for all three providers and fills the one test gap (Anthropic key
+removal; provider-failure → no ledger mutation). The provider-failure test required
+the mobile_qa test mock to expose the real mobile_qa_failure_message; application
+code is unchanged. Plan.md S37c marked done with evidence; S37d (device verification)
+remains owner-only.
+
+### Remote branch cleanup (owner request, 2026-11-08)
+
+Deleted 70 remote branches confirmed merged into main: either ancestors of
+origin/main (true merge commits) or heads of merged PRs whose tip exactly matches
+the merged PR head SHA (squash/rebase merges, no post-merge commits). Kept main,
+the open PR #73 branch (fix/s38-chat-multistep-timeout), and
+feat/privacy-sensitive-filter (its PR #9 merged but the branch tip advanced beyond
+the merged SHA, so deleting it would lose unmerged work). Deletions used the GitHub
+API per branch with backup SHAs recorded for recovery; 70 deleted, 0 failures.
