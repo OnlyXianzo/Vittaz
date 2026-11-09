@@ -496,3 +496,14 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   or test failure.
 - No APK was delivered. S38d/S37d owner device verification remains pending until
   the Gradle distribution endpoint recovers or a trusted mirror/cache is used.
+
+## S38d update — diagnostics test APK delivered (2026-11-09)
+
+- After the upstream Gradle distribution endpoint recovered, workflow run
+  42571222498 on main `8d107b2` completed successfully and produced artifact
+  `vittaz-diagnostics-test-apk` (artifact id 13652898888).
+- APK: `vittaz-diagnostics-test.apk`, 47 MB, SHA-256
+  `42bf7ea04a60d15819cf1ab2cf22a63355084aeb2bd51eb2b6da3a88dc0e8de7`.
+- This is agent build evidence only. Owner device verification with synthetic
+  prompts (S37d/S38d owner evidence) remains pending and must be recorded
+  separately.
