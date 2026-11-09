@@ -455,3 +455,15 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   pass; mobile typecheck/lint/format pass; Android and web Metro exports succeed;
   privacy gate passes; deep secret scan zero findings.
 - Owner authorization: merge green fixes and continue S38 without confirmation.
+
+## S38b checkpoint — local chat history and recent context (2026-11-09)
+
+- Branch `feat/s38b-local-chat-history` on top of S38a. Added a local-only
+  `expo-sqlite/kv-store` chat history adapter that validates rows through core
+  `parseConversationMessage`, drops sensitive/invalid messages, bounds storage to
+  50 messages, and resumes the latest conversation on app start. The mobile chat
+  action now sends a bounded 6-turn recent history window to the QA loop, which
+  still applies its privacy filters/redaction before any provider request.
+- Local verification with Node 24.22.2: mobile 84 tests / 11 suites pass; mobile
+  typecheck/lint/format pass; root lint/format pass. No ledger schema or mutation
+  change; no automatic long-term memory.

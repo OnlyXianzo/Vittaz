@@ -20,6 +20,7 @@ export { formatPaise, parseAmountToPaise } from "../ui/src/money";
 export type {
   Action,
   AppState,
+  ChatMessage,
   ChatStep,
   Direction,
   InboxFilter,

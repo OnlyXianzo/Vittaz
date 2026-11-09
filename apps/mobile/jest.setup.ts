@@ -38,3 +38,20 @@ jest.mock("expo/fetch", () => ({
     globalThis.fetch(input, init),
   ),
 }));
+
+// Local chat history uses Expo SQLite's AsyncStorage-compatible KV store.
+jest.mock("expo-sqlite/kv-store", () => {
+  const values = new Map<string, string>();
+  return {
+    __esModule: true,
+    default: {
+      getItemAsync: jest.fn(async (key: string) => values.get(key) ?? null),
+      setItemAsync: jest.fn(async (key: string, value: string) => {
+        values.set(key, value);
+      }),
+      removeItemAsync: jest.fn(async (key: string) => {
+        values.delete(key);
+      }),
+    },
+  };
+});

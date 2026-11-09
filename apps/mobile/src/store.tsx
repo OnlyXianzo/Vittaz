@@ -32,6 +32,7 @@ import {
   read_openai_compatible_key,
 } from "./assistant/secure_key";
 import type { Action, AppState, ChatStep, Transaction } from "./domain";
+import { load_chat_history, save_chat_history } from "./assistant/chat_history";
 import { mobileLedgerRuntime } from "./ledger_runtime";
 import { openMobileLedgerStore } from "./storage/open_ledger_store";
 
@@ -423,6 +424,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         store_ref.current = store;
         await refresh(store);
+        const history = await load_chat_history();
+        if (mounted_ref.current && history.length > 0) {
+          setState((current) => ({
+            ...current,
+            screen: "chat",
+            chatMode: "idle",
+            chatMessages: history,
+            sequence: Math.max(current.sequence, history.length + 1),
+          }));
+        }
         setReady(true);
       })
       .catch((reason: unknown) => {
@@ -621,15 +632,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : "invalid_provider_config",
             );
             if (mounted_ref.current) {
+              const messages = state_ref.current.chatMessages.map((message) =>
+                message.id === assistant_id
+                  ? { ...message, text: missing_provider_setup }
+                  : message,
+              );
+              await save_chat_history(messages).catch(() => {});
               setState((value) => ({
                 ...value,
                 chatMode: "idle",
                 chatSteps: [],
-                chatMessages: value.chatMessages.map((message) =>
-                  message.id === assistant_id
-                    ? { ...message, text: missing_provider_setup }
-                    : message,
-                ),
+                chatMessages: messages,
               }));
             }
             return;
@@ -656,8 +669,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
             "started",
             provider_kind,
           );
+          const history = state_ref.current.chatMessages
+            .filter(
+              (message) =>
+                message.id !== user_id &&
+                message.id !== assistant_id &&
+                message.text.trim(),
+            )
+            .slice(-6)
+            .map((message) => ({
+              role: message.role,
+              content: message.text.slice(0, 8192),
+            }));
           const result = await agent.answerQuestion(question, {
             signal: controller.signal,
+            history,
             // The QA loop's timeout is a single budget shared across every
             // tool step, and each provider call may take up to 45s. The Kilo
             // free tier can take ~25s per call, so the 30s default ran out
@@ -712,21 +738,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
           );
           if (!result.answered || !result.answer) {
             if (mounted_ref.current) {
+              const messages = state_ref.current.chatMessages.map((message) =>
+                message.id === assistant_id
+                  ? {
+                      ...message,
+                      text: mobile_qa_failure_message(
+                        result.stopReason,
+                        provider_kind,
+                      ),
+                    }
+                  : message,
+              );
+              await save_chat_history(messages).catch(() => {});
               setState((value) => ({
                 ...value,
                 chatMode: "idle",
                 chatSteps: [],
-                chatMessages: value.chatMessages.map((message) =>
-                  message.id === assistant_id
-                    ? {
-                        ...message,
-                        text: mobile_qa_failure_message(
-                          result.stopReason,
-                          provider_kind,
-                        ),
-                      }
-                    : message,
-                ),
+                chatMessages: messages,
               }));
             }
             return;
@@ -737,19 +765,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
             )
             .map((tool) => chat_step(tool, "done"));
           if (mounted_ref.current) {
+            const messages = state_ref.current.chatMessages.map((message) =>
+              message.id === assistant_id
+                ? { ...message, text: streamed_answer || result.answer! }
+                : message,
+            );
+            await save_chat_history(messages).catch(() => {});
             setState((value) => ({
               ...value,
               chatMode: "idle",
               chatSteps: steps,
-              chatMessages: value.chatMessages.map((message) =>
-                message.id === assistant_id
-                  ? { ...message, text: streamed_answer || result.answer! }
-                  : message,
-              ),
+              chatMessages: messages,
             }));
           }
         })()
-          .catch(() => {
+          .catch(async () => {
             mobile_diagnostics.record(
               "qa_stage_failed",
               failure_stage === "context_build"
@@ -773,21 +803,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
               failure_stage,
             );
             if (!mounted_ref.current) return;
+            const messages = state_ref.current.chatMessages.map((message) =>
+              message.id === assistant_id
+                ? {
+                    ...message,
+                    text: mobile_qa_failure_message(
+                      "provider_error",
+                      provider_kind,
+                    ),
+                  }
+                : message,
+            );
+            await save_chat_history(messages).catch(() => {});
             setState((value) => ({
               ...value,
               chatMode: "idle",
               chatSteps: [],
-              chatMessages: value.chatMessages.map((message) =>
-                message.id === assistant_id
-                  ? {
-                      ...message,
-                      text: mobile_qa_failure_message(
-                        "provider_error",
-                        provider_kind,
-                      ),
-                    }
-                  : message,
-              ),
+              chatMessages: messages,
             }));
           })
           .finally(() => {

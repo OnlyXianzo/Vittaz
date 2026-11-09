@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -9,6 +10,8 @@ import { createProposal } from "@vittaz/core";
 import { randomUUID } from "expo-crypto";
 import App from "../../App";
 import * as SecureStore from "expo-secure-store";
+import Storage from "expo-sqlite/kv-store";
+import { CHAT_HISTORY_KEY } from "../assistant/chat_history";
 import {
   ANTHROPIC_API_KEY_NAME,
   ASSISTANT_PROVIDER_PROFILE_NAME,
@@ -89,11 +92,16 @@ async function withoutGlobalCrypto<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
+afterEach(async () => {
+  await cleanup();
+});
+
 beforeEach(async () => {
   resetMemoryLedger();
   await SecureStore.deleteItemAsync(KILO_KEY_NAME);
   await SecureStore.deleteItemAsync(OPENAI_COMPATIBLE_KEY_NAME);
   await SecureStore.deleteItemAsync(ASSISTANT_PROVIDER_PROFILE_NAME);
+  await Storage.removeItemAsync(CHAT_HISTORY_KEY);
   jest.clearAllMocks();
 });
 
@@ -732,6 +740,62 @@ describe("Vittaz native shell backed by core", () => {
       );
       expect(chunk_times[1] - chunk_times[0]).toBeGreaterThanOrEqual(10);
       expect(screen.getByText("Checked this month's totals")).toBeTruthy();
+    });
+
+    it("restores local chat history and passes a bounded recent context window", async () => {
+      await open();
+      await ask("Synthetic first question");
+      await waitFor(() =>
+        expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
+      );
+      expect(await Storage.getItemAsync(CHAT_HISTORY_KEY)).toContain(
+        "Synthetic first question",
+      );
+      await screen.unmount();
+      await open();
+      expect(screen.getByText("Synthetic first question")).toBeTruthy();
+      expect(screen.getByText("Synthetic safe answer.")).toBeTruthy();
+      let seen_history: Array<{ role: string; content: string }> = [];
+      jest.mocked(create_mobile_qa_agent).mockImplementationOnce(
+        () =>
+          ({
+            answerQuestion: jest.fn(
+              async (
+                _question: string,
+                options: {
+                  history?: Array<{
+                    role: "user" | "assistant";
+                    content: string;
+                  }>;
+                  onValidatedChunk?: (chunk: string) => void | Promise<void>;
+                },
+              ) => {
+                seen_history = options.history ?? [];
+                await options.onValidatedChunk?.("Synthetic second answer.");
+                return {
+                  answered: true,
+                  stopReason: "completed",
+                  stepsUsed: 1,
+                  tokensUsed: 5,
+                  toolsUsed: [],
+                  answer: "Synthetic second answer.",
+                };
+              },
+            ),
+          }) as unknown as ReturnType<typeof create_mobile_qa_agent>,
+      );
+      await fireEvent.changeText(
+        screen.getByLabelText("Message"),
+        "Synthetic second question",
+      );
+      await fireEvent.press(screen.getByRole("button", { name: "Send" }));
+      await waitFor(() =>
+        expect(screen.getByText("Synthetic second answer.")).toBeTruthy(),
+      );
+      expect(seen_history).toEqual([
+        { role: "user", content: "Synthetic first question" },
+        { role: "assistant", content: "Synthetic safe answer." },
+      ]);
     });
 
     it("renders assistant Markdown (bold + bullets) instead of literal markers", async () => {
