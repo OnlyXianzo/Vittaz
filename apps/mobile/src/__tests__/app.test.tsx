@@ -673,6 +673,41 @@ describe("Vittaz native shell backed by core", () => {
       expect(getMemoryRows("transactions")).toHaveLength(0);
       expect(getMemoryRows("proposals")).toHaveLength(0);
     });
+
+    it("renders assistant Markdown (bold + bullets) instead of literal markers", async () => {
+      const md = "**Summary**\n- no outstanding debts\n- 0 unverified entries";
+      jest.mocked(create_mobile_qa_agent).mockImplementationOnce(
+        () =>
+          ({
+            answerQuestion: jest.fn(
+              async (
+                _question: string,
+                options: {
+                  onValidatedChunk?: (chunk: string) => void | Promise<void>;
+                },
+              ) => {
+                await options.onValidatedChunk?.(md);
+                return {
+                  answered: true,
+                  stopReason: "completed",
+                  stepsUsed: 1,
+                  tokensUsed: 5,
+                  toolsUsed: [],
+                  answer: md,
+                };
+              },
+            ),
+          }) as unknown as ReturnType<typeof create_mobile_qa_agent>,
+      );
+      await open();
+      await ask("Who owes me?");
+      await waitFor(() =>
+        expect(screen.getByText("no outstanding debts")).toBeTruthy(),
+      );
+      expect(screen.queryAllByText(/\*\*/)).toHaveLength(0);
+      expect(screen.getAllByText("Summary").length).toBeGreaterThan(0);
+      expect(screen.getByText("0 unverified entries")).toBeTruthy();
+    });
   });
 
   it("never creates a ledger entry or proposal from an assistant reply", async () => {

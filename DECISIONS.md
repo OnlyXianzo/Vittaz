@@ -970,3 +970,31 @@ the open PR #73 branch (fix/s38-chat-multistep-timeout), and
 feat/privacy-sensitive-filter (its PR #9 merged but the branch tip advanced beyond
 the merged SHA, so deleting it would lose unmerged work). Deletions used the GitHub
 API per branch with backup SHAs recorded for recovery; 70 deleted, 0 failures.
+
+## Chat Markdown rendering (owner request, 2026-11-09)
+
+Owner device screenshots showed assistant replies arriving as Markdown (bold
+`**headers**`, `-` bullet lists, inline `→`) but rendered as literal text — the
+chat displayed the raw `**` and `-` markers. This is an owner-requested UI fix to
+the existing read-only chat surface (recorded here per the "propose outside-Plan
+work in DECISIONS.md" rule; it does not add a new product capability).
+
+Decision: render the common Markdown subset with a small, dependency-free
+component (`apps/mobile/src/Markdown.tsx`) using React Native nested `<Text>`
+inline styling, rather than adding a third-party Markdown library. Rationale:
+the recent Hermes Web Crypto incident showed that new runtime dependencies can
+fail on-device in ways Node/browser tests miss; a pure-RN renderer adds no new
+dependency, keeps prompt text on-device, and is fully unit-testable. Only
+assistant messages are rendered as Markdown; user bubbles stay plain text.
+
+Scope of the renderer: bold (`**`/`__`), italic (`*`/`_`), inline code, headings
+(`#`..`######`), unordered/ordered lists, horizontal rules, and links rendered as
+their label only (read-only chat never navigates). Underscore emphasis is honoured
+only at word boundaries so snake_case tool names such as `get_month_summary` are
+preserved. Opener/closer space rules keep stray markers (e.g. `2 * 3`) literal.
+
+Verification: 15 new Markdown unit tests + 1 chat integration test (assistant
+Markdown renders without literal markers); mobile 79 tests / 10 suites pass;
+mobile typecheck/lint/format pass; Android Metro export bundles cleanly; privacy
+gate passes; deep secret scan zero findings. No live provider call, real key, or
+device run by the agent.

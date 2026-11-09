@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
+import { Markdown } from "../Markdown";
 import { formatPaise } from "../domain";
 import type { AppState } from "../domain";
 import { colors, gradients } from "../theme";
@@ -141,13 +142,7 @@ export function ChatScreen() {
                 </T>
               </LinearGradient>
             ) : (
-              <T
-                key={m.id}
-                size={15}
-                style={{ maxWidth: "90%", lineHeight: 22 }}
-              >
-                {m.text}
-              </T>
+              <Markdown key={m.id} text={m.text} style={{ maxWidth: "90%" }} />
             ),
           )}
 

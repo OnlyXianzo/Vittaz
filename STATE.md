@@ -423,3 +423,19 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   Kept main, the open PR #73 branch, and feat/privacy-sensitive-filter (PR #9 merged
   but the branch has newer unmerged commits). Backup SHAs retained for recovery.
 - No merge performed; awaiting owner review. S37d device verification owner-only.
+
+## Chat Markdown rendering checkpoint (2026-11-09)
+
+- Merged PR #73 (multi-step chat timeout) and PR #74 (S37c disclosure checks) into
+  main with owner authorization. #74 was rebased onto main after #73 (shared
+  test/doc anchors) and its CI re-run green before merge. Remote now: main plus
+  feat/privacy-sensitive-filter (kept; unmerged commits) and this feature branch.
+- Owner device screenshots showed assistant Markdown rendered as literal `**`/`-`
+  text. Added a dependency-free `Markdown` renderer (nested RN `<Text>`) and wired
+  it into ChatScreen for assistant messages only; user bubbles stay plain.
+- Branch `feat/chat-markdown-rendering` from main `dd9d974`. 15 Markdown unit tests
+  - 1 chat integration test. Local verification with Node 24.22.2: mobile 79 tests
+    / 10 suites pass; typecheck/lint/format pass; Android Metro export succeeds;
+    privacy gate passes; deep secret scan zero findings.
+- No merge performed for this branch; awaiting owner review. On-device retest of
+  the rendered chat remains owner-only (S37d).
