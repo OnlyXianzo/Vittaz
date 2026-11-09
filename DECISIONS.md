@@ -1025,3 +1025,8 @@ into the legacy single-provider/key slots on explicit activation. This gives the
 owner multiple BYOK keys and fetched model choices without changing the QA loop
 or introducing silent fallback. Model discovery is read-only and user-initiated;
 manual model entry remains available when a provider does not return a list.
+
+S38d build reliability decision: the diagnostics APK workflow may retry the
+Gradle assemble up to three times because upstream Gradle/Kotlin artifact
+downloads can return transient 504s. This changes only CI retry behavior, not
+app code, signing, or the diagnostics-only identity.

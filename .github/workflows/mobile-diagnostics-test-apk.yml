@@ -126,9 +126,18 @@ jobs:
         run: |
           cd "$DIAGNOSTICS_DIR/native/android"
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease \
+          attempt=1
+          until ./gradlew --no-daemon assembleRelease \
             -PreactNativeArchitectures=arm64-v8a,armeabi-v7a \
-            -Pandroid.enableMinifyInReleaseBuilds=false
+            -Pandroid.enableMinifyInReleaseBuilds=false; do
+            if [ "$attempt" -ge 3 ]; then
+              echo "Gradle build failed after $attempt attempts" >&2
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Gradle attempt failed; retrying in 30s (attempt $attempt)" >&2
+            sleep 30
+          done
 
       - name: Assert standalone APK embeds the JavaScript bundle
         run: |
