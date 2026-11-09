@@ -24,6 +24,7 @@ import { AddScreen } from "./src/screens/AddScreen";
 import { QuickScreen } from "./src/screens/QuickScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { ModelsScreen } from "./src/screens/ModelsScreen";
+import { KeysScreen } from "./src/screens/KeysScreen";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 
 /**
@@ -53,6 +54,8 @@ function ScreenView() {
       return <ChatScreen />;
     case "models":
       return <ModelsScreen />;
+    case "keys":
+      return <KeysScreen />;
     case "onboarding-welcome":
     case "onboarding-how":
     case "onboarding-ai":

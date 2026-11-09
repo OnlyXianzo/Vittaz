@@ -55,3 +55,23 @@ jest.mock("expo-sqlite/kv-store", () => {
     },
   };
 });
+
+// Explicit user-initiated clipboard actions only; keys are marked sensitive on Android.
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: jest.fn(async () => true),
+  getStringAsync: jest.fn(async () => ""),
+}));
+
+// Shared SecureStore double for screens that manage keys outside the app shell suite.
+jest.mock("expo-secure-store", () => {
+  const values = new Map<string, string>();
+  return {
+    getItemAsync: jest.fn(async (key: string) => values.get(key) ?? null),
+    setItemAsync: jest.fn(async (key: string, value: string) => {
+      values.set(key, value);
+    }),
+    deleteItemAsync: jest.fn(async (key: string) => {
+      values.delete(key);
+    }),
+  };
+});

@@ -9,6 +9,7 @@ export type Screen =
   | "quick"
   | "chat"
   | "models"
+  | "keys"
   | "onboarding-welcome"
   | "onboarding-how"
   | "onboarding-ai";
