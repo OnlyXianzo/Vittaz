@@ -387,3 +387,19 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - No live provider call, real key, APK build, or device run. On-device acceptance
   and the separate diagnostic-export SAF UX item remain owner-only / unplanned.
   No merge performed; awaiting owner review.
+
+## S38 follow-up checkpoint — multi-step chat timeout fixed (2026-11-08)
+
+- Branch `fix/s38-chat-multistep-timeout` (from main `8d11cd3`, which includes the
+  merged PR #72 Web Crypto fix). New device diagnostics confirm chat now reaches
+  providers, runs read-only tools, and completes many answers.
+- Root cause of the remaining "mid-check" failure: the mobile chat used the QA
+  loop's 30s default as a single total budget across all tool steps, while a
+  single Kilo free-tier call took ~24s and the per-call provider timeout is 45s.
+  Multi-step answers timed out mid-second-step. Fix: `store.tsx` now passes
+  `timeoutMs: 120000` to `answerQuestion`; mobile-only, loop semantics unchanged.
+- The 401 (invalid/expired saved key) and 402 (BYOK billing/credits) failures are
+  owner-side credential/billing issues, not code bugs; documented in DECISIONS.md.
+- Local verification with Node 24.22.2: mobile 58 tests / 9 suites pass; mobile
+  typecheck/lint/format pass; privacy gate passes; deep secret scan zero findings.
+- No merge performed; awaiting owner review. On-device retest remains owner-only.

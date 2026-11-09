@@ -911,3 +911,40 @@ Mobile: 57 tests / 9 suites pass; mobile TypeScript, ESLint, and Prettier checks
 pass. Repository privacy gate passes; deep secret scan reports zero findings in
 history and working tree. No live provider request, real key, APK build, or
 physical-device run was performed; on-device confirmation remains owner-only.
+
+## S38 follow-up — post-fix device diagnostics (2026-11-08, afternoon)
+
+After the Web Crypto fix merged (PR #72), a new device export confirms the chat
+path now works: real `provider_request_started` / `provider_http_response 200`,
+tool execution (`find_person`, `query_transactions`, `get_month_summary`,
+`check_unverified`) and many `qa_completed` answers. Three remaining failure
+classes were observed:
+
+1. **Mid-step timeout (code bug — fixed).** `store.tsx` called `answerQuestion`
+   without `timeoutMs`, so the bounded `ReadOnlyQaLoop` used its 30s default as a
+   single budget shared across all tool steps. Each provider call may take up to
+   45s and the Kilo free tier was observed at ~24s for one call, so a healthy
+   two-step answer ran out of total budget mid-second-step (`qa_stage_failed`
+   `timeout`, then `provider_fetch_failed` `cancelled`, and a truncated SSE parse
+   logged as `protocol_error`). Fix: pass `timeoutMs: 120000` (the loop maximum)
+   from the mobile chat action so multi-step answers complete; the per-call 45s
+   provider timeout still fails a hung call quickly. Mobile-only change; the
+   shared loop semantics are unchanged. A shell regression test asserts the chat
+   passes a total budget >= 90s (fails before the fix, passes after).
+
+2. **HTTP 401 unauthorized (credential issue — not a code bug).** Seen for
+   `openai_compatible` and for `kilo` when a key was saved (`count: 1`). The saved
+   key is invalid/expired; the app correctly reports `*_AUTH`. Removing the Kilo
+   key returned to the keyless route (`count: 0`), which then succeeded. Owner
+   action: correct or remove the key.
+
+3. **HTTP 402 payment required (billing issue — not a code bug).** Seen for
+   `openai_compatible`; the endpoint requires credits/billing. Currently mapped to
+   the generic `provider_http_error` (`BYOK_HTTP`). A dedicated, actionable
+   "payment required" category would touch the shared agent reason allowlists and
+   privacy gates, so it is left as a separate planned enhancement rather than
+   bundled here. Owner action: add credits to the BYOK account.
+
+Verification: mobile 58 tests / 9 suites pass; mobile typecheck, ESLint, Prettier
+pass; privacy gate passes; deep secret scan zero findings. No live provider call,
+real key, APK, or device run by the agent.

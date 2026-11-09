@@ -530,6 +530,33 @@ describe("Vittaz native shell backed by core", () => {
     expect(getMemoryRows("transactions")).toHaveLength(0);
   });
 
+  it("gives the multi-step loop enough total time for a slow provider (no mid-step timeout)", async () => {
+    await open();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add or ask by message" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Question"),
+      "Synthetic balance question",
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Ask Assistant" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
+    );
+    const mock_agent = jest.mocked(create_mobile_qa_agent).mock.results[0]
+      ?.value as unknown as {
+      answerQuestion: { mock: { calls: unknown[][] } };
+    };
+    const options = mock_agent.answerQuestion.mock.calls[0][1] as {
+      timeoutMs?: number;
+    };
+    // The loop timeout is shared across all tool steps and must exceed the
+    // 45s per-call provider timeout so a slow multi-step answer can finish.
+    expect(options.timeoutMs).toBeGreaterThanOrEqual(90000);
+  });
+
   it("never creates a ledger entry or proposal from an assistant reply", async () => {
     await open();
     await fireEvent.press(
