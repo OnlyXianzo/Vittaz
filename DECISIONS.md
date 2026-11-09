@@ -998,3 +998,16 @@ Markdown renders without literal markers); mobile 79 tests / 10 suites pass;
 mobile typecheck/lint/format pass; Android Metro export bundles cleanly; privacy
 gate passes; deep secret scan zero findings. No live provider call, real key, or
 device run by the agent.
+
+## S38 owner device-feedback batch (owner request, 2026-11-09)
+
+Owner approved a follow-up batch from device testing: visible request progress,
+progressive answer reveal, trusted current date/month, local chat history, and a
+multi-key provider manager with fetched model choices. These are recorded as
+owner requests only; no other app is referenced as a product source.
+
+S38a decision: keep the existing privacy boundary (only final validated text is
+revealed) and fix the UX by pacing validated chunks and surfacing bounded tool
+events, rather than exposing raw provider SSE deltas. Inject the host clock into
+the QA context so relative periods do not depend on model training data. New QA
+options are optional so CLI/backend callers keep default behavior.

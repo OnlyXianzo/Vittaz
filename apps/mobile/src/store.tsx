@@ -31,7 +31,7 @@ import {
   read_kilo_key,
   read_openai_compatible_key,
 } from "./assistant/secure_key";
-import type { Action, AppState, Transaction } from "./domain";
+import type { Action, AppState, ChatStep, Transaction } from "./domain";
 import { mobileLedgerRuntime } from "./ledger_runtime";
 import { openMobileLedgerStore } from "./storage/open_ledger_store";
 
@@ -83,6 +83,42 @@ const default_state: AppState = {
   onboardingStep: 0,
   sequence: 1,
 };
+
+const chat_tool_copy: Record<string, { label: string; detail: string }> = {
+  get_month_summary: {
+    label: "Checked this month's totals",
+    detail: "Read-only ledger summary",
+  },
+  query_transactions: {
+    label: "Reviewed ledger entries",
+    detail: "Read-only transaction list",
+  },
+  find_person: {
+    label: "Checked a ledger contact",
+    detail: "Read-only contact lookup",
+  },
+  get_balance: {
+    label: "Checked a wallet balance",
+    detail: "Read-only wallet summary",
+  },
+  check_unverified: {
+    label: "Checked entries pending review",
+    detail: "Read-only pending list",
+  },
+};
+
+function chat_step(tool: string, state: ChatStep["state"]): ChatStep {
+  const copy = chat_tool_copy[tool];
+  return {
+    tool,
+    state,
+    label: copy?.label ?? "Read-only ledger lookup",
+    detail:
+      state === "running"
+        ? "Reading local ledger…"
+        : (copy?.detail ?? "Read-only lookup"),
+  };
+}
 
 function map_transaction(row: TransactionRow): Transaction {
   const date = new Date(row.occurred_at);
@@ -459,7 +495,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           chatMode: "thinking",
           chatInput: "",
           chatQuestion: question,
-          chatSteps: [],
+          chatSteps: [
+            {
+              tool: "request",
+              state: "running",
+              label: "Preparing request",
+              detail: "Reading secure settings…",
+            },
+          ],
           toast: null,
           sequence: value.sequence + 2,
           chatMessages: [
@@ -581,6 +624,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               setState((value) => ({
                 ...value,
                 chatMode: "idle",
+                chatSteps: [],
                 chatMessages: value.chatMessages.map((message) =>
                   message.id === assistant_id
                     ? { ...message, text: missing_provider_setup }
@@ -621,7 +665,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // the bounded loop its maximum total budget so multi-step answers
             // complete; the per-call 45s timeout still fails a hung call fast.
             timeoutMs: 120000,
-            onValidatedChunk: (chunk: string) => {
+            currentTime: new Date().toISOString(),
+            onToolEvent: (event: {
+              tool: string;
+              state: "running" | "done";
+            }) => {
+              if (!mounted_ref.current) return;
+              setState((value) => {
+                const steps = value.chatSteps.filter(
+                  (step) => step.tool !== "request" && step.tool !== event.tool,
+                );
+                return {
+                  ...value,
+                  chatSteps: [...steps, chat_step(event.tool, event.state)],
+                };
+              });
+            },
+            onValidatedChunk: async (chunk: string) => {
+              // The core loop already emits only privacy-validated text. Pace
+              // the reveal so React paints progressive updates instead of one
+              // batched synchronous burst.
+              await new Promise((resolve) => setTimeout(resolve, 18));
               streamed_answer += chunk;
               if (mounted_ref.current) {
                 setState((value) => ({
@@ -651,6 +715,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               setState((value) => ({
                 ...value,
                 chatMode: "idle",
+                chatSteps: [],
                 chatMessages: value.chatMessages.map((message) =>
                   message.id === assistant_id
                     ? {
@@ -666,38 +731,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
             return;
           }
-          const tool_copy: Record<string, { label: string; detail: string }> = {
-            get_month_summary: {
-              label: "Checked this month's totals",
-              detail: "Read-only ledger summary",
-            },
-            query_transactions: {
-              label: "Reviewed ledger entries",
-              detail: "Read-only transaction list",
-            },
-            find_person: {
-              label: "Checked a ledger contact",
-              detail: "Read-only contact lookup",
-            },
-            get_balance: {
-              label: "Checked a wallet balance",
-              detail: "Read-only wallet summary",
-            },
-            check_unverified: {
-              label: "Checked entries pending review",
-              detail: "Read-only pending list",
-            },
-          };
           const steps = result.toolsUsed
             .filter((tool) =>
-              Object.prototype.hasOwnProperty.call(tool_copy, tool),
+              Object.prototype.hasOwnProperty.call(chat_tool_copy, tool),
             )
-            .map((tool) => ({
-              label: tool_copy[tool]!.label,
-              detail: tool_copy[tool]!.detail,
-              tool,
-              state: "done" as const,
-            }));
+            .map((tool) => chat_step(tool, "done"));
           if (mounted_ref.current) {
             setState((value) => ({
               ...value,
@@ -738,6 +776,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setState((value) => ({
               ...value,
               chatMode: "idle",
+              chatSteps: [],
               chatMessages: value.chatMessages.map((message) =>
                 message.id === assistant_id
                   ? {

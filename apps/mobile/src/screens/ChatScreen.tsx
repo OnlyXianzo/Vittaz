@@ -232,13 +232,16 @@ export function ChatScreen() {
           ) : null}
 
           {state.chatMode === "thinking" ? (
-            <M size={12}>
-              {state.model === "openai-compatible"
-                ? "Asking your selected provider…"
-                : state.model === "claude"
-                  ? "Asking Anthropic Claude…"
-                  : "Asking Kilo Auto Free…"}
-            </M>
+            <Row start gap={8} style={{ alignItems: "center" }}>
+              <ActivityIndicator size="small" color={colors.lime} />
+              <M size={12}>
+                {state.model === "openai-compatible"
+                  ? "Asking your selected provider…"
+                  : state.model === "claude"
+                    ? "Asking Anthropic Claude…"
+                    : "Asking Kilo Auto Free…"}
+              </M>
+            </Row>
           ) : null}
 
           {proposal && state.chatMode === "approval" ? (

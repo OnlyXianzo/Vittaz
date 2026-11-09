@@ -13,7 +13,10 @@ import {
 } from "../../storage/src/repositories.js";
 import { ReadOnlyQaLoop, QaValidationError } from "./qa_loop.js";
 import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
-import type { ChatCompletionResult } from "./provider_client.js";
+import type {
+  ChatCompletionParams,
+  ChatCompletionResult,
+} from "./provider_client.js";
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const f of cleanup.splice(0).reverse()) await f();
@@ -670,4 +673,135 @@ test("qa_success_diagnostics_report_a_safe_completed_result", async () => {
       }),
     ]),
   );
+});
+
+test("qa_injects_trusted_indian_clock_and_human_money_status_presentation", async () => {
+  const f = await fixture();
+  const client = {
+    chatCompletion: vi.fn(async (_request: ChatCompletionParams) => {
+      void _request;
+      return completion({ content: "Synthetic safe answer." });
+    }),
+  };
+  await new ReadOnlyQaLoop({
+    client,
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic spending this month", {
+    currentTime: "2026-11-09T04:30:00.000Z",
+  });
+  const system = client.chatCompletion.mock.calls[0]![0].messages[0]!
+    .content as string;
+  expect(system).toContain("Asia/Calcutta");
+  expect(system).toContain("2026-11");
+  expect(system).toContain("this month");
+  expect(system).toContain("rupees");
+  expect(system).toContain("user_confirmed");
+});
+
+test("qa_rejects_an_invalid_trusted_current_time", async () => {
+  const f = await fixture();
+  const client = { chatCompletion: vi.fn(async () => completion()) };
+  await expect(
+    new ReadOnlyQaLoop({
+      client,
+      data: f.source,
+      redactor: f.redactor,
+    }).answerQuestion("Synthetic", { currentTime: "not-a-date" }),
+  ).rejects.toBeInstanceOf(QaValidationError);
+  expect(client.chatCompletion).not.toHaveBeenCalled();
+});
+
+test("qa_emits_bounded_live_tool_events_around_readonly_execution", async () => {
+  const f = await fixture();
+  const client = {
+    chatCompletion: vi
+      .fn()
+      .mockResolvedValueOnce(completion({ toolCalls: [call()] }))
+      .mockResolvedValueOnce(completion({ content: "Synthetic safe answer." })),
+  };
+  const events: Array<{ tool: string; state: string }> = [];
+  const result = await new ReadOnlyQaLoop({
+    client,
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic monthly total", {
+    onToolEvent: (event: { tool: string; state: string }) => {
+      events.push(event);
+    },
+  });
+  expect(result.answered).toBe(true);
+  expect(events).toEqual([
+    { tool: "get_month_summary", state: "running" },
+    { tool: "get_month_summary", state: "done" },
+  ]);
+});
+
+test("qa_tool_event_callback_errors_do_not_fail_a_safe_answer", async () => {
+  const f = await fixture();
+  const client = {
+    chatCompletion: vi
+      .fn()
+      .mockResolvedValueOnce(completion({ toolCalls: [call()] }))
+      .mockResolvedValueOnce(completion({ content: "Synthetic safe answer." })),
+  };
+  const result = await new ReadOnlyQaLoop({
+    client,
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic monthly total", {
+    onToolEvent: () => {
+      throw new Error("private_synthetic_progress_failure");
+    },
+  });
+  expect(result).toMatchObject({
+    answered: true,
+    answer: "Synthetic safe answer.",
+  });
+});
+
+test("qa_cancel_during_running_tool_event_stops_before_tool_execution", async () => {
+  const f = await fixture();
+  const controller = new AbortController();
+  const client = {
+    chatCompletion: vi.fn(async () => completion({ toolCalls: [call()] })),
+  };
+  const result = await new ReadOnlyQaLoop({
+    client,
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic monthly total", {
+    signal: controller.signal,
+    onToolEvent: () => {
+      controller.abort();
+      throw new Error("private_synthetic_progress_cancel");
+    },
+  });
+  expect(result).toMatchObject({ answered: false, stopReason: "aborted" });
+  expect(f.source.listTransactions).not.toHaveBeenCalled();
+});
+
+test("qa_cancel_during_done_tool_event_stops_before_next_provider_call", async () => {
+  const f = await fixture();
+  const controller = new AbortController();
+  let events = 0;
+  const client = {
+    chatCompletion: vi.fn(async () => completion({ toolCalls: [call()] })),
+  };
+  const result = await new ReadOnlyQaLoop({
+    client,
+    data: f.source,
+    redactor: f.redactor,
+  }).answerQuestion("Synthetic monthly total", {
+    signal: controller.signal,
+    onToolEvent: () => {
+      events += 1;
+      if (events === 2) {
+        controller.abort();
+        throw new Error("private_synthetic_progress_cancel");
+      }
+    },
+  });
+  expect(result).toMatchObject({ answered: false, stopReason: "aborted" });
+  expect(client.chatCompletion).toHaveBeenCalledTimes(1);
 });

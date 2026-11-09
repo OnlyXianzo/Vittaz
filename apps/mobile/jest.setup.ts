@@ -30,3 +30,11 @@ jest.mock(
     };
   },
 );
+
+// Expo's streaming-capable fetch is used for provider SSE. In unit tests route
+// it to the environment fetch so explicit fetch doubles still control traffic.
+jest.mock("expo/fetch", () => ({
+  fetch: jest.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    globalThis.fetch(input, init),
+  ),
+}));

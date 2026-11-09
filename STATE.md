@@ -439,3 +439,19 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
     privacy gate passes; deep secret scan zero findings.
 - No merge performed for this branch; awaiting owner review. On-device retest of
   the rendered chat remains owner-only (S37d).
+
+## S38a checkpoint — chat correctness and visible progress (2026-11-09)
+
+- Branch `feat/s38-chat-correctness-and-progress` from main `cf16e86`. Owner device
+  feedback: model used an old month, answers/tools appeared in one paint, and the
+  request looked idle. Added a trusted `currentTime` option and Asia/Calcutta
+  current-date/month context to the QA system prompt, plus rupee/status/date
+  presentation guidance. Added bounded `onToolEvent` progress callbacks and wired
+  live read-only tool cards in the mobile store; paced validated answer reveal so
+  React paints progressive updates. Provider calls use Expo's streaming-capable
+  fetch. No raw provider deltas or ledger mutation changes.
+- Local verification with Node 24.22.2: root lint/format/typecheck pass; Vitest
+  395 tests / 58 files pass with 100% coverage gate; mobile 80 tests / 10 suites
+  pass; mobile typecheck/lint/format pass; Android and web Metro exports succeed;
+  privacy gate passes; deep secret scan zero findings.
+- Owner authorization: merge green fixes and continue S38 without confirmation.
