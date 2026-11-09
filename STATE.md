@@ -483,3 +483,16 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - Local verification with Node 24.22.2: mobile 88 tests / 13 suites pass; mobile
   typecheck/lint/format pass; root lint/format/typecheck pass; Android and web
   Metro exports succeed; privacy gate passes; deep secret scan zero findings.
+
+## S38d checkpoint — diagnostics APK build blocked by upstream Gradle outage (2026-11-09)
+
+- Merged S38a (#76), S38b (#77), S38c (#78), and CI retry hardening (#79) into
+  main (`ce707bc`). Triggered the diagnostics test APK workflow on main four
+  times: runs 42569531478, 42569746812, 42570078004, and 42570555517.
+- All four failed before app compilation because the Gradle wrapper could not
+  download `gradle-9.4.1-bin.zip` from services.gradle.org (timeout / HTTP 504).
+  The last run used the new 3-attempt retry and still failed at the wrapper
+  download stage. This is an upstream artifact-download blocker, not an app code
+  or test failure.
+- No APK was delivered. S38d/S37d owner device verification remains pending until
+  the Gradle distribution endpoint recovers or a trusted mirror/cache is used.
