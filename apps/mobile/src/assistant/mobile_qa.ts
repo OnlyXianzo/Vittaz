@@ -1,3 +1,4 @@
+import { fetch as expo_fetch } from "expo/fetch";
 import { getWalletSummary, PrivacyRedactor } from "@vittaz/core";
 import type { LedgerStore } from "@vittaz/core";
 import type { QaStopReason } from "../../../../packages/agent/src/qa_loop";
@@ -182,7 +183,7 @@ function validate_openai_compatible_provider(provider: {
 export function create_mobile_qa_agent(
   ledger: LedgerStore,
   provider: MobileQaProvider,
-  fetch_impl: typeof fetch = fetch,
+  fetch_impl: typeof fetch = expo_fetch,
   diagnostics: Pick<MobileDiagnostics, "record"> = mobile_diagnostics,
 ) {
   const redactor = new PrivacyRedactor();

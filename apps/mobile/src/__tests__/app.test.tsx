@@ -674,6 +674,66 @@ describe("Vittaz native shell backed by core", () => {
       expect(getMemoryRows("proposals")).toHaveLength(0);
     });
 
+    it("passes a trusted current time and shows live read-only tool progress", async () => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const chunk_times: number[] = [];
+      jest.mocked(create_mobile_qa_agent).mockImplementationOnce(
+        () =>
+          ({
+            answerQuestion: jest.fn(
+              async (
+                _question: string,
+                options: {
+                  currentTime?: string;
+                  onToolEvent?: (event: {
+                    tool: string;
+                    state: "running" | "done";
+                  }) => void | Promise<void>;
+                  onValidatedChunk?: (chunk: string) => void | Promise<void>;
+                },
+              ) => {
+                expect(options.currentTime).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+                await options.onToolEvent?.({
+                  tool: "get_month_summary",
+                  state: "running",
+                });
+                await gate;
+                await options.onToolEvent?.({
+                  tool: "get_month_summary",
+                  state: "done",
+                });
+                await options.onValidatedChunk?.("Synthetic ");
+                chunk_times.push(Date.now());
+                await options.onValidatedChunk?.("safe answer.");
+                chunk_times.push(Date.now());
+                return {
+                  answered: true,
+                  stopReason: "completed",
+                  stepsUsed: 2,
+                  tokensUsed: 20,
+                  toolsUsed: ["get_month_summary"],
+                  answer: "Synthetic safe answer.",
+                };
+              },
+            ),
+          }) as unknown as ReturnType<typeof create_mobile_qa_agent>,
+      );
+      await open();
+      await ask("Synthetic spending this month");
+      await waitFor(() =>
+        expect(screen.getByText("Reading local ledger…")).toBeTruthy(),
+      );
+      release();
+      await waitFor(() =>
+        expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
+      );
+      expect(chunk_times[1] - chunk_times[0]).toBeGreaterThanOrEqual(10);
+      expect(screen.getByText("Checked this month's totals")).toBeTruthy();
+    });
+
     it("renders assistant Markdown (bold + bullets) instead of literal markers", async () => {
       const md = "**Summary**\n- no outstanding debts\n- 0 unverified entries";
       jest.mocked(create_mobile_qa_agent).mockImplementationOnce(
