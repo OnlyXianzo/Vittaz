@@ -808,3 +808,9 @@ only exact paired chat. Digest is deterministic count/paise, no notes/names/AI.
 - Researched the existing core/storage conversation port, the Expo SQLite ledger adapter, and Expo SQLite KV store. The ledger port is intentionally narrow; adding history to it would widen every adapter. The KV store is already available through `expo-sqlite` and is sufficient for a bounded local chat transcript.
 - Verified approach: store only validated, non-sensitive app messages under a versioned KV key; resume the latest conversation; pass at most six prior turns to the existing QA loop, which still scrubs/redacts before provider calls.
 - Blast radius: mobile-only `chat_history.ts`, store wiring, domain type export, and tests. No core/storage schema change, no provider protocol change, no ledger mutation change.
+
+### S38c multi-key manager verification
+
+- Researched the existing single-key SecureStore contract, provider model-list endpoints (OpenAI-compatible, Kilo, Anthropic), Expo SecureStore limits, and Expo Clipboard sensitive-copy guidance.
+- Verified approach: store non-secret profile metadata in a versioned registry and each secret under its own SecureStore item; migrate legacy values once; activate explicitly by writing the legacy active provider/key slots; fetch models on demand and keep manual model entry.
+- Blast radius: mobile assistant key registry, new Keys screen, Models screen navigation, shared UI Button/Input compatibility, and tests. No QA loop/provider protocol change, no ledger mutation change, no silent fallback.

@@ -326,6 +326,11 @@ export function ModelsScreen() {
         title="Choose model"
         onBack={() => dispatch({ type: "back" })}
       />
+      <Button
+        label="Manage keys and models"
+        variant="ghost"
+        onPress={() => dispatch({ type: "navigate", screen: "keys" })}
+      />
       <M style={{ marginTop: 8, marginHorizontal: 4, lineHeight: 18 }}>
         Pick one assistant provider. Only the provider you select is used; there
         is no automatic fallback. Configure it below, then save once.

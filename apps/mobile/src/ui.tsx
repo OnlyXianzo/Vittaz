@@ -289,6 +289,7 @@ export function Button({
   icon,
   style,
   labelColor,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
@@ -298,11 +299,12 @@ export function Button({
   icon?: ReactNode;
   style?: StyleProp<ViewStyle>;
   labelColor?: string;
+  accessibilityLabel?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}

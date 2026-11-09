@@ -467,3 +467,19 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - Local verification with Node 24.22.2: mobile 84 tests / 11 suites pass; mobile
   typecheck/lint/format pass; root lint/format pass. No ledger schema or mutation
   change; no automatic long-term memory.
+
+## S38c checkpoint — multi-key provider manager and model discovery (2026-11-09)
+
+- Branch `feat/s38c-multi-key-model-manager` from main after S38b. Added a
+  SecureStore-only multi-profile key registry with custom labels, explicit active
+  selection, legacy single-key migration, show/hide, sensitive clipboard copy,
+  paste, edit and remove. Added a "Keys and models" screen reachable from Model
+  settings, plus provider model discovery (`/models`) for OpenAI-compatible,
+  Kilo and Anthropic with manual model fallback. Activating a profile writes the
+  existing legacy active-provider/key values so the chat path keeps its current
+  no-silent-fallback behavior.
+- Added `expo-clipboard@~58.0.4` for explicit user-initiated copy/paste; Android
+  copies are marked sensitive. Keys are never stored in the profile registry.
+- Local verification with Node 24.22.2: mobile 88 tests / 13 suites pass; mobile
+  typecheck/lint/format pass; root lint/format/typecheck pass; Android and web
+  Metro exports succeed; privacy gate passes; deep secret scan zero findings.

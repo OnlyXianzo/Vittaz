@@ -1018,3 +1018,10 @@ port or adding a new schema. Rows are validated with the existing core
 conversation parser, sensitive messages are dropped, and only a bounded recent
 window is sent to the QA loop. This is chat history/recent context, not the
 deferred automatic long-term memory feature.
+
+S38c decision: keep the existing chat provider selection contract intact by
+storing multiple labeled key profiles separately and writing the active profile
+into the legacy single-provider/key slots on explicit activation. This gives the
+owner multiple BYOK keys and fetched model choices without changing the QA loop
+or introducing silent fallback. Model discovery is read-only and user-initiated;
+manual model entry remains available when a provider does not return a list.
