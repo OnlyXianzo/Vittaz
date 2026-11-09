@@ -1030,3 +1030,8 @@ S38d build reliability decision: the diagnostics APK workflow may retry the
 Gradle assemble up to three times because upstream Gradle/Kotlin artifact
 downloads can return transient 504s. This changes only CI retry behavior, not
 app code, signing, or the diagnostics-only identity.
+
+S38d status decision: do not mark the diagnostics APK/device verification complete
+without a successful APK artifact. The current blocker is external Gradle
+distribution download failure; app fixes are merged and locally verified, but
+owner device evidence must remain separate and pending.
