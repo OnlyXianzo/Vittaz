@@ -1011,3 +1011,10 @@ revealed) and fix the UX by pacing validated chunks and surfacing bounded tool
 events, rather than exposing raw provider SSE deltas. Inject the host clock into
 the QA context so relative periods do not depend on model training data. New QA
 options are optional so CLI/backend callers keep default behavior.
+
+S38b decision: implement mobile chat history as a small local KV adapter using
+Expo SQLite's AsyncStorage-compatible store rather than changing the LedgerStore
+port or adding a new schema. Rows are validated with the existing core
+conversation parser, sensitive messages are dropped, and only a bounded recent
+window is sent to the QA loop. This is chat history/recent context, not the
+deferred automatic long-term memory feature.

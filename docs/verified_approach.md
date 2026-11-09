@@ -802,3 +802,9 @@ only exact paired chat. Digest is deterministic count/paise, no notes/names/AI.
 ### Blast radius
 
 `packages/agent/src/qa_loop.ts` (new optional callback/time option), `apps/mobile/src/assistant/mobile_qa.ts` (fetch), `apps/mobile/src/store.tsx` (progress/reveal), `apps/mobile/src/screens/ChatScreen.tsx` (live status). Shared CLI/backend callers keep default behavior because new options are optional. Tests cover the new context, tool events, and mobile progress/reveal.
+
+### S38b local chat history verification
+
+- Researched the existing core/storage conversation port, the Expo SQLite ledger adapter, and Expo SQLite KV store. The ledger port is intentionally narrow; adding history to it would widen every adapter. The KV store is already available through `expo-sqlite` and is sufficient for a bounded local chat transcript.
+- Verified approach: store only validated, non-sensitive app messages under a versioned KV key; resume the latest conversation; pass at most six prior turns to the existing QA loop, which still scrubs/redacts before provider calls.
+- Blast radius: mobile-only `chat_history.ts`, store wiring, domain type export, and tests. No core/storage schema change, no provider protocol change, no ledger mutation change.
