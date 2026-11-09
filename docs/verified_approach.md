@@ -782,3 +782,20 @@ must respect returned retry delay; no busy retry loop. Token/URL/server body err
 never escape. Signal and whole-response30s bound/1MiB. Shared bounded HTTP reader
 reused without changing existing provider behavior. Replies plain text/truncated,
 only exact paired chat. Digest is deterministic count/paise, no notes/names/AI.
+
+## S38 owner device feedback — chat correctness, progress and progressive reveal (2026-11-09)
+
+### Research (sequential angles)
+1. Device screenshots: assistant answers render Markdown correctly after PR #75, but the model reports an old month, shows raw paise/status values, tool cards appear only at the end, and the answer appears in one paint.
+2. Runtime path: `ReadOnlyQaLoop` emits validated 24-character chunks synchronously; the mobile store applies them in immediate `setState` calls, so React batches them into one render. Tool start/completion exists only as diagnostics, not UI callbacks.
+3. Context: the loop system prompt has no trusted current date/time or current month, so the model guesses relative periods. The provider SSE path is already parsed incrementally by the low-level clients; Expo SDK 58 provides a streaming-capable fetch.
+4. Privacy boundary: only final validated text may reach the UI. The fix must not expose raw provider deltas or bypass the sensitive-message/scrub/unredact boundary.
+
+### Verified approach
+- Inject a trusted `currentTime` (ISO) into the QA request and add trusted current date/time plus current month in Asia/Calcutta to the system context. Add presentation guidance to show rupees, human-readable statuses and local dates instead of raw storage units.
+- Add a bounded `onToolEvent` callback (`running`/`done`) to the QA loop and surface live tool steps in the mobile chat store while the request is in flight.
+- Keep the existing validated-chunk privacy boundary, but pace the mobile reveal with a small awaited delay per chunk so text appears progressively instead of one batched paint. Use Expo's streaming-capable fetch for provider calls.
+- Do not change ledger mutation rules, provider fallback rules, or expose raw provider deltas.
+
+### Blast radius
+`packages/agent/src/qa_loop.ts` (new optional callback/time option), `apps/mobile/src/assistant/mobile_qa.ts` (fetch), `apps/mobile/src/store.tsx` (progress/reveal), `apps/mobile/src/screens/ChatScreen.tsx` (live status). Shared CLI/backend callers keep default behavior because new options are optional. Tests cover the new context, tool events, and mobile progress/reveal.

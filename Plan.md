@@ -307,3 +307,10 @@ represented as fixing that failure.
 - [ ] **S37d. Device verification.** After a successful test APK is delivered,
       ask the owner to test each available route with synthetic prompts. Record
       owner-reported evidence separately from agent-observed build/test evidence.
+
+## 16. Owner device-feedback follow-up (owner-approved 2026-11-09)
+
+- [ ] **S38a. Chat correctness and visible progress.** Trusted current date/month context, human-readable money/status presentation, live tool progress, and progressive validated answer reveal. No raw provider deltas; no ledger mutation change.
+- [ ] **S38b. Local chat history.** Persist and restore recent app conversations on device; send only a bounded recent window through the existing privacy filters. No automatic long-term memory.
+- [ ] **S38c. Multi-key provider manager.** Multiple labeled BYOK profiles, explicit active selection, fetched model choices with manual fallback, and user-controlled show/hide/copy/paste/remove. Keys remain in SecureStore.
+- [ ] **S38d. Device verification build.** Build the diagnostics APK from the merged fixes and record owner-reported results separately from agent build/test evidence.
