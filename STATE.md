@@ -507,3 +507,12 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - This is agent build evidence only. Owner device verification with synthetic
   prompts (S37d/S38d owner evidence) remains pending and must be recorded
   separately.
+
+## Assistant workspace proposal
+
+- Owner requested a persistent + entry on main screens, a conversation list,
+  custom instructions and a connectors entry. Plan section 17 and DECISIONS.md
+  record the requested follow-up and its privacy boundaries.
+- No S39 implementation, tests, CI, APK or device verification has been run yet.
+  Next: complete the verified-implementation research and written approach,
+  then implement and test conversation migration and request isolation first.

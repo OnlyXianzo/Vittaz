@@ -1035,3 +1035,22 @@ S38d status decision: do not mark the diagnostics APK/device verification comple
 without a successful APK artifact. The current blocker is external Gradle
 distribution download failure; app fixes are merged and locally verified, but
 owner device evidence must remain separate and pending.
+
+## Proposed assistant workspace (owner request)
+
+The owner requested an easier-to-reach + button across main screens; opening
+chat directly from the message option; a list of separate conversations; and a
+chat menu for history, custom instructions, and connectors. Section 17 of the
+plan records the work in small steps. The current chat history implementation
+stores only one bounded message array and restores it automatically; it does
+not yet offer a conversation picker. Existing history must be migrated, not
+silently discarded.
+
+Custom instructions are user-controlled preferences, not executable skills or
+higher-priority policy. Sending them to a provider requires clear disclosure
+and the existing privacy boundary; they cannot grant tools or approval powers.
+The connector screen must describe the mobile app's actual capabilities and must
+not represent future integrations as connected. Existing external connector
+work remains deferred until separately scoped. Detailed implementation and
+verification, including in-flight request isolation and migration failure modes,
+require the verified-implementation research and test-first process.

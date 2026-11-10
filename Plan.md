@@ -314,3 +314,26 @@ represented as fixing that failure.
 - [x] **S38b. Local chat history.** Persist and restore recent app conversations on device; send only a bounded recent window through the existing privacy filters. No automatic long-term memory.
 - [x] **S38c. Multi-key provider manager.** Multiple labeled BYOK profiles, explicit active selection, fetched model choices with manual fallback, and user-controlled show/hide/copy/paste/remove. Keys remain in SecureStore.
 - [x] **S38d. Device verification build.** Build the diagnostics APK from the merged fixes and record owner-reported results separately from agent build/test evidence. APK delivered 2026-11-09 (run 42571222498); owner device results still pending.
+
+## 17. Owner-requested assistant workspace
+
+- [ ] **S39a. Conversation history.** Add a local conversation list with new,
+      reopen and delete actions. Migrate the existing single saved chat without
+      losing valid messages. Preserve sensitive-message filtering and bound the
+      context sent to the selected provider to the current conversation only.
+      Handle switching or deletion while a response is in flight safely.
+- [ ] **S39b. Accessible chat navigation.** Provide a consistent + entry point
+      on main screens that opens the existing add-or-ask flow, and make the
+      message option open chat directly. Add an accessible assistant menu for
+      history, instructions and connectors without obscuring the composer.
+- [ ] **S39c. Custom instructions.** Let the user view, edit, save and clear
+      local instructions, disclose when they are sent to the selected provider,
+      apply the existing privacy checks, and ensure they cannot change tool
+      permissions or override the read-only and user-approval boundaries.
+- [ ] **S39d. Connector entry.** Provide a clearly labelled connectors screen
+      that accurately describes what is available in the mobile app. Do not
+      imply an external service is connected or operational when it is not.
+      Actual integrations require separately scoped permissions and approval.
+- [ ] **S39e. Verification build.** Run the full test and privacy gates, merge
+      green changes, and build a diagnostics APK. Record owner device results
+      separately from agent build evidence.
