@@ -20,7 +20,7 @@ export function HomeScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add or ask by message"
-          onPress={() => dispatch({ type: "navigate", screen: "quick" })}
+          onPress={() => dispatch({ type: "navigate", screen: "chat" })}
           style={({ pressed }) => [
             { borderRadius: radii.chip },
             pressed && { opacity: 0.8 },

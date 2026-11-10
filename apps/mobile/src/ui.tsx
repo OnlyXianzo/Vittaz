@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 import {
   Pressable,
@@ -646,6 +647,7 @@ export function BottomNav({
 }) {
   const { dispatch } = useApp();
   const insets = useSafeAreaInsets();
+  const [add_open, set_add_open] = useState(false);
   return (
     <View
       accessibilityRole="tablist"
@@ -659,7 +661,10 @@ export function BottomNav({
             accessibilityRole="tab"
             accessibilityLabel={label}
             accessibilityState={{ selected: on }}
-            onPress={() => dispatch({ type: "navigate", screen })}
+            onPress={() => {
+              set_add_open(false);
+              dispatch({ type: "navigate", screen });
+            }}
             style={styles.navItem}
           >
             <Feather
@@ -686,6 +691,60 @@ export function BottomNav({
           </Pressable>
         );
       })}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Add or ask"
+        accessibilityState={{ expanded: add_open }}
+        onPress={() => set_add_open((v) => !v)}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.lime,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather
+          name={add_open ? "x" : "plus"}
+          size={24}
+          color={colors.limeDark}
+        />
+      </Pressable>
+      {add_open ? (
+        <View
+          style={{
+            position: "absolute",
+            right: 0,
+            bottom: space.navHeight + 8,
+            backgroundColor: colors.panel,
+            padding: 12,
+            borderRadius: 16,
+            gap: 8,
+            width: 220,
+            borderWidth: 1,
+            borderColor: "rgba(190,255,120,0.25)",
+          }}
+        >
+          <Button
+            label="Ask by message"
+            accessibilityLabel="Open assistant chat"
+            onPress={() => {
+              set_add_open(false);
+              dispatch({ type: "navigate", screen: "chat" });
+            }}
+          />
+          <Button
+            label="Add transaction"
+            accessibilityLabel="Add a transaction"
+            variant="ghost"
+            onPress={() => {
+              set_add_open(false);
+              dispatch({ type: "navigate", screen: "add" });
+            }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

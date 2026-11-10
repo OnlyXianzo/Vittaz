@@ -852,3 +852,16 @@ it with guarded chat requests and user controls in a subsequent step. A corrupt
 new-format value must not be treated as empty and overwritten; write failures
 must surface. Do not mark S39a complete until migration, request isolation and UI
 are tested together.
+
+## S39b navigation
+
+Owner requested a + entry on main screens and direct message-to-chat navigation.
+React Native's accessibility guidance (0.88.1; consulted 2026-11-08,
+https://reactnative.dev/docs/accessibility) recommends labelled button roles and
+expanded state; native layout and assistive-technology behavior still require
+owner device verification. The existing five main tabs share BottomNav, so the
+entry belongs there rather than duplicating controls on individual screens.
+Its menu exposes the existing manual entry screen and read-only chat separately.
+Test each tab and both direct navigation and the existing chat/provider flows.
+The shared navigation bar and Home CTA are the affected UI; no ledger mutation
+or provider behavior changes.

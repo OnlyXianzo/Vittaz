@@ -214,6 +214,19 @@ it("prevents switching while a reply is in flight and keeps context isolated", a
   expect(screen.queryByText("Synthetic reply")).toBeNull();
 });
 
+it("provides a plus entry on main tabs and opens chat directly", async () => {
+  await open();
+  for (const name of ["Home", "Inbox", "Ledger", "People", "Settings"]) {
+    await tab(name);
+    expect(screen.getByRole("button", { name: "Add or ask" })).toBeTruthy();
+  }
+  await fireEvent.press(screen.getByRole("button", { name: "Add or ask" }));
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Open assistant chat" }),
+  );
+  expect(screen.getByLabelText("Message")).toBeTruthy();
+});
+
 describe("Vittaz native shell backed by core", () => {
   it("opens on an empty local ledger instead of demo transactions", async () => {
     await open();
@@ -350,12 +363,10 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText("Message"),
       "What did I spend this month?",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Ask Assistant" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     expect(screen.getByRole("header", { name: "Assistant" })).toBeTruthy();
     await waitFor(() =>
       expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
@@ -443,12 +454,10 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText("Message"),
       "Synthetic balance question",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Ask Assistant" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     await waitFor(() =>
       expect(create_mobile_qa_agent).toHaveBeenCalledWith(expect.anything(), {
         kind: "openai_compatible",
@@ -498,12 +507,10 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText("Message"),
       "Synthetic balance question",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Ask Assistant" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     await waitFor(() =>
       expect(create_mobile_qa_agent).toHaveBeenCalledWith(expect.anything(), {
         kind: "anthropic",
@@ -532,12 +539,10 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText("Message"),
       "Synthetic balance question",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Ask Assistant" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     await waitFor(() =>
       expect(screen.getByText(/No Anthropic API key is saved/i)).toBeTruthy(),
     );
@@ -582,12 +587,10 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText("Message"),
       "Synthetic balance question",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Ask Assistant" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     await waitFor(() =>
       expect(
         screen.getByText(/No OpenAI-compatible API key is saved/i),
@@ -654,12 +657,10 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText("Message"),
       "Synthetic balance question",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Ask Assistant" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     await waitFor(() =>
       expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
     );
@@ -680,10 +681,8 @@ describe("Vittaz native shell backed by core", () => {
       await fireEvent.press(
         screen.getByRole("button", { name: "Add or ask by message" }),
       );
-      await fireEvent.changeText(screen.getByLabelText("Question"), question);
-      await fireEvent.press(
-        screen.getByRole("button", { name: "Ask Assistant" }),
-      );
+      await fireEvent.changeText(screen.getByLabelText("Message"), question);
+      await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     }
     async function select_provider(name: string) {
       await tab("Settings");
@@ -949,17 +948,14 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Add or ask by message" }),
     );
     await fireEvent.changeText(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText("Message"),
       "Who owes me?",
     );
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Ask Assistant" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
     await waitFor(() =>
       expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
     );
     expect(getMemoryRows("transactions")).toHaveLength(0);
-    await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     await tab("Inbox");
     expect(screen.getByText("Inbox is clear")).toBeTruthy();
