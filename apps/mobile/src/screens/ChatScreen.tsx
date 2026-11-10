@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { ComponentRef } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -46,11 +47,81 @@ const SUGGESTIONS = [
 ];
 
 export function ChatScreen() {
-  const { state, dispatch } = useApp();
+  const {
+    state,
+    dispatch,
+    conversations,
+    activeConversationId,
+    changeConversation,
+    deleteConversation,
+  } = useApp();
+  const [show_history, set_show_history] = useState(false);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const proposal = state.transactions.find(
     (t) => t.id === state.chatProposalId,
   );
+
+  if (show_history) {
+    return (
+      <Screen>
+        <PageHeader
+          title="Chat history"
+          onBack={() => set_show_history(false)}
+        />
+        <M style={{ marginVertical: 12 }}>
+          Saved on this device. Sensitive or invalid messages are not saved.
+        </M>
+        <Button
+          label="New conversation"
+          disabled={state.chatMode === "thinking"}
+          onPress={() => {
+            void changeConversation(null).then(() => set_show_history(false));
+          }}
+        />
+        {conversations.map((chat) => (
+          <Card key={chat.id} style={{ marginTop: 12, gap: 8 }}>
+            <B>{chat.title}</B>
+            {chat.id === activeConversationId ? (
+              <M>Current conversation</M>
+            ) : null}
+            <Button
+              label="Open"
+              accessibilityLabel={`Open conversation: ${chat.title}`}
+              variant="ghost"
+              disabled={state.chatMode === "thinking"}
+              onPress={() => {
+                void changeConversation(chat.id).then(() =>
+                  set_show_history(false),
+                );
+              }}
+            />
+            <Button
+              label="Delete"
+              accessibilityLabel={`Delete conversation: ${chat.title}`}
+              variant="ghost"
+              disabled={state.chatMode === "thinking"}
+              onPress={() =>
+                Alert.alert(
+                  "Delete conversation?",
+                  "This removes its saved messages from this device.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: () => {
+                        void deleteConversation(chat.id);
+                      },
+                    },
+                  ],
+                )
+              }
+            />
+          </Card>
+        ))}
+      </Screen>
+    );
+  }
 
   return (
     <Screen variant="fixed" contentStyle={{ paddingHorizontal: 0 }}>
@@ -85,6 +156,14 @@ export function ChatScreen() {
         />
       </View>
 
+      <View style={{ paddingHorizontal: 20 }}>
+        <Button
+          label="Chat history"
+          variant="ghost"
+          small
+          onPress={() => set_show_history(true)}
+        />
+      </View>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

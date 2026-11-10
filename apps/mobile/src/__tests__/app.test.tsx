@@ -13,6 +13,11 @@ import * as SecureStore from "expo-secure-store";
 import Storage from "expo-sqlite/kv-store";
 import { CHAT_HISTORY_KEY } from "../assistant/chat_history";
 import {
+  CONVERSATIONS_KEY,
+  create_conversation,
+  save_conversation_messages,
+} from "../assistant/conversations";
+import {
   ANTHROPIC_API_KEY_NAME,
   ASSISTANT_PROVIDER_PROFILE_NAME,
   KILO_KEY_NAME,
@@ -102,7 +107,111 @@ beforeEach(async () => {
   await SecureStore.deleteItemAsync(OPENAI_COMPATIBLE_KEY_NAME);
   await SecureStore.deleteItemAsync(ASSISTANT_PROVIDER_PROFILE_NAME);
   await Storage.removeItemAsync(CHAT_HISTORY_KEY);
+  await Storage.removeItemAsync(CONVERSATIONS_KEY);
   jest.clearAllMocks();
+});
+
+it("opens separate saved conversations and creates a new one", async () => {
+  await create_conversation("chat_first");
+  await save_conversation_messages("chat_first", [
+    { id: "m1", role: "user", text: "First synthetic question" },
+  ]);
+  await create_conversation("chat_second");
+  await save_conversation_messages("chat_second", [
+    { id: "m2", role: "user", text: "Second synthetic question" },
+  ]);
+  await open();
+  await waitFor(() =>
+    expect(screen.getByText("Second synthetic question")).toBeTruthy(),
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
+  await fireEvent.press(
+    screen.getByRole("button", {
+      name: "Open conversation: First synthetic question",
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.getByText("First synthetic question")).toBeTruthy(),
+  );
+  expect(screen.queryByText("Second synthetic question")).toBeNull();
+  await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
+  await fireEvent.press(
+    screen.getByRole("button", { name: "New conversation" }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByText("First synthetic question")).toBeNull(),
+  );
+});
+
+it("prevents switching while a reply is in flight and keeps context isolated", async () => {
+  await create_conversation("chat_first");
+  await save_conversation_messages("chat_first", [
+    { id: "m1", role: "user", text: "First synthetic context" },
+  ]);
+  await create_conversation("chat_second");
+  await save_conversation_messages("chat_second", [
+    { id: "m2", role: "user", text: "Second synthetic context" },
+  ]);
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let history: unknown = null;
+  jest.mocked(create_mobile_qa_agent).mockImplementationOnce(
+    () =>
+      ({
+        answerQuestion: jest.fn(
+          async (_question: string, options: { history?: unknown }) => {
+            history = options.history;
+            await pending;
+            return {
+              answered: true,
+              stopReason: "completed",
+              stepsUsed: 0,
+              tokensUsed: 1,
+              toolsUsed: [],
+              answer: "Synthetic reply",
+            };
+          },
+        ),
+      }) as unknown as ReturnType<typeof create_mobile_qa_agent>,
+  );
+  await open();
+  await waitFor(() =>
+    expect(screen.getByText("Second synthetic context")).toBeTruthy(),
+  );
+  await fireEvent.changeText(
+    screen.getByLabelText("Message"),
+    "Synthetic followup",
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() => expect(history).not.toBeNull());
+  expect(history).toEqual([
+    { role: "user", content: "Second synthetic context" },
+  ]);
+  await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
+  expect(
+    screen.getByRole("button", {
+      name: "Open conversation: First synthetic context",
+    }).props.accessibilityState.disabled,
+  ).toBe(true);
+  release();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", {
+        name: "Open conversation: First synthetic context",
+      }).props.accessibilityState.disabled,
+    ).toBe(false),
+  );
+  await fireEvent.press(
+    screen.getByRole("button", {
+      name: "Open conversation: First synthetic context",
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.getByText("First synthetic context")).toBeTruthy(),
+  );
+  expect(screen.queryByText("Synthetic reply")).toBeNull();
 });
 
 describe("Vittaz native shell backed by core", () => {
@@ -748,7 +857,7 @@ describe("Vittaz native shell backed by core", () => {
       await waitFor(() =>
         expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
       );
-      expect(await Storage.getItemAsync(CHAT_HISTORY_KEY)).toContain(
+      expect(await Storage.getItemAsync(CONVERSATIONS_KEY)).toContain(
         "Synthetic first question",
       );
       await screen.unmount();

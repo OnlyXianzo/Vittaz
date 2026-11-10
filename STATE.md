@@ -530,3 +530,12 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - Next: integrate conversation selection with the app state and chat requests;
   prevent in-flight response contamination and add end-to-end UI tests before
   marking S39a done. S39b–S39e remain pending.
+
+## S39a conversation UI integration
+
+- Connected the local conversation index to chat, with a history view, new and
+  reopen actions, and confirmed deletion. Switching/deleting is disabled while
+  a reply is in flight; recent context is taken only from the active chat.
+  Storage failures surface to the user. Existing legacy history is migrated.
+- Mobile integration tests cover new/reopen, in-flight blocking and context
+  isolation. No owner device verification has been performed.

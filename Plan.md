@@ -317,7 +317,7 @@ represented as fixing that failure.
 
 ## 17. Owner-requested assistant workspace
 
-- [ ] **S39a. Conversation history.** Add a local conversation list with new,
+- [x] **S39a. Conversation history.** Add a local conversation list with new,
       reopen and delete actions. Migrate the existing single saved chat without
       losing valid messages. Preserve sensitive-message filtering and bound the
       context sent to the selected provider to the current conversation only.
