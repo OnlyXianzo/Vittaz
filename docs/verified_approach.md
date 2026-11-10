@@ -814,3 +814,41 @@ only exact paired chat. Digest is deterministic count/paise, no notes/names/AI.
 - Researched the existing single-key SecureStore contract, provider model-list endpoints (OpenAI-compatible, Kilo, Anthropic), Expo SecureStore limits, and Expo Clipboard sensitive-copy guidance.
 - Verified approach: store non-secret profile metadata in a versioned registry and each secret under its own SecureStore item; migrate legacy values once; activate explicitly by writing the legacy active provider/key slots; fetch models on demand and keep manual model entry.
 - Blast radius: mobile assistant key registry, new Keys screen, Models screen navigation, shared UI Button/Input compatibility, and tests. No QA loop/provider protocol change, no ledger mutation change, no silent fallback.
+
+## S39a conversation storage — research and verified approach
+
+Problem: the mobile app currently saves one `app_chat` array. The requested
+conversation list needs separate, local histories, safe legacy migration and
+isolation between concurrent requests before it is connected to the UI.
+
+Research, consulted 2026-11-08:
+
+1. Expo SDK 58 `expo-sqlite` (~58.0.15) documents its SQLite-backed async KV
+   store and persistence across restarts: https://docs.expo.dev/versions/latest/sdk/sqlite/.
+   Expo's implementation/docs also show the same asynchronous API:
+   https://github.com/expo/expo/blob/main/docs/pages/versions/unversioned/sdk/sqlite.mdx.
+   Confidence high for the storage API; these sources do not promise atomicity
+   across multiple keys. Therefore use one versioned value and serialize writes
+   within this adapter. Retain the legacy value until migration has succeeded.
+2. The existing `chat_history.ts` and core `parseConversationMessage` already
+   validate messages and reject sensitive data. OWASP recommends validation and
+   least privilege at the execution boundary rather than trusting model output:
+   https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html.
+   Confidence high: all loaded and saved rows must continue to pass the parser;
+   titles must come from filtered rows, not raw input.
+3. Concurrent UI work can complete out of order. React documents cleanup of
+   asynchronous effects to prevent stale results:
+   https://react.dev/reference/react/useEffect#fetching-data-with-effects.
+   Expo SQLite's single-value persistence does not itself isolate in-flight UI
+   requests. Confidence high that request identity must be checked separately
+   before every asynchronous update; implementation and integration tests are
+   required before the UI offers switching.
+
+Blast radius: mobile history adapter, mobile store, navigation and chat UI;
+existing chat QA history and its six-message privacy-filtered window must remain
+scoped to the chosen conversation. Core ledger and provider key storage must not
+change. First build and test a separate versioned storage adapter. Then integrate
+it with guarded chat requests and user controls in a subsequent step. A corrupt
+new-format value must not be treated as empty and overwritten; write failures
+must surface. Do not mark S39a complete until migration, request isolation and UI
+are tested together.
