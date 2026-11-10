@@ -670,3 +670,16 @@ payloads. The root CI `test:coverage` command still runs the complete suite.
 - OpenAI-compatible model listing: https://developers.openai.com/api/reference/resources/models/methods/list — consulted 2026-11-09. `GET /models` returns `{ data: [{ id, ... }] }`; used for user-selected compatible endpoints.
 - Anthropic model listing: https://platform.claude.com/docs/en/api/models/list — consulted 2026-11-09; API version `2026-10-21`. `GET /v1/models` returns `{ data: [{ id, display_name, lifecycle, ... }] }`.
 - Kilo Gateway model listing: https://kilo.ai/docs/gateway/api-reference — consulted 2026-11-09. `GET /models` on the gateway base URL returns an OpenAI-compatible model list and does not require authentication.
+
+### S39a conversation storage research
+
+- Expo SQLite SDK 58, `expo-sqlite` ~58.0.15, consulted 2026-11-08:
+  https://docs.expo.dev/versions/latest/sdk/sqlite/ — SQLite-backed KV persistence
+  and asynchronous storage API.
+- Expo SDK SQLite documentation source, consulted 2026-11-08:
+  https://github.com/expo/expo/blob/main/docs/pages/versions/unversioned/sdk/sqlite.mdx.
+- React `useEffect`, consulted 2026-11-08:
+  https://react.dev/reference/react/useEffect#fetching-data-with-effects — avoid
+  stale asynchronous results with cleanup.
+- OWASP LLM Prompt Injection Prevention Cheat Sheet, consulted 2026-11-08:
+  https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html — enforce permissions outside the model.

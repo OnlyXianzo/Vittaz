@@ -516,3 +516,17 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - No S39 implementation, tests, CI, APK or device verification has been run yet.
   Next: complete the verified-implementation research and written approach,
   then implement and test conversation migration and request isolation first.
+
+## S39a storage groundwork (in progress)
+
+- Added a separate versioned local conversation storage adapter with validated,
+  filtered messages, legacy migration, serialized updates, explicit selection
+  and deletion, bounded per-conversation history, and fail-closed corrupt data.
+  The legacy copy is removed only after a successful migration write; failed
+  writes leave it intact. It is not connected to the app yet.
+- Local checks: 94 mobile tests including 6 adapter tests, mobile lint/typecheck/
+  format, root lint/format/typecheck, 395 root coverage tests, privacy gate and
+  secret scan passed. No APK or device test performed.
+- Next: integrate conversation selection with the app state and chat requests;
+  prevent in-flight response contamination and add end-to-end UI tests before
+  marking S39a done. S39b–S39e remain pending.
