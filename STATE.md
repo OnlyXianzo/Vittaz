@@ -539,3 +539,10 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   Storage failures surface to the user. Existing legacy history is migrated.
 - Mobile integration tests cover new/reopen, in-flight blocking and context
   isolation. No owner device verification has been performed.
+
+## S39b navigation
+
+- Added an accessible + menu to the main tab bar with manual transaction and
+  assistant chat choices; the Home message action opens chat directly.
+- Mobile shell tests verify availability on all five main tabs and direct chat.
+  Actual device layout and screen-reader behavior remain owner verification.

@@ -322,10 +322,11 @@ represented as fixing that failure.
       losing valid messages. Preserve sensitive-message filtering and bound the
       context sent to the selected provider to the current conversation only.
       Handle switching or deletion while a response is in flight safely.
-- [ ] **S39b. Accessible chat navigation.** Provide a consistent + entry point
+- [x] **S39b. Accessible chat navigation.** Provide a consistent + entry point
       on main screens that opens the existing add-or-ask flow, and make the
       message option open chat directly. Add an accessible assistant menu for
-      history, instructions and connectors without obscuring the composer.
+      history, instructions and connectors without obscuring the composer (menu
+      completed with S39c/S39d).
 - [ ] **S39c. Custom instructions.** Let the user view, edit, save and clear
       local instructions, disclose when they are sent to the selected provider,
       apply the existing privacy checks, and ensure they cannot change tool

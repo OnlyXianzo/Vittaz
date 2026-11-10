@@ -683,3 +683,6 @@ payloads. The root CI `test:coverage` command still runs the complete suite.
   stale asynchronous results with cleanup.
 - OWASP LLM Prompt Injection Prevention Cheat Sheet, consulted 2026-11-08:
   https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html — enforce permissions outside the model.
+
+- React Native 0.88.1 accessibility, consulted 2026-11-08:
+  https://reactnative.dev/docs/accessibility — labels, roles and control state.
