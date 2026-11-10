@@ -41,6 +41,10 @@ import {
 } from "./assistant/conversations";
 import type { ConversationIndex } from "./assistant/conversations";
 import { mobileLedgerRuntime } from "./ledger_runtime";
+import {
+  question_with_instructions,
+  read_instructions,
+} from "./assistant/custom_instructions";
 import { openMobileLedgerStore } from "./storage/open_ledger_store";
 
 interface Store {
@@ -671,8 +675,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           "ok",
         );
         let failure_stage: DiagnosticFailureStage = "context_build";
+        let instruction_error = false;
         void (async () => {
           let streamed_answer = "";
+          let outbound_question: string;
+          try {
+            outbound_question = question_with_instructions(
+              question,
+              await read_instructions(),
+            );
+          } catch (error) {
+            instruction_error = true;
+            throw error;
+          }
           mobile_diagnostics.record(
             "provider_profile_read_started",
             "secure_store",
@@ -830,7 +845,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               role: message.role,
               content: message.text.slice(0, 8192),
             }));
-          const result = await agent.answerQuestion(question, {
+          const result = await agent.answerQuestion(outbound_question, {
             signal: controller.signal,
             history,
             // The QA loop's timeout is a single budget shared across every
@@ -983,10 +998,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
               message.id === assistant_id
                 ? {
                     ...message,
-                    text: mobile_qa_failure_message(
-                      "provider_error",
-                      provider_kind,
-                    ),
+                    text: instruction_error
+                      ? "Custom instructions could not be read or the combined question is too long. Check your instructions and try again."
+                      : mobile_qa_failure_message(
+                          "provider_error",
+                          provider_kind,
+                        ),
                   }
                 : message,
             );

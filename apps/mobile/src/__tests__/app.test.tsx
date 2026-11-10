@@ -12,6 +12,7 @@ import App from "../../App";
 import * as SecureStore from "expo-secure-store";
 import Storage from "expo-sqlite/kv-store";
 import { CHAT_HISTORY_KEY } from "../assistant/chat_history";
+import { INSTRUCTIONS_KEY } from "../assistant/custom_instructions";
 import {
   CONVERSATIONS_KEY,
   create_conversation,
@@ -108,6 +109,7 @@ beforeEach(async () => {
   await SecureStore.deleteItemAsync(ASSISTANT_PROVIDER_PROFILE_NAME);
   await Storage.removeItemAsync(CHAT_HISTORY_KEY);
   await Storage.removeItemAsync(CONVERSATIONS_KEY);
+  await Storage.removeItemAsync(INSTRUCTIONS_KEY);
   jest.clearAllMocks();
 });
 
@@ -225,6 +227,68 @@ it("provides a plus entry on main tabs and opens chat directly", async () => {
     screen.getByRole("button", { name: "Open assistant chat" }),
   );
   expect(screen.getByLabelText("Message")).toBeTruthy();
+});
+
+it("saves custom instructions, sends them as user preferences, and shows connector status", async () => {
+  await open();
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Add or ask by message" }),
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Assistant menu" }));
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Custom instructions" }),
+  );
+  await fireEvent.changeText(
+    screen.getByLabelText("Custom instructions"),
+    "Use concise answers",
+  );
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Save instructions" }),
+  );
+  await waitFor(() =>
+    expect(screen.getByText("Instructions saved on this device.")).toBeTruthy(),
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Back to chat" }));
+  await fireEvent.changeText(
+    screen.getByLabelText("Message"),
+    "Synthetic question",
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() =>
+    expect(screen.getByText("Synthetic safe answer.")).toBeTruthy(),
+  );
+  const agent = jest.mocked(create_mobile_qa_agent).mock.results[0]
+    .value as unknown as { answerQuestion: { mock: { calls: unknown[][] } } };
+  expect(JSON.parse(agent.answerQuestion.mock.calls[0][0] as string)).toEqual({
+    user_response_preferences: "Use concise answers",
+    question: "Synthetic question",
+  });
+  await fireEvent.press(screen.getByRole("button", { name: "Assistant menu" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Connectors" }));
+  expect(screen.getByText(/not available in this mobile app/i)).toBeTruthy();
+});
+
+it("does not call the provider when saved instructions are unsafe", async () => {
+  await Storage.setItemAsync(
+    INSTRUCTIONS_KEY,
+    "My password is synthetic-secret",
+  );
+  await open();
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Add or ask by message" }),
+  );
+  await fireEvent.changeText(
+    screen.getByLabelText("Message"),
+    "Synthetic question",
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() =>
+    expect(
+      screen.getByText(/Custom instructions could not be read/),
+    ).toBeTruthy(),
+  );
+  expect(create_mobile_qa_agent).not.toHaveBeenCalled();
+  expect(getMemoryRows("transactions")).toHaveLength(0);
 });
 
 describe("Vittaz native shell backed by core", () => {

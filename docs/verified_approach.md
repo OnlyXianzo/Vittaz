@@ -865,3 +865,29 @@ Its menu exposes the existing manual entry screen and read-only chat separately.
 Test each tab and both direct navigation and the existing chat/provider flows.
 The shared navigation bar and Home CTA are the affected UI; no ledger mutation
 or provider behavior changes.
+
+## S39c–d instructions and connectors — verified approach
+
+Owner asks for editable instructions and a connector-management entry. The
+mobile QA path already validates and privacy-filters the question before any
+provider call and exposes only read-only tools. Expo SQLite's KV interface is
+persistent but not a secrets vault; the screen must explain that instructions
+are stored on device and sent with every question. Existing sensitive-content
+checks reject known credential-like content on save and load. No filter can
+identify every secret, so the UI must explicitly warn against including them.
+OWASP (cited above) says prompt text and screening are not authorization; tool
+allowlists and approval boundaries must stay enforced in code.
+
+Use a length-bounded user-level question wrapper containing the saved preference,
+not a system instruction and not a new tool. Keep the original question in the
+visible chat history. Reject storage and combined-length errors rather than
+silently send an uncustomized question. The user's selected provider receives
+both preference and question through the same existing redactor/filter. Unit and
+shell tests must check storage, rejection, clearing, provider-bound content and
+no new tool permissions. The model may not follow a preference perfectly.
+
+The connector entry must describe actual mobile capability. Existing Settings
+reports Telegram pairing is not connected in the mobile UI; do not claim this
+screen can connect services or inspect Arena connected apps. Scope here is a
+truthful informational entry only, not OAuth, credentials, remote calls or a
+new data-source tool. Test the menu and disclosure. Device UI remains unverified.
