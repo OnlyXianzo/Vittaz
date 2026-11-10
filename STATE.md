@@ -546,3 +546,18 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   assistant chat choices; the Home message action opens chat directly.
 - Mobile shell tests verify availability on all five main tabs and direct chat.
   Actual device layout and screen-reader behavior remain owner verification.
+
+## S39c–d assistant menu, instructions and connectors
+
+- Chat includes an assistant menu with custom instructions and a truthful
+  connectors information view, alongside a direct history button. Instructions
+  are stored locally in the SQLite KV store, validated on save and read, and
+  included as user-level preferences in the privacy-filtered question sent to
+  the selected provider. The UI discloses the local unencrypted storage and
+  provider transmission; no tool permissions or ledger approval paths changed.
+- The connector view does not connect services; Telegram pairing and other
+  external integrations are unavailable in the mobile interface. Executable
+  custom skills are not implemented. These require separately scoped work.
+- Verification: mobile 102 tests, lint/typecheck/format; Android and web Metro
+  exports; root lint/typecheck/coverage and privacy; secret scan. No device run.
+  S39e diagnostics APK and owner verification still pending.

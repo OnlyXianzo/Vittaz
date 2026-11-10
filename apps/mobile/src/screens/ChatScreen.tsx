@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
 import { Markdown } from "../Markdown";
+import { InstructionsScreen } from "./InstructionsScreen";
 import { formatPaise } from "../domain";
 import type { AppState } from "../domain";
 import { colors, gradients } from "../theme";
@@ -56,10 +57,36 @@ export function ChatScreen() {
     deleteConversation,
   } = useApp();
   const [show_history, set_show_history] = useState(false);
+  const [show_menu, set_show_menu] = useState(false);
+  const [subscreen, set_subscreen] = useState<
+    "instructions" | "connectors" | null
+  >(null);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const proposal = state.transactions.find(
     (t) => t.id === state.chatProposalId,
   );
+
+  if (subscreen === "instructions")
+    return <InstructionsScreen onBack={() => set_subscreen(null)} />;
+  if (subscreen === "connectors")
+    return (
+      <Screen>
+        <PageHeader title="Connectors" onBack={() => set_subscreen(null)} />
+        <Card style={{ marginTop: 16, gap: 8 }}>
+          <B>Connectors are not available in this mobile app</B>
+          <M>
+            Connecting external services and Telegram pairing are not available
+            in this mobile interface yet. No external services can be connected
+            or managed here.
+          </M>
+        </Card>
+        <Button
+          label="Back to chat"
+          variant="ghost"
+          onPress={() => set_subscreen(null)}
+        />
+      </Screen>
+    );
 
   if (show_history) {
     return (
@@ -157,6 +184,34 @@ export function ChatScreen() {
       </View>
 
       <View style={{ paddingHorizontal: 20 }}>
+        <Button
+          label="Assistant menu"
+          variant="ghost"
+          small
+          onPress={() => set_show_menu((value) => !value)}
+        />
+        {show_menu ? (
+          <View style={{ gap: 6, paddingVertical: 6 }}>
+            <Button
+              label="Custom instructions"
+              variant="ghost"
+              small
+              onPress={() => {
+                set_show_menu(false);
+                set_subscreen("instructions");
+              }}
+            />
+            <Button
+              label="Connectors"
+              variant="ghost"
+              small
+              onPress={() => {
+                set_show_menu(false);
+                set_subscreen("connectors");
+              }}
+            />
+          </View>
+        ) : null}
         <Button
           label="Chat history"
           variant="ghost"

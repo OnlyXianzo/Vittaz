@@ -327,11 +327,11 @@ represented as fixing that failure.
       message option open chat directly. Add an accessible assistant menu for
       history, instructions and connectors without obscuring the composer (menu
       completed with S39c/S39d).
-- [ ] **S39c. Custom instructions.** Let the user view, edit, save and clear
+- [x] **S39c. Custom instructions.** Let the user view, edit, save and clear
       local instructions, disclose when they are sent to the selected provider,
       apply the existing privacy checks, and ensure they cannot change tool
       permissions or override the read-only and user-approval boundaries.
-- [ ] **S39d. Connector entry.** Provide a clearly labelled connectors screen
+- [x] **S39d. Connector entry.** Provide a clearly labelled connectors screen
       that accurately describes what is available in the mobile app. Do not
       imply an external service is connected or operational when it is not.
       Actual integrations require separately scoped permissions and approval.
