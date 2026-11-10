@@ -32,7 +32,14 @@ import {
   read_openai_compatible_key,
 } from "./assistant/secure_key";
 import type { Action, AppState, ChatStep, Transaction } from "./domain";
-import { load_chat_history, save_chat_history } from "./assistant/chat_history";
+import {
+  create_conversation,
+  delete_conversation,
+  load_conversations,
+  save_conversation_messages,
+  select_conversation,
+} from "./assistant/conversations";
+import type { ConversationIndex } from "./assistant/conversations";
 import { mobileLedgerRuntime } from "./ledger_runtime";
 import { openMobileLedgerStore } from "./storage/open_ledger_store";
 
@@ -41,6 +48,15 @@ interface Store {
   dispatch: Dispatch<Action>;
   ready: boolean;
   error: string | null;
+  conversations: ConversationIndex["conversations"];
+  activeConversationId: string | null;
+  changeConversation: (id: string | null) => Promise<void>;
+  deleteConversation: (id: string) => Promise<void>;
+}
+
+let conversation_counter = 0;
+function new_conversation_id() {
+  return `chat_${Date.now()}_${++conversation_counter}`;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -362,6 +378,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const store_ref = useRef<LedgerStore | null>(null);
   const mounted_ref = useRef(true);
   const request_ref = useRef<AbortController | null>(null);
+  const active_conversation_ref = useRef<string | null>(null);
+  const conversation_busy_ref = useRef(false);
+  const [conversations, setConversations] = useState<
+    ConversationIndex["conversations"]
+  >([]);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const state_ref = useRef(state);
   useEffect(() => {
     state_ref.current = state;
@@ -424,14 +448,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         store_ref.current = store;
         await refresh(store);
-        const history = await load_chat_history();
+        let index = await load_conversations();
+        if (!index.active_id) {
+          await create_conversation(new_conversation_id());
+          index = await load_conversations();
+        }
+        active_conversation_ref.current = index.active_id;
+        const history =
+          index.conversations.find((chat) => chat.id === index.active_id)
+            ?.messages ?? [];
+        if (mounted_ref.current) {
+          setConversations(index.conversations);
+          setActiveConversationId(index.active_id);
+        }
         if (mounted_ref.current && history.length > 0) {
           setState((current) => ({
             ...current,
             screen: "chat",
             chatMode: "idle",
             chatMessages: history,
-            sequence: Math.max(current.sequence, history.length + 1),
+            sequence: Math.max(
+              current.sequence,
+              ...index.conversations.flatMap((chat) =>
+                chat.messages.map(
+                  (message) =>
+                    Number(
+                      message.id.match(
+                        /^chat_(?:user|assistant)_(\d+)$/,
+                      )?.[1] ?? 0,
+                    ) + 1,
+                ),
+              ),
+            ),
           }));
         }
         setReady(true);
@@ -462,6 +510,84 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [refresh]);
 
+  const changeConversation = useCallback(async (id: string | null) => {
+    if (conversation_busy_ref.current || request_ref.current) {
+      setState((current) =>
+        toast(current, "Wait for the current reply to finish."),
+      );
+      return;
+    }
+    conversation_busy_ref.current = true;
+    try {
+      const next_id = id ?? new_conversation_id();
+      if (id) await select_conversation(id);
+      else await create_conversation(next_id);
+      const index = await load_conversations();
+      active_conversation_ref.current = next_id;
+      if (mounted_ref.current) {
+        setConversations(index.conversations);
+        setActiveConversationId(next_id);
+        setState((current) => ({
+          ...current,
+          chatMessages:
+            index.conversations.find((chat) => chat.id === next_id)?.messages ??
+            [],
+          chatMode: "idle",
+          chatSteps: [],
+          chatInput: "",
+          chatProposalId: null,
+          chatQuestion: null,
+        }));
+      }
+    } catch {
+      if (mounted_ref.current)
+        setState((current) =>
+          toast(current, "Could not open conversation. Please try again."),
+        );
+    } finally {
+      conversation_busy_ref.current = false;
+    }
+  }, []);
+
+  const deleteConversation = useCallback(async (id: string) => {
+    if (conversation_busy_ref.current || request_ref.current) {
+      setState((current) =>
+        toast(current, "Wait for the current reply to finish."),
+      );
+      return;
+    }
+    conversation_busy_ref.current = true;
+    try {
+      await delete_conversation(id);
+      let index = await load_conversations();
+      if (!index.active_id) {
+        await create_conversation(new_conversation_id());
+        index = await load_conversations();
+      }
+      active_conversation_ref.current = index.active_id;
+      if (mounted_ref.current) {
+        setConversations(index.conversations);
+        setActiveConversationId(index.active_id);
+        setState((current) => ({
+          ...current,
+          chatMessages:
+            index.conversations.find((chat) => chat.id === index.active_id)
+              ?.messages ?? [],
+          chatMode: "idle",
+          chatSteps: [],
+          chatInput: "",
+          chatProposalId: null,
+          chatQuestion: null,
+        }));
+      }
+    } catch {
+      if (mounted_ref.current)
+        setState((current) => toast(current, "Could not delete conversation."));
+    } finally {
+      conversation_busy_ref.current = false;
+    }
+  }, []);
+
   const dispatch = useCallback<Dispatch<Action>>(
     (action) => {
       const store = store_ref.current;
@@ -470,7 +596,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         action.type === "send_chat_text" ||
         action.type === "analyze_quick"
       ) {
-        if (state_ref.current.chatMode === "thinking") return;
+        if (
+          state_ref.current.chatMode === "thinking" ||
+          request_ref.current ||
+          conversation_busy_ref.current
+        )
+          return;
+        const conversation_id = active_conversation_ref.current;
+        if (!conversation_id) {
+          setState((current) => toast(current, "Chat history is not ready."));
+          return;
+        }
         if (!store) {
           setState((current) => toast(current, "Local database is not ready."));
           return;
@@ -496,7 +632,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const user_id = `chat_user_${current.sequence}`;
         const assistant_id = `chat_assistant_${current.sequence + 1}`;
         const controller = new AbortController();
-        request_ref.current?.abort();
         request_ref.current = controller;
         setState((value) => ({
           ...value,
@@ -637,7 +772,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   ? { ...message, text: missing_provider_setup }
                   : message,
               );
-              await save_chat_history(messages).catch(() => {});
+              await save_conversation_messages(conversation_id, messages)
+                .then(async () => {
+                  const index = await load_conversations();
+                  if (mounted_ref.current)
+                    setConversations(index.conversations);
+                })
+                .catch(() => {
+                  if (mounted_ref.current)
+                    setState((current) =>
+                      toast(
+                        current,
+                        "Could not save chat history on this device.",
+                      ),
+                    );
+                });
               setState((value) => ({
                 ...value,
                 chatMode: "idle",
@@ -749,7 +898,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     }
                   : message,
               );
-              await save_chat_history(messages).catch(() => {});
+              await save_conversation_messages(conversation_id, messages)
+                .then(async () => {
+                  const index = await load_conversations();
+                  if (mounted_ref.current)
+                    setConversations(index.conversations);
+                })
+                .catch(() => {
+                  if (mounted_ref.current)
+                    setState((current) =>
+                      toast(
+                        current,
+                        "Could not save chat history on this device.",
+                      ),
+                    );
+                });
               setState((value) => ({
                 ...value,
                 chatMode: "idle",
@@ -770,7 +933,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 ? { ...message, text: streamed_answer || result.answer! }
                 : message,
             );
-            await save_chat_history(messages).catch(() => {});
+            await save_conversation_messages(conversation_id, messages)
+              .then(async () => {
+                const index = await load_conversations();
+                if (mounted_ref.current) setConversations(index.conversations);
+              })
+              .catch(() => {
+                if (mounted_ref.current)
+                  setState((current) =>
+                    toast(
+                      current,
+                      "Could not save chat history on this device.",
+                    ),
+                  );
+              });
             setState((value) => ({
               ...value,
               chatMode: "idle",
@@ -814,7 +990,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   }
                 : message,
             );
-            await save_chat_history(messages).catch(() => {});
+            await save_conversation_messages(conversation_id, messages)
+              .then(async () => {
+                const index = await load_conversations();
+                if (mounted_ref.current) setConversations(index.conversations);
+              })
+              .catch(() => {
+                if (mounted_ref.current)
+                  setState((current) =>
+                    toast(
+                      current,
+                      "Could not save chat history on this device.",
+                    ),
+                  );
+              });
             setState((value) => ({
               ...value,
               chatMode: "idle",
@@ -916,7 +1105,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.toast]);
 
   return (
-    <StoreContext.Provider value={{ state, dispatch, ready, error }}>
+    <StoreContext.Provider
+      value={{
+        state,
+        dispatch,
+        ready,
+        error,
+        conversations,
+        activeConversationId,
+        changeConversation,
+        deleteConversation,
+      }}
+    >
       {children}
     </StoreContext.Provider>
   );
