@@ -561,3 +561,15 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
 - Verification: mobile 102 tests, lint/typecheck/format; Android and web Metro
   exports; root lint/typecheck/coverage and privacy; secret scan. No device run.
   S39e diagnostics APK and owner verification still pending.
+
+## S39e diagnostics APK built; owner verification pending
+
+- S39a history integration PR #84, S39b navigation PR #85 and S39c–d
+  instructions/connectors PR #86 merged after their required CI passed.
+- Diagnostics workflow run 42814649169 built the test APK from main
+  `fa8b7e952bf9b96eeb80973c1ebbee15e6d68e08`. SHA-256:
+  `e1aa4896f57292024b9b93c99be7f24f346c7f340dddb4e9e4d429491018f5d7`.
+- Agent build evidence only. Owner device verification remains pending: check
+  chat history migration/create/reopen/delete, in-flight switch blocking,
+  navigation layout, instruction disclosure, and connector-status wording with
+  synthetic data. Actual connectors and executable skills remain out of scope.
