@@ -573,3 +573,36 @@ ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b.
   chat history migration/create/reopen/delete, in-flight switch blocking,
   navigation layout, instruction disclosure, and connector-status wording with
   synthetic data. Actual connectors and executable skills remain out of scope.
+
+## Session 2026-11-11 — Vercel AI SDK evaluation (no migration)
+
+Owner asked to evaluate and, if verified, migrate the LangChain-based provider layer to
+the Vercel AI SDK as a step toward an OpenCode-style multi-provider architecture. Outcome:
+**Outcome B — not migrated.** Full report in `docs/ai_sdk_evaluation.md`, decision in
+`DECISIONS.md` ("Vercel AI SDK evaluation"), references in `docs/references.md`.
+
+Evidence produced by the agent (all synthetic data, no real keys):
+
+- Baseline before edits: root `vitest` 58 files / 395 tests, mobile `jest` 15 suites /
+  102 tests, `typecheck` and `build` clean, `expo export --platform android` 1,438 modules
+  / 5,791,858 B Hermes bytecode.
+- Node integration against a local synthetic OpenAI-compatible HTTP+SSE server: text,
+  streaming, configurable base URL/key/model, tool call round-trip, structured output and
+  HTTP status mapping all work. In-band SSE provider errors are **not** raised as
+  exceptions (empty text, `finishReason: "error"` only); cancellation surfaces on
+  `result.text`, not on the delta stream.
+- RN 0.88 / Expo 58 surface harness: 6/6 checks pass with `crypto` absent. Removing
+  `TextDecoder` or `TransformStream` fails at module evaluation, so the SDK requires
+  RN 0.88 / Expo 58 or newer.
+- `hermesc` from `hermes-compiler@260318099.0.5` (the exact RN 0.88.1 compiler) compiles
+  the Babel-transformed SDK bundle. Metro `expo export` succeeds; replacing LangChain with
+  the SDK would reduce the Android Hermes bundle by ~6 % (5,445,969 B), while running both
+  would grow it by ~25 % (7,241,257 B).
+- **Not verified, and not claimable:** Android device or emulator behavior (this
+  environment has no Android SDK, emulator or `adb`), Hermes VM execution of the SDK, and
+  all live provider calls (no credentials available or used).
+
+Repository changes: `docs/ai_sdk_evaluation.md`, `DECISIONS.md`, `docs/references.md`,
+`docs/TESTING.md`, `STATE.md`, `spikes/ai-sdk/` (isolated harness) and
+`packages/agent/src/hermes_crypto_regression.test.ts`. No production module, dependency,
+lockfile or existing test was modified; LangChain and both provider clients remain in place.

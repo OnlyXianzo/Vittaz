@@ -1054,3 +1054,58 @@ not represent future integrations as connected. Existing external connector
 work remains deferred until separately scoped. Detailed implementation and
 verification, including in-flight request isolation and migration failure modes,
 require the verified-implementation research and test-first process.
+
+## Vercel AI SDK evaluation (owner request, 2026-11-11)
+
+Owner asked whether the Vercel AI SDK (`ai` and provider packages) can replace the
+LangChain-based provider implementation and support an OpenCode-style multi-provider
+architecture, with a compatibility spike and migration only if every required check
+passes. Full evidence is in `docs/ai_sdk_evaluation.md`; the spike harness is in
+`spikes/ai-sdk/` and the production tree is unchanged.
+
+Decision: **do not migrate to the AI SDK now.** This is Outcome B from the brief, not a
+judgment that the SDK is unusable.
+
+What the investigation established:
+
+- LangChain is not the provider transport. `OpenAICompatibleClient` and
+  `AnthropicMessagesClient` own `fetch`, SSE parsing, zod wire validation, the key pool
+  and error classification; `LangChainCompletionClient` is a one-shot `BaseChatModel`
+  decorator that calls them and deliberately buffers streaming. LangChain is also the only
+  reason the assistant needs a global `crypto.getRandomValues`, which is the S36
+  `KILO_UNKNOWN` root cause.
+- The AI SDK is functionally capable on the RN 0.88 / Expo 58 surface (`generateText`,
+  `streamText`, tool round-trip, cancellation, structured output, status-code error
+  mapping), compiles with the exact RN 0.88 Hermes compiler, and bundles under Metro.
+  Replacing LangChain with it would shrink the Android Hermes bundle by ~6 %; keeping both
+  would grow it by ~25 %.
+- Two blockers prevent claiming success. First, the mandatory Android runtime gate cannot
+  be met in this environment (no Android SDK, emulator or `adb`), so Hermes streaming and
+  tool calling on a device remain unproven. Second, the SDK does not raise in-band SSE
+  provider errors as exceptions: a 200-then-`{"error":...}` stream ends with empty text and
+  only `finishReason === "error"`. A naive port would reproduce the `KILO_UNKNOWN` symptom
+  the project just eliminated, so the existing normalized error categories would have to be
+  re-established on purpose rather than assumed.
+- The SDK also depends at import time on `TextDecoder` and web streams (available only
+  from RN 0.88 / Expo 58 onward) and uses `crypto.subtle` for its signed tool-approval and
+  MCP fingerprint features, which Hermes does not provide.
+
+Rationale for the ordering that follows: the owner's actual goal — multiple configured
+providers, user-owned keys, per-model capability selection and one assistant interface —
+does not require the AI SDK. It requires a Vittaz-owned provider contract, a registry that
+can hold several endpoints/accounts, and rejecting the assumption that every model has the
+same capabilities. Removing the vestigial LangChain decorator is where the maintenance win
+is, and it is verifiable on a device with today's pipeline, whereas the SDK migration is
+not. Deleting a working provider transport in exchange for an unverifiable one would trade
+away the project's own safety guarantees.
+
+Consequence for this step: no dependency, lockfile, production module or existing test was
+changed. A Hermes regression test was added
+(`packages/agent/src/hermes_crypto_regression.test.ts`) so the historical failure stays
+pinned while any future provider work is evaluated: the transport must keep working with
+no Web Crypto global, and the framework layer's failure must remain a classified
+`provider_call` diagnostic rather than an unclassified crash.
+
+Next step: perform the LangChain removal as its own small step behind a provider contract,
+then revisit the AI SDK only if provider breadth becomes a real requirement and a device
+test plan exists for streaming, tool calling, error mapping and cancellation.
