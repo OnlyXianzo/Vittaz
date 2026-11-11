@@ -732,3 +732,24 @@ payloads. The root CI `test:coverage` command still runs the complete suite.
   `bidah/react-native-vercel-ai` (React Native fetch does not stream; buffered responses
   were used instead). The TextDecoderStream problem is closed on this app's stack by Expo
   SDK 58 / RN 0.88, which the local source inspection above confirms.
+
+## S40 (2026-11-11) — LangChain removal and the Vittaz provider contract
+
+- No new external source was required. The pinned-version LangChain findings recorded
+  above for S25, S36 and S38 stay in this file as history and remain the evidence for
+  why the decorator was removed: `handleChatModelStart` minted a UUID v7 run id with
+  `crypto.getRandomValues` before `_generate`, which is the S38 device failure, and the
+  private callback manager existed only to neutralise LangChain's own ambient tracing.
+  With the dependency gone, neither mechanism can recur; the local sources are deleted.
+- The design follows this repository's own conclusions rather than a framework document:
+  `docs/ai_sdk_evaluation.md` (Outcome B) recommended exactly this step, and
+  `DECISIONS.md` records the reasoning. The AI SDK question stays closed unless provider
+  breadth becomes a real requirement with a device test plan.
+- Transport behaviour was re-verified, not re-derived: `provider_client.test.ts` and
+  `anthropic_messages_client.test.ts` still drive the real HTTP/SSE paths unchanged, and
+  the new `provider_pipeline.test.ts` re-asserts the guarantees that previously ran
+  through LangChain (read-only SQLite projections, no added retries, 400 → no fallback,
+  401 → next key, 429 → exhaustion, static abort text, no nickname leakage).
+- Hermes remains unverifiable here: no Android SDK, JDK 17, `adb` or emulator exists in
+  this environment, and the Hermes VM CLI cannot evaluate a Metro bundle. The Android
+  export is static bundle evidence only.

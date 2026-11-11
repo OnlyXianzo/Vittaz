@@ -43,9 +43,9 @@ vittaz/
   reference/            read-only reference engine (not in workspaces, not in CI)
   canvas/screens.zip     UI prototype. Do not open before G3.
   packages/
-    core/               pure TypeScript logic and ports, no UI, no LangChain
+    core/               pure TypeScript logic and ports, no UI, no provider code
     storage/            SQLite schema, migrations, Drizzle repositories
-    agent/              AssistantService, providers, key fallback, tools, LangChain
+    agent/              AssistantService, provider contract and transports, key fallback, tools
     connectors/telegram/ Telegram channel connector
     cli/                command-line wrapper around the packages above
   apps/mobile/          created in phase I
@@ -66,7 +66,7 @@ Confirm each against current docs before first use (rule 6).
 | Lint and format | ESLint and Prettier                                                                                                                                   |
 | Database        | SQLite with Drizzle ORM behind **async** repository interfaces defined in core. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile. |
 | Validation      | Zod                                                                                                                                                   |
-| Agent layer     | LangChain, only inside `packages/agent`, behind an interface                                                                                          |
+| Agent layer     | No third-party framework. A Vittaz-owned provider contract inside `packages/agent` over the Anthropic and OpenAI-compatible transports                |
 | CLI             | `commander` or `citty`                                                                                                                                |
 | Excel import    | `exceljs` or SheetJS. Check license and docs first.                                                                                                   |
 
@@ -158,7 +158,7 @@ For each step: write the failing test from the inventory, implement, pass, refac
 - [x] **S34. App shell.** `apps/mobile` imports `packages/core`. **Done 2026-11-06:** owner approved promoting `apps/mobile/ui/native` to `apps/mobile` via `git mv` (history preserved, no visual file changed). Core is reachable from the entrypoint and present in the Android Hermes bundle. Not a root workspace; see `DECISIONS.md`. The demo reducer is still in place — replacing it is S35.
 - [x] **S35. SQLite adapter.** The `expo-sqlite` adapter passes the same shared `LedgerStore` contract cases as Node storage; replace native demo reducer/seeded rows with core-backed local state. Chat/quick capture were disabled at the end of S35; the current S36 slice implements read-only Quick-to-Chat. **Merged 2026-11-06:** PR #56 `a533288`; protected checks green; APK run `42215554135` built. The owner's phone test then found `crypto.randomUUID` unavailable in Android Hermes; the manual save failed before insert, so S35 on-device persistence is not accepted. Corrective Expo Crypto runtime injection merged in PR #58 (`e548227`); standalone APK run `42228039226` succeeded on retry. Owner installed the corrected APK and confirmed a synthetic manual entry remained after close/reopen on 2026-11-06; see `docs/device_tests.md`. S35 SQLite basic persistence is owner-accepted. S36 is now unblocked.
 - **Add-form clarity follow-up:** Owner-approved Direction/Category labels and subtle divider merged in PR #60 (`ee274c5`). Standalone APK run `42237936656` succeeded; the owner visually confirmed the updated layout looks right on-device on 2026-11-06. Phone model and Android version were not supplied. This is a presentation-only change and does not alter the S35 persistence result.
-- [ ] **S36. LangChain check.** Bundle, one tool call, safe answer display, and force-stop/reopen remain the owner/device acceptance checks.
+- [ ] **S36. Assistant provider check.** (Renamed 2026-11-11: LangChain was removed, so the check is now the provider path itself.) Bundle, one tool call, safe answer display, and force-stop/reopen remain the owner/device acceptance checks.
   - **Merged 2026-11-07:** PR #62 (`9a55779`) merged as `10e31794dbec8653b165959104d0bc703c1b578b`; PR CI and main push CI passed. Local validation: root 353 tests / 56 files at 100% coverage; mobile 19 tests / 4 suites plus typecheck/lint/format under Node 24.22.2.
   - Kilo Auto Free read-only chat, optional Expo SecureStore key, and Quick-to-Chat are implemented. Fake SSE, synthetic tool-call, keyless/no-Authorization, secure-key UI, and no-ledger-write tests pass. The UI reveals bounded, validated answer chunks only after the complete provider response passes safety checks; this is not raw live token streaming.
   - Fresh merged-head APK: workflow run `42279488717` on `main` merge commit; Gradle succeeded, 1,411 modules bundled, required native-module assertions passed. APK provenance and hash are in `docs/device_tests.md` and `/home/user/S36-builds/README.md`.
@@ -266,7 +266,7 @@ notes: <anything the next agent must know>
 - License. Undecided, so no license file yet.
 - Backup encryption and key recovery.
 - Which local model and size ship first.
-- Whether to keep LangChain after the S36 phone check.
+- Whether to persist several provider configurations with one active selection (needs an owner decision; see `DECISIONS.md`, 2026-11-11).
 
 ## 14. Deferred, not in this plan
 
@@ -338,3 +338,19 @@ represented as fixing that failure.
 - [ ] **S39e. Verification build.** Run the full test and privacy gates, merge
       green changes, and build a diagnostics APK. Record owner device results
       separately from agent build evidence.
+
+### Phase M: provider architecture
+
+- [x] **S40. Provider contract, LangChain removal.** Replace the LangChain
+      decorator with a Vittaz-owned contract over the existing Anthropic and
+      OpenAI-compatible transports. **Done 2026-11-11:** `@langchain/core` is gone
+      from both manifests and the lockfiles; `packages/agent/src/providers/`
+      (contracts, adapters, registry) replaces it; transports, error
+      classification, key-pool policy and `ReadOnlyQaLoop` behaviour are
+      unchanged. Root 407 tests / 60 files at 100% coverage; mobile 102 tests /
+      15 suites; typecheck, build, lint, format, privacy and secret-scan green.
+      Android export, measured against a clean worktree at the parent commit with
+      the same command: Hermes bytecode 5,801,607 → 3,562,111 bytes, modules
+      1,440 → 1,053, JS bytes 3,778,690 → 2,458,436, and `langchain` string
+      occurrences 149 → 0. Static bundle evidence only — no device run.
+      Multi-account persistence is deliberately out of scope.

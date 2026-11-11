@@ -13,7 +13,7 @@ All test data is synthetic. Never use real transactions, names, bank messages, k
 | 4     | Assistant with a fake provider     | PC or cloud sandbox |
 | 5     | Telegram connector with a fake API | PC or cloud sandbox |
 | 6     | Agent policy and injection         | PC or cloud sandbox |
-| 7     | LangChain check in the app         | Android phone       |
+| 7     | Provider path in the app           | Android phone       |
 | 8     | On-device behavior                 | Android phone       |
 | 9     | Performance                        | Phone and PC        |
 
@@ -62,7 +62,7 @@ The acceptance tests in [Agent policy](AGENT_POLICY.md), including prompt inject
 
 ## Layer 7 and 8: phone
 
-Blank dev build installs. LangChain bundles, makes a tool call and streams. SQLite survives a restart. Keys sit in Android Keystore. Local model downloads, verifies and benchmarks. Telegram foreground service survives screen-off. Notification listener respects the allowlist. Voice and OCR are evaluated on synthetic samples.
+Blank dev build installs. The provider path runs without a Web Crypto global, makes a read-only tool call and streams. SQLite survives a restart. Keys sit in Android Keystore. Local model downloads, verifies and benchmarks. Telegram foreground service survives screen-off. Notification listener respects the allowlist. Voice and OCR are evaluated on synthetic samples.
 
 ## Layer 9: performance
 

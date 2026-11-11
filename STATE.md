@@ -1,9 +1,9 @@
 ---
 current_phase: "Phase I Android"
-current_step: "S37b Anthropic API-key BYOK route"
-current_step_status: "required_CI_green_PR_open"
+current_step: "S40 provider contract (LangChain removal) — uncommitted on spike/ai-sdk-provider"
+current_step_status: "local_gates_green_not_committed_not_pushed"
 blocked_on: "PR #70 required checks passed on head 250f0453d8cf8851a76c4e5820b929d736afa518; PR remains open pending owner merge authorization. S36 acceptance remains independently pending: owner-confirmed run #13 showed KILO_UNKNOWN twice with no established cause; keyboard-open behavior remains untested."
-last_updated: "2026-11-05"
+last_updated: "2026-11-11"
 last_green_commit: "250f0453d8cf8851a76c4e5820b929d736afa518"
 gate_status: "G1 accepted; G2 accepted; G3 accepted by owner; G4 pending"
 ci_proof: "PR #62 merged 2026-11-07 as 10e31794dbec8653b165959104d0bc703c1b578b. Required PR checks passed on commit 9a55779; main CI and Native app checks passed on merge commit. Local root suite: 353 tests / 56 files at 100% coverage; mobile: 19/19 tests plus typecheck/lint/format on Node 24.22.2. Final merged-head APK workflow 42279488717 succeeded on main: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 43s; archived at ../S36-builds/s36-final-merged-standalone.apk, 48,634,494 bytes, SHA-256 37075cb9a7bcf3d606e171064416ab5ae659fe6bb138bf737f476cccce3c2e35, artifact expires 2026-11-13T19:39:41Z. Static package inspection only; no phone behavior is claimed. User-provided screenshots dated 2026-11-07 show repeated generic assistant failures after key-save UI and report a keyboard/composer issue; exact build, provider status, device model/version, and cause are unknown. One anonymous synthetic Kilo endpoint probe returned HTTP 200 SSE, but does not validate the saved key or app path. PR #64 (`5a88a7e`) merged as `c6c57d467953824bd91e0ed8ad48887eaf1eca13`; all required PR checks and main quality/privacy/test/security/build/native checks passed. Keyboard/composer handling merged in PR #65 (`661054d6`) as `6b190cfa76cbb6b5ed6bed74b805d2fc4179ec9e`; all required PR and main checks passed. Manual workflow run `42343693444` (#12) succeeded on that main commit: 1,411 modules, Gradle 9.4.1 BUILD SUCCESSFUL in 12m 20s, Ubuntu 24.04.5 image `20261101.360.1`, Node 24.22.2/npm 11.19.1, Temurin JDK 17.0.21. Standalone APK artifact `13563145707` expires `2026-11-14T05:53:58Z`, 48,636,434 bytes, SHA-256 `7663ce72020163c36fb3cbf20cdff5390a92a7a62da07eec2ada80ce57e5d29f`; archived at `../S36-builds/s36-merged-post-chat-fixes-standalone.apk`. Static package evidence only; the owner now confirms run #12 was installed and reports the same failure after clear-data/reinstall on Wi-Fi and mobile data with a blank optional key. Successful S36 device acceptance remains pending. PR #67 (`6c9b312`) was squash-merged as `0dbacde6eaa56d0d00b55b9d5d43e6b75cff53f6`; all required PR checks and main CI run `42358832997` plus Native run `42358832973` succeeded. Manual APK run #13 (`42358981476`) succeeded on that merge: 1,411 modules, Gradle 9.4.1 `BUILD SUCCESSFUL in 12m 45s`, Ubuntu 24.04.5 image `20261101.360.1`, runner `2.338.2`, Node `24.22.2`/npm `11.19.1`, Temurin JDK `17.0.21`. Standalone artifact `13568469222` expires `2026-11-14T09:30:02Z`; APK 48,638,510 bytes, SHA-256 `46f1319dda4a3e21f0943791ecc0bd24e5f8afdaebd275b08eb9336458f02559`, archived at `../S36-builds/s36-keyless-provider-diagnostics-standalone.apk`. Build evidence only. Owner now confirms a screenshot from run #13; it shows two `KILO_UNKNOWN` failures and no answer. The agent did not inspect the installed package or verify its hash. Composer is visible with keyboard closed; keyboard-open behavior remains untested. Source inspection confirms `KILO_UNKNOWN` is the `provider_error` catch-all; several QA/adapter and invalid-completion paths can reach it, so the screenshot does not identify the cause. S36 acceptance remains pending."}}
@@ -606,3 +606,36 @@ Repository changes: `docs/ai_sdk_evaluation.md`, `DECISIONS.md`, `docs/reference
 `docs/TESTING.md`, `STATE.md`, `spikes/ai-sdk/` (isolated harness) and
 `packages/agent/src/hermes_crypto_regression.test.ts`. No production module, dependency,
 lockfile or existing test was modified; LangChain and both provider clients remain in place.
+
+## S40 provider contract and LangChain removal (2026-11-11)
+
+Branch `spike/ai-sdk-provider`, parent commit `9dfb528`. Local work only: nothing is
+committed, pushed or merged, and the branch name is historical (no Vercel AI SDK was
+adopted; see `docs/ai_sdk_evaluation.md`).
+
+**What changed.** `@langchain/core@1.3.4` was removed from `packages/agent/package.json`,
+`apps/mobile/package.json` and both lockfiles, together with `langchain_adapter.ts`, its
+test, the `@langchain/core/*` tsconfig path, and the Jest CommonJS mapping. In its place,
+`packages/agent/src/providers/` holds a Vittaz-owned contract (`ProviderAdapter` extends
+the existing `CompletionClient`; `ProviderConfig` carries a credential _reference_, never a
+key), capability metadata where unknown stays `"unknown"`, normalized errors, thin adapters
+over the two unchanged transports, and configuration/capability registries. The mobile
+assistant builds its client through those factories and still runs `ReadOnlyQaLoop`.
+
+**Gates actually run on Node 24.22.2 (not device evidence).** Root Vitest 407 tests / 60
+files at 100% statements, branches, functions and lines; mobile Jest 102 tests / 15 suites;
+root and mobile typecheck; `tsc --build`; ESLint; Prettier; `privacy_check`;
+`deep_git_scan` (zero secrets, history and working tree); Android `expo export`.
+
+**Android export, like-for-like against a clean worktree at `9dfb528`.** Hermes bytecode
+5,801,607 → 3,562,111 B; modules 1,440 → 1,053; JS bytes 3,778,690 → 2,458,436; string
+`langchain` 149 → 0. Static bundle evidence only. No APK was built (no Android SDK/JDK
+17/adb here) and no phone behaviour is claimed; the historical 5,791,858 B figure
+reproduces within 0.2%.
+
+**Deliberately not done.** Multi-account provider persistence: the secure profile still
+stores one provider selection, and adding several configured accounts needs a credential
+migration plus an owner decision. `web_crypto.ts` also stays: its original LangChain cause
+is gone and the assistant now answers with no global `crypto`, but
+`packages/core/src/ledger/ledger.ts` still defaults `makeId` to
+`globalThis.crypto.randomUUID`, so removing the shim is an unverified device change.

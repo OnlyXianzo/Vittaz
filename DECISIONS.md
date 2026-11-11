@@ -2,22 +2,22 @@
 
 Record every deviation from the plan here, with a date and a reason.
 
-| #   | Decision                                                                                                                                                     | Status                               |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
-| 1   | The app is named Vittaz.                                                                                                                                     | Settled                              |
-| 2   | Repository interfaces in core are asynchronous. This replaces the earlier synchronous `Db` interface idea, because Expo's recommended APIs are asynchronous. | Settled                              |
-| 3   | SQLite with Drizzle behind a separate `storage` package. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile.                               | Settled, verify against current docs |
-| 4   | The CLI and CI run on Node 20 or newer in v1. Bun is evaluated later.                                                                                        | Settled                              |
-| 5   | The assistant runs inside the app and CLI. One `AssistantService` serves app, CLI and Telegram.                                                              | Settled                              |
-| 6   | Native TypeScript tools with `snake_case` names. No MCP in v1.                                                                                               | Settled                              |
-| 7   | LangChain, not LangGraph, inside `packages/agent` only. Revisit after the phone check.                                                                       | Settled                              |
-| 8   | Telegram is the only connector in v1. It uses a user-supplied bot token and a pairing code.                                                                  | Settled                              |
-| 9   | Gmail, WhatsApp and Discord are deferred connectors.                                                                                                         | Settled                              |
-| 10  | Conversation history is shared across channels. No automatic long-term memory in v1.                                                                         | Settled                              |
-| 11  | Backend and CLI first. HTML screens are wired afterwards in vertical slices, starting with manual entry. Animation last.                                     | Settled                              |
-| 12  | One ledger per device, moved by export and import file.                                                                                                      | Settled                              |
-| 13  | Personal mode first. Merchant mode later.                                                                                                                    | Settled                              |
-| 14  | The reference engine is read-only. Logic is ported module by module through failing tests.                                                                   | Settled                              |
+| #   | Decision                                                                                                                                                                                                 | Status                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | The app is named Vittaz.                                                                                                                                                                                 | Settled                              |
+| 2   | Repository interfaces in core are asynchronous. This replaces the earlier synchronous `Db` interface idea, because Expo's recommended APIs are asynchronous.                                             | Settled                              |
+| 3   | SQLite with Drizzle behind a separate `storage` package. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile.                                                                           | Settled, verify against current docs |
+| 4   | The CLI and CI run on Node 20 or newer in v1. Bun is evaluated later.                                                                                                                                    | Settled                              |
+| 5   | The assistant runs inside the app and CLI. One `AssistantService` serves app, CLI and Telegram.                                                                                                          | Settled                              |
+| 6   | Native TypeScript tools with `snake_case` names. No MCP in v1.                                                                                                                                           | Settled                              |
+| 7   | No third-party agent framework. A Vittaz-owned provider contract in `packages/agent/src/providers` wraps the Anthropic and OpenAI-compatible transports (LangChain removed 2026-11-11; AI SDK rejected). | Settled                              |
+| 8   | Telegram is the only connector in v1. It uses a user-supplied bot token and a pairing code.                                                                                                              | Settled                              |
+| 9   | Gmail, WhatsApp and Discord are deferred connectors.                                                                                                                                                     | Settled                              |
+| 10  | Conversation history is shared across channels. No automatic long-term memory in v1.                                                                                                                     | Settled                              |
+| 11  | Backend and CLI first. HTML screens are wired afterwards in vertical slices, starting with manual entry. Animation last.                                                                                 | Settled                              |
+| 12  | One ledger per device, moved by export and import file.                                                                                                                                                  | Settled                              |
+| 13  | Personal mode first. Merchant mode later.                                                                                                                                                                | Settled                              |
+| 14  | The reference engine is read-only. Logic is ported module by module through failing tests.                                                                                                               | Settled                              |
 
 ## Bootstrap verification — 2026-11-04 (pending user decision)
 
@@ -35,7 +35,7 @@ No implementation or completion claim is made. Stop at the Phase A boundary unti
 
 - License. Undecided. Do not add a license file until it is chosen.
 - Backup encryption and key recovery.
-- Whether to keep LangChain after the Android check.
+- Whether to support multiple persisted provider configurations (see the 2026-11-11 entry; needs an owner decision).
 - Which local model and size ships first.
 - How a future Gmail connector handles OAuth without a Vittaz server.
 - Whether the first assistant slice in the UI should be manual entry (current plan) or chat.
@@ -1109,3 +1109,65 @@ no Web Crypto global, and the framework layer's failure must remain a classified
 Next step: perform the LangChain removal as its own small step behind a provider contract,
 then revisit the AI SDK only if provider breadth becomes a real requirement and a device
 test plan exists for streaming, tool calling, error mapping and cancellation.
+
+## 2026-11-11 — Remove LangChain, establish a Vittaz-owned provider contract
+
+**Context.** `@langchain/core@1.3.4` arrived in S25 as a `BaseChatModel` decorator
+(`LangChainCompletionClient`) plus a thin `LangChainQaAgent`. It wrapped
+`OpenAICompatibleClient`/`AnthropicMessagesClient` and added nothing the assistant used:
+the completed AI SDK evaluation (`docs/ai_sdk_evaluation.md`) found the decorator
+vestigial, and S38 traced the long-standing `KILO_UNKNOWN` device failure to LangChain
+minting a UUID v7 run id with `crypto.getRandomValues` before any HTTP request.
+
+**Decision.** Remove `@langchain/core` and keep the two transports unchanged, behind a
+small contract written in Vittaz:
+
+- `providers/contracts/` — `ProviderAdapter` (which _extends_ the existing
+  `CompletionClient`, so there are no new request/result types), `ProviderConfig`
+  (stable user-visible id, `kind: "anthropic" | "openai_compatible"`, a credential
+  **reference** rather than a key, optional base URL, default model), normalized errors,
+  and per-model capability metadata where `"unknown"` stays unknown.
+- `providers/adapters/` — wrappers that validate a config and construct the real
+  transport lazily, resolving the credential through a resolver closure.
+- `providers/registry/` — configuration and capability registries. A single config is
+  unambiguous; two or more require an explicit `select()`, and `active()` throws rather
+  than falling back.
+
+**What did not change.** Fetch behaviour, SSE parsing, request/response validation, body
+limits, redaction, tool allowlisting, the key-pool retry policy, HTTP error classification,
+`AllKeysFailedError`'s eight reason codes, `BadRequestNoFallbackError` on HTTP 400,
+`QaStopReason` values and the `KILO_*`/`BYOK_*`/`ANTHROPIC_*` failure codes. The assistant
+still cannot write: it can only create a pending proposal, and approval stays explicit.
+
+**Diagnostics.** `langchain_error`, the three `langchain_invoke_*` codes and the
+`"langchain"` source are gone. The two codebook collisions (`disabled`, `cooldown`) and
+unclassified failures still normalize to `provider_error`, so the user-visible failure
+vocabulary is unchanged.
+
+**Web Crypto.** `apps/mobile/src/assistant/web_crypto.ts` stays. Its original cause is
+gone — `web_crypto.test.ts` now proves the assistant answers end-to-end with no global
+`crypto` — but it is the only place the app records that Hermes has no Web Crypto global
+while `packages/core/src/ledger/ledger.ts` still defaults `makeId` to
+`globalThis.crypto.randomUUID` (mobile overrides it in `ledger_runtime.ts`). It is
+idempotent and never replaces a native implementation. Removing it is an unverified
+Android runtime change and needs device evidence.
+
+**Bundle, measured like-for-like.** The "before" column was produced by exporting a
+clean worktree at `9dfb528` with the same command and the same toolchain:
+
+| Measurement                                            | Before      | After       | Change |
+| ------------------------------------------------------ | ----------- | ----------- | ------ |
+| `expo export --platform android` (Hermes bytecode)     | 5,801,607 B | 3,562,111 B | −38.6% |
+| Same command with `--no-bytecode`, modules             | 1,440       | 1,053       | −387   |
+| Same command with `--no-bytecode`, bytes               | 3,778,690 B | 2,458,436 B | −34.9% |
+| Occurrences of the string `langchain` in the JS bundle | 149         | 0           | −149   |
+
+The historical eval figure (1,438 modules / 5,791,858 B) reproduces within 0.2%, so the
+two measurements agree. This is static bundle evidence only; no device or emulator run
+is implied.
+
+**Not done, deliberately.** Multi-account persistence. The mobile secure profile still
+stores one provider choice, so several configured accounts need a migration and an owner
+decision; a half-migrated credential store is the one outcome this step must not produce.
+Also unchanged: the transport implementations, the approval and proposal semantics, the
+Telegram path, and any financial data model.
