@@ -1,0 +1,24 @@
+{
+  "name": "vittaz-ai-sdk-spike",
+  "private": true,
+  "type": "module",
+  "description": "Isolated compatibility spike for the Vercel AI SDK. Not part of the application build; see docs/ai_sdk_evaluation.md.",
+  "scripts": {
+    "spike:openai-compatible": "node node/spike_openai_compatible.mjs",
+    "spike:semantics": "node node/characterize2.mjs",
+    "spike:hermes-build": "node hermes/build2.cjs",
+    "spike:hermes-run": "node hermes/run_globals.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "4.0.102",
+    "@ai-sdk/openai": "4.0.114",
+    "@ai-sdk/openai-compatible": "3.0.90",
+    "ai": "7.0.169",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@ungap/structured-clone": "^1.3.0",
+    "esbuild": "0.28.2",
+    "web-streams-polyfill": "^3.3.2"
+  }
+}
