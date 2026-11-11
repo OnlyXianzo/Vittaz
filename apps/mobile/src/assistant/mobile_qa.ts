@@ -3,14 +3,13 @@ import { getWalletSummary, PrivacyRedactor } from "@vittaz/core";
 import type { LedgerStore } from "@vittaz/core";
 import type { QaStopReason } from "../../../../packages/agent/src/qa_loop";
 export type { QaStopReason };
-import { LangChainQaAgent } from "../../../../packages/agent/src/langchain_adapter";
-import { KeyPool } from "../../../../packages/agent/src/key_pool";
-import { OpenAICompatibleClient } from "../../../../packages/agent/src/provider_client";
-import type { AgentDiagnosticEvent } from "../../../../packages/agent/src/diagnostics";
+import { ReadOnlyQaLoop } from "../../../../packages/agent/src/qa_loop";
 import {
-  AnthropicMessagesClient,
-  ANTHROPIC_DEFAULT_MODEL,
-} from "../../../../packages/agent/src/anthropic_messages_client";
+  create_anthropic_provider,
+  create_openai_compatible_provider,
+} from "../../../../packages/agent/src/providers";
+import type { AgentDiagnosticEvent } from "../../../../packages/agent/src/diagnostics";
+import { ANTHROPIC_DEFAULT_MODEL } from "../../../../packages/agent/src/anthropic_messages_client";
 export { ANTHROPIC_DEFAULT_MODEL };
 import type { CompletionClient } from "../../../../packages/agent/src/provider_client";
 import { mobile_diagnostics } from "./diagnostics";
@@ -200,42 +199,54 @@ export function create_mobile_qa_agent(
       event.count,
       event.failure_stage,
     );
+  // The provider contract owns configuration and credential references; the
+  // transports below it stay the only authority for wire behavior. The key is
+  // already read from secure storage by the caller and is resolved through a
+  // closure, so it never enters a configuration object.
+  let credential = "";
+  const dependencies = {
+    resolve_credential: async () => credential,
+    fetch: fetch_impl,
+    timeout_ms: 45000,
+    redactor,
+  };
   let client: CompletionClient;
   if (provider.kind === "anthropic") {
-    client = new AnthropicMessagesClient({
-      apiKey: provider.api_key,
-      fetch: fetch_impl,
-      timeoutMs: 45000,
-      redactor,
-    });
+    credential = provider.api_key;
+    client = create_anthropic_provider(
+      {
+        id: "anthropic_byok",
+        kind: "anthropic",
+        credential_ref: "anthropic_api_key",
+        default_model: ANTHROPIC_DEFAULT_MODEL,
+        key_nickname: "anthropic_byok",
+      },
+      dependencies,
+    );
   } else {
     const kilo_selected = provider.kind === "kilo";
     const profile = kilo_selected
       ? null
       : validate_openai_compatible_provider(provider);
-    client = new OpenAICompatibleClient({
-      baseUrl: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
-      keyPool: new KeyPool([
-        kilo_selected
-          ? {
-              nickname: "kilo_free",
-              apiKey: provider.api_key ?? "",
-              provider: "kilo_gateway",
-              model: KILO_FREE_MODEL,
-            }
-          : {
-              nickname: "openai_compatible_byok",
-              apiKey: provider.api_key,
-              provider: "openai_compatible",
-              model: profile!.model,
-            },
-      ]),
-      fetch: fetch_impl,
-      timeoutMs: 45000,
-      redactor,
-    });
+    credential = provider.api_key ?? "";
+    client = create_openai_compatible_provider(
+      {
+        id: kilo_selected ? "kilo_free" : "openai_compatible_byok",
+        kind: "openai_compatible",
+        // An empty reference means deliberately keyless (Kilo Auto Free).
+        credential_ref: kilo_selected
+          ? provider.api_key
+            ? "kilo_gateway_api_key"
+            : ""
+          : "openai_compatible_api_key",
+        base_url: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
+        default_model: kilo_selected ? KILO_FREE_MODEL : profile!.model,
+        key_nickname: kilo_selected ? "kilo_free" : "openai_compatible_byok",
+      },
+      dependencies,
+    );
   }
-  return new LangChainQaAgent({
+  return new ReadOnlyQaLoop({
     client,
     redactor,
     onDiagnostic: on_diagnostic,

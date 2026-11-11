@@ -985,7 +985,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : failure_stage === "context_build"
                   ? "secure_store_error"
                   : failure_stage === "agent_create"
-                    ? "langchain_error"
+                    ? "provider_error"
                     : "provider_error",
               undefined,
               undefined,

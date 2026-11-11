@@ -2,17 +2,27 @@ import { getRandomValues } from "expo-crypto";
 
 /**
  * Hermes (the React Native JS engine) ships no Web Crypto global, so
- * `globalThis.crypto.getRandomValues` is absent on device. LangChain's UUID v7
- * run-id generation (`@langchain/core` callbacks) calls the global
- * `crypto.getRandomValues` *before* any provider HTTP request. Without it,
- * `BaseChatModel.invoke` throws and every chat question fails at the
- * `provider_call` stage with a generic `langchain_error` (the long-standing
- * "KILO_UNKNOWN" symptom). Node and the jest-expo test runner provide a global
- * `crypto`, which is why unit tests passed while the device failed.
+ * `globalThis.crypto` and `crypto.getRandomValues` are absent on device.
  *
- * Install a CSPRNG-backed `getRandomValues` from the already-present
- * `expo-crypto` (the same package the ledger runtime uses for `randomUUID`).
- * This must run at app entry, before any LangChain import is evaluated.
+ * History: this shim was added because LangChain's UUID v7 run-id generation
+ * (`@langchain/core` callbacks) read the global `crypto.getRandomValues`
+ * *before* any provider HTTP request, so every chat question failed at the
+ * `provider_call` stage with a generic error (the long-standing "KILO_UNKNOWN"
+ * symptom). Node and the jest-expo runner both provide a global `crypto`, which
+ * is why unit tests passed while the device failed.
+ *
+ * That adapter has since been removed, and
+ * `apps/mobile/src/assistant/web_crypto.test.ts` now proves the assistant path
+ * answers end-to-end *without* the polyfill. The shim is retained deliberately:
+ *
+ *   - it is the only place the app records that Hermes has no Web Crypto global,
+ *     while `packages/core/src/ledger/ledger.ts` still defaults `makeId` to
+ *     `globalThis.crypto.randomUUID` (mobile overrides it via `ledger_runtime`),
+ *   - it is idempotent and never replaces a native implementation, so it cannot
+ *     change Node/browser behaviour, and
+ *   - deleting it would be an unverified Android runtime change.
+ *
+ * Remove it only with device evidence that no bundled code touches the global.
  *
  * Idempotent and non-destructive: an existing native implementation (Node/web)
  * is never replaced.

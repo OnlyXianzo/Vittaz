@@ -1,27 +1,30 @@
 import { afterEach, expect, test } from "vitest";
+import { PrivacyRedactor, getWalletSummary } from "@vittaz/core";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 import { KeyPool } from "./key_pool.js";
 import { OpenAICompatibleClient } from "./provider_client.js";
-import { LangChainCompletionClient } from "./langchain_adapter.js";
+import { ReadOnlyQaLoop } from "./qa_loop.js";
+import { create_openai_compatible_provider } from "./providers/adapters/openai_compatible.js";
+import { openLedgerStore } from "../../storage/src/repositories.js";
 
 /**
  * Hermes regression guard for the historical S36 "KILO_UNKNOWN" failure.
  *
- * Root cause (recorded in DECISIONS.md): `@langchain/core` mints a run id with
- * UUID v7, whose randomness comes from the global `crypto.getRandomValues`.
- * Hermes ships no Web Crypto global, so `BaseChatModel.invoke` threw before any
- * provider HTTP request and every question failed at the `provider_call` stage.
- * Node and jest-expo both provide a global `crypto`, which is why unit tests
- * stayed green while the device failed.
+ * Root cause (recorded in DECISIONS.md): the removed LangChain decorator minted
+ * a UUID v7 run id through the global `crypto.getRandomValues` before any
+ * provider request, and Hermes ships no Web Crypto global. Every question then
+ * failed at the `provider_call` stage. Node and jest-expo both provide a global
+ * `crypto`, which is why unit tests stayed green while the device failed.
  *
- * These tests pin the two properties that must survive any provider migration:
- *   1. the transport that actually talks to providers does not need Web Crypto;
- *   2. if the framework layer loses the global anyway, the failure stays a
- *      classified diagnostic instead of an unclassified crash.
+ * The decorator is gone, but the invariant must outlive it: no layer between the
+ * assistant and the transport may reintroduce a Web Crypto dependency. These
+ * tests pin that with `globalThis.crypto` removed.
  */
 const servers: Awaited<ReturnType<typeof startFakeOpenAIServer>>[] = [];
+const stores: ReturnType<typeof openLedgerStore>[] = [];
 afterEach(async () => {
   for (const server of servers.splice(0)) await server.close();
+  for (const store of stores.splice(0)) store.close();
 });
 
 async function open(responder?: Parameters<typeof startFakeOpenAIServer>[0]) {
@@ -63,29 +66,48 @@ test("hermes_no_web_crypto_transport_still_reaches_the_provider", async () => {
   expect(server.recordedRequests).toHaveLength(1);
 });
 
-test("hermes_missing_web_crypto_in_framework_layer_stays_a_classified_failure", async () => {
+test("hermes_no_web_crypto_provider_contract_path_answers_without_an_unclassified_failure", async () => {
   const server = await open(() => ({ content: "Synthetic answer" }));
-  const client = new LangChainCompletionClient(
-    new OpenAICompatibleClient({
-      baseUrl: server.baseUrl,
-      keyPool: new KeyPool([{ nickname: "alpha", apiKey: "synthetic_alpha" }]),
-    }),
+  const store = openLedgerStore(":memory:");
+  stores.push(store);
+  const provider = create_openai_compatible_provider(
+    {
+      id: "hermes_check",
+      kind: "openai_compatible",
+      credential_ref: "synthetic_alpha",
+      base_url: server.baseUrl,
+      default_model: "synthetic-model",
+    },
+    {
+      resolve_credential: async () => "synthetic_alpha",
+      redactor: new PrivacyRedactor([]),
+    },
   );
   const events: { reason_code?: string; failure_stage?: string }[] = [];
-  await expect(
-    without_global_crypto(() =>
-      client.chatCompletion({
-        messages,
-        onDiagnostic: (event) => events.push(event),
-      }),
-    ),
-  ).rejects.toBeInstanceOf(Error);
-  // Either the request succeeds outright (a future runtime that no longer needs
-  // the global) or it fails with the codebook-only diagnostic that made the
-  // device symptom explainable. An unclassified crash with no diagnostic fails.
-  const failed = events.find(
-    (event) =>
-      event.reason_code !== undefined && event.failure_stage !== undefined,
+  const result = await without_global_crypto(() =>
+    new ReadOnlyQaLoop({
+      client: provider,
+      redactor: new PrivacyRedactor([]),
+      onDiagnostic: (event) => events.push(event),
+      data: {
+        listTransactions: () =>
+          store.read((repos) => repos.transactions.list()),
+        getWalletSummary: (wallet_id) => getWalletSummary(store, wallet_id),
+      },
+    }).answerQuestion("Show monthly spend"),
   );
-  expect(failed?.failure_stage).toBe("provider_call");
+
+  expect(result.answered).toBe(true);
+  expect(result.stopReason).toBe("completed");
+  expect(server.recordedRequests).toHaveLength(1);
+  // Nothing on this path may report an unclassified catch-all failure, which is
+  // what the device symptom surfaced, and no diagnostic may carry exception text.
+  expect(
+    events.some(
+      (event) =>
+        event.reason_code === "provider_error" ||
+        event.reason_code === "callback_error",
+    ),
+  ).toBe(false);
+  expect(JSON.stringify(events)).not.toContain("Synthetic answer");
 });

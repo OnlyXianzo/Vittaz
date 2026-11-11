@@ -8,9 +8,8 @@ import { openLedgerStore } from "../../storage/src/repositories.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
-import { LangChainQaAgent } from "./langchain_adapter.js";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
-test("preferences_persisted_values_reach_actual_langchain_http_context_without_new_authority", async () => {
+test("preferences_persisted_values_reach_actual_provider_http_context_without_new_authority", async () => {
   const store = openLedgerStore(":memory:");
   const server = await startFakeOpenAIServer();
   try {
@@ -20,7 +19,7 @@ test("preferences_persisted_values_reach_actual_langchain_http_context_without_n
       detail: "concise",
     } as const;
     await store.preferences.set(preferences);
-    const agent = new LangChainQaAgent({
+    const agent = new ReadOnlyQaLoop({
       client: new OpenAICompatibleClient({
         baseUrl: server.baseUrl,
         keyPool: new KeyPool([

@@ -17,7 +17,7 @@ import type { FakeResponder } from "../../../tests/helpers/fake_openai_server.js
 import { SharedAssistantService } from "./assistant.js";
 import { AssistantNotificationWorker } from "./notification_worker.js";
 import { ValidatedLocalModelTasks } from "./local_tasks.js";
-import { LangChainQaAgent } from "./langchain_adapter.js";
+import { ReadOnlyQaLoop } from "./qa_loop.js";
 import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
 const cleanup: (() => Promise<void>)[] = [];
@@ -61,7 +61,7 @@ async function fixture(responder?: FakeResponder) {
     rules: store.rules,
     local,
     redactor,
-    qa: new LangChainQaAgent({
+    qa: new ReadOnlyQaLoop({
       client: new OpenAICompatibleClient({
         baseUrl: server.baseUrl,
         keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),

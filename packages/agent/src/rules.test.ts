@@ -5,7 +5,6 @@ import {
   getWalletSummary,
 } from "@vittaz/core";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
-import { LangChainQaAgent } from "./langchain_adapter.js";
 import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
 import { openLedgerStore } from "../../storage/src/repositories.js";
@@ -47,7 +46,7 @@ test("rules_conditions_reject_before_redactor_provider_or_queries_and_cannot_aut
   expect(client.chatCompletion).not.toHaveBeenCalled();
   expect(data.listTransactions).not.toHaveBeenCalled();
 });
-test("rules_stored_behavior_reaches_langchain_http_with_immutable_safety_policy", async () => {
+test("rules_stored_behavior_reaches_provider_http_with_immutable_safety_policy", async () => {
   const s = openLedgerStore(":memory:");
   const server = await startFakeOpenAIServer();
   try {
@@ -57,7 +56,7 @@ test("rules_stored_behavior_reaches_langchain_http_with_immutable_safety_policy"
         { kind: "behavior", rule: "short_summaries" },
       ]),
     );
-    const agent = new LangChainQaAgent({
+    const agent = new ReadOnlyQaLoop({
       client: new OpenAICompatibleClient({
         baseUrl: server.baseUrl,
         keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),

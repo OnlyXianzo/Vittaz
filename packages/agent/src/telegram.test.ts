@@ -449,7 +449,7 @@ test("telegram_actual_shared_assistant_native_history_app_and_paired_telegram_no
     await import("../../storage/src/repositories.js");
   const { PrivacyRedactor, getWalletSummary } = await import("@vittaz/core");
   const { SharedAssistantService } = await import("./assistant.js");
-  const { LangChainQaAgent } = await import("./langchain_adapter.js");
+  const { ReadOnlyQaLoop } = await import("./qa_loop.js");
   const { ValidatedLocalModelTasks } = await import("./local_tasks.js");
   const { OpenAICompatibleClient } = await import("./provider_client.js");
   const { KeyPool } = await import("./key_pool.js");
@@ -470,7 +470,7 @@ test("telegram_actual_shared_assistant_native_history_app_and_paired_telegram_no
       rules: writer.rules,
       redactor,
       local: new ValidatedLocalModelTasks({ run }),
-      qa: new LangChainQaAgent({
+      qa: new ReadOnlyQaLoop({
         client: new OpenAICompatibleClient({
           baseUrl: server.baseUrl,
           keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),

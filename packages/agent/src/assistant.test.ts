@@ -8,7 +8,7 @@ import {
   openReadOnlyLedgerStore,
 } from "../../storage/src/repositories.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
-import { LangChainQaAgent } from "./langchain_adapter.js";
+import { ReadOnlyQaLoop } from "./qa_loop.js";
 import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
 import { ValidatedLocalModelTasks } from "./local_tasks.js";
@@ -38,7 +38,7 @@ async function fixture() {
   const server = await startFakeOpenAIServer();
   clean.push(() => server.close());
   const redactor = new PrivacyRedactor(["SynthPerson"]);
-  const qa = new LangChainQaAgent({
+  const qa = new ReadOnlyQaLoop({
     client: new OpenAICompatibleClient({
       baseUrl: server.baseUrl,
       keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),

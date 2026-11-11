@@ -15,7 +15,7 @@ import {
 } from "../../storage/src/repositories.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 import { SharedAssistantService } from "./assistant.js";
-import { LangChainQaAgent } from "./langchain_adapter.js";
+import { ReadOnlyQaLoop } from "./qa_loop.js";
 import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
 import { ValidatedLocalModelTasks } from "./local_tasks.js";
@@ -57,7 +57,7 @@ async function fixture() {
   const local = new ValidatedLocalModelTasks({
     run: vi.fn(async () => null),
   });
-  const qa = new LangChainQaAgent({
+  const qa = new ReadOnlyQaLoop({
     client: new OpenAICompatibleClient({
       baseUrl: server.baseUrl,
       keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
@@ -164,7 +164,7 @@ test("privacy_provider_boundary_sensitive_question_and_sensitive_history_never_r
     }),
   ).rejects.toThrow("Conversation history operation failed");
   // History persistence rejects sensitive content; direct QA options must also filter it.
-  const qa = new LangChainQaAgent({
+  const qa = new ReadOnlyQaLoop({
     client: new OpenAICompatibleClient({
       baseUrl: f.server.baseUrl,
       keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
