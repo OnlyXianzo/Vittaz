@@ -1166,8 +1166,21 @@ The historical eval figure (1,438 modules / 5,791,858 B) reproduces within 0.2%,
 two measurements agree. This is static bundle evidence only; no device or emulator run
 is implied.
 
-**Not done, deliberately.** Multi-account persistence. The mobile secure profile still
-stores one provider choice, so several configured accounts need a migration and an owner
-decision; a half-migrated credential store is the one outcome this step must not produce.
+**Correction (2026-11-11, after reviewing `provider_keys.ts`).** An earlier draft of this
+entry claimed multi-account persistence was unimplemented. That was wrong: S38c already
+ships it. `apps/mobile/src/assistant/provider_keys.ts` keeps
+`assistant_key_profiles_v1` = `{active_id, profiles[]}`, where each profile has a stable
+`id`, a label, a provider kind, a base URL and a model, with its secret stored under
+`secret_name(id)`; `KeysScreen.tsx` adds, activates and removes profiles and calls
+`fetch_model_choices` (`GET {base_url}/v1/models`) to populate the model picker. The
+registry projects the active profile into the older single-provider keys in
+`secure_key.ts`, which is what the agent still reads.
+
+So no credential migration is needed and none was performed. What remains is optional
+wiring, not a user-facing capability: the assistant passes only the active profile to the
+agent, so `ProviderRegistry`'s multi-configuration support is unused. Feeding it the whole
+persisted list would let the active selection change without the legacy projection. That
+is a separate, small refactor and is not required for any behaviour the app exposes today.
+
 Also unchanged: the transport implementations, the approval and proposal semantics, the
 Telegram path, and any financial data model.

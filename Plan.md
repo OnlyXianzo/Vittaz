@@ -353,4 +353,5 @@ represented as fixing that failure.
       the same command: Hermes bytecode 5,801,607 → 3,562,111 bytes, modules
       1,440 → 1,053, JS bytes 3,778,690 → 2,458,436, and `langchain` string
       occurrences 149 → 0. Static bundle evidence only — no device run.
-      Multi-account persistence is deliberately out of scope.
+      Multi-account persistence already existed (S38c `provider_keys.ts`); only
+      feeding the persisted profile list into `ProviderRegistry` was left out.

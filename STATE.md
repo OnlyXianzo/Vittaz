@@ -633,9 +633,12 @@ root and mobile typecheck; `tsc --build`; ESLint; Prettier; `privacy_check`;
 17/adb here) and no phone behaviour is claimed; the historical 5,791,858 B figure
 reproduces within 0.2%.
 
-**Deliberately not done.** Multi-account provider persistence: the secure profile still
-stores one provider selection, and adding several configured accounts needs a credential
-migration plus an owner decision. `web_crypto.ts` also stays: its original LangChain cause
+**Not done, and no migration needed.** Correcting an earlier draft of this note:
+multi-account persistence already shipped in S38c (`provider_keys.ts`
+`assistant_key_profiles_v1` with `{active_id, profiles[]}`, plus `KeysScreen.tsx` and
+`fetch_model_choices`). The only gap is that the agent is still handed just the active
+profile, so the new `ProviderRegistry`'s multi-configuration support is unused; wiring it
+up is an optional cleanup, not a required migration. `web_crypto.ts` also stays: its original LangChain cause
 is gone and the assistant now answers with no global `crypto`, but
 `packages/core/src/ledger/ledger.ts` still defaults `makeId` to
 `globalThis.crypto.randomUUID`, so removing the shim is an unverified device change.
