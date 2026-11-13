@@ -7,7 +7,7 @@ const preset = require("jest-expo/jest-preset");
 const transformIgnorePatterns = preset.transformIgnorePatterns.map((pattern) =>
   pattern.replace(
     "standard-navigation",
-    "standard-navigation|react-native-svg|react-native-safe-area-context|@ai-sdk|@workflow|ai",
+    "standard-navigation|react-native-svg|react-native-safe-area-context|lucide-react-native|@ai-sdk|@workflow|ai",
   ),
 );
 
@@ -25,6 +25,11 @@ module.exports = {
   moduleNameMapper: {
     "^@vittaz/core$": "<rootDir>/../../packages/core/src/index.ts",
     "^zod$": "<rootDir>/node_modules/zod/index.cjs",
+    // lucide-react-native resolves to its `.mjs` build under the react-native
+    // condition, and jest-expo's transform does not cover `.mjs`. Point Jest at
+    // the CommonJS build that ships beside it — same trick as zod above.
+    "^lucide-react-native$":
+      "<rootDir>/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js",
     // The AI SDK imports zod subpaths (e.g. `zod/v4/locales/en.js`) which are
     // ESM on disk. Zod ships a `.cjs` beside every one, so route them there.
     "^zod/(.*)\\.js$": "<rootDir>/node_modules/zod/$1.cjs",

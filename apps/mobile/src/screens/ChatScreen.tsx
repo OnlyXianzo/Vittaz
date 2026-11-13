@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { ComponentRef } from "react";
+import type { ComponentRef, ComponentType } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -11,15 +11,23 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
+import {
+  ArrowUp,
+  ChevronDown,
+  Link2,
+  Menu,
+  MessageCircle,
+  Mic,
+  Search,
+  Settings,
+  SlidersHorizontal,
+  SquarePen,
+  Trash2,
+  X,
+} from "lucide-react-native";
 import { useApp } from "../store";
 import { Markdown } from "../Markdown";
-import {
-  MessageActions,
-  MicGlyph,
-  ReasoningBlock,
-  ThinkingDots,
-} from "../chat_elements";
+import { MessageActions, ReasoningBlock, ThinkingDots } from "../chat_elements";
 import { format_tokens } from "../assistant/tokens";
 import { InstructionsScreen } from "./InstructionsScreen";
 import { formatPaise } from "../domain";
@@ -138,13 +146,13 @@ export function ChatScreen() {
                   <T size={12} weight="bold" color={colors.lime}>
                     {MODEL_SHORT[state.model]}
                   </T>
-                  <Feather name="chevron-down" size={14} color={colors.lime} />
+                  <ChevronDown size={14} color={colors.lime} strokeWidth={2.6} />
                 </Pressable>
                 <IconBtn
                   label="Assistant menu"
                   onPress={() => set_show_menu(true)}
                 >
-                  <Feather name="menu" size={20} color={colors.text} />
+                  <Menu size={20} color={colors.text} strokeWidth={2.2} />
                 </IconBtn>
               </Row>
             }
@@ -173,7 +181,7 @@ export function ChatScreen() {
             {state.chatMessages.length === 0 ? (
               <View style={{ paddingTop: 20, gap: 10 }}>
                 <View style={styles.emptyGlyph}>
-                  <Feather name="message-circle" size={22} color={colors.lime} />
+                  <MessageCircle size={22} color={colors.lime} strokeWidth={2} />
                 </View>
                 <T size={24} weight="heavy" style={{ lineHeight: 30 }}>
                   How can I help?
@@ -362,7 +370,7 @@ export function ChatScreen() {
               }
               style={styles.round}
             >
-              <MicGlyph size={21} color={colors.muted} />
+              <Mic size={21} color={colors.muted} strokeWidth={2.2} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -372,7 +380,7 @@ export function ChatScreen() {
               onPress={() => dispatch({ type: "send_chat" })}
               style={[styles.round, { backgroundColor: colors.lime }]}
             >
-              <Feather name="arrow-up" size={20} color={colors.limeDark} />
+              <ArrowUp size={20} color={colors.limeDark} strokeWidth={2.8} />
             </Pressable>
           </Row>
           {(state.chatTokens ?? 0) > 0 ? (
@@ -493,7 +501,7 @@ function AssistantDrawer({
         <Row style={{ paddingHorizontal: 8, marginBottom: 10 }}>
           <B size={16}>Assistant</B>
           <IconBtn label="Close menu" onPress={onClose}>
-            <Feather name="x" size={20} color={colors.muted} />
+            <X size={20} color={colors.muted} strokeWidth={2.2} />
           </IconBtn>
         </Row>
 
@@ -527,23 +535,23 @@ function AssistantDrawer({
                 set_query("");
               }}
             >
-              <Feather name="x" size={18} color={colors.muted} />
+              <X size={18} color={colors.muted} strokeWidth={2.2} />
             </IconBtn>
           </Row>
         ) : null}
 
         <DrawerRow
-          icon="edit"
+          icon={SquarePen}
           label="New chat"
           disabled={busy}
           onPress={onNew}
         />
         <DrawerRow
-          icon="sliders"
+          icon={SlidersHorizontal}
           label="Custom instructions"
           onPress={onInstructions}
         />
-        <DrawerRow icon="link-2" label="Connectors" onPress={onConnectors} />
+        <DrawerRow icon={Link2} label="Connectors" onPress={onConnectors} />
 
         <View style={styles.drawerRule} />
         <T
@@ -606,7 +614,7 @@ function AssistantDrawer({
                     busy && { opacity: 0.4 },
                   ]}
                 >
-                  <Feather name="trash-2" size={14} color={colors.dim} />
+                  <Trash2 size={15} color={colors.dim} strokeWidth={2} />
                 </Pressable>
               </View>
             ))
@@ -614,36 +622,34 @@ function AssistantDrawer({
         </ScrollView>
 
         <View style={styles.drawerRule} />
-        <Row start gap={6} style={{ paddingTop: 4 }}>
-          <IconBtn
-            label="Search chats"
-            onPress={() => set_search_open((open) => !open)}
-          >
-            <Feather
-              name="search"
-              size={19}
-              color={search_open ? colors.lime : colors.muted}
-            />
-          </IconBtn>
-          <IconBtn label="Settings" onPress={onSettings}>
-            <Feather name="settings" size={19} color={colors.muted} />
-          </IconBtn>
-        </Row>
+        <DrawerRow
+          icon={Search}
+          label="Search chats"
+          bold={search_open}
+          onPress={() => set_search_open((open) => !open)}
+        />
+        <DrawerRow icon={Settings} label="Settings" onPress={onSettings} />
       </View>
     </View>
   );
 }
 
 function DrawerRow({
-  icon,
+  icon: Icon,
   label,
   onPress,
   disabled = false,
+  bold = false,
 }: {
-  icon: keyof typeof Feather.glyphMap;
+  icon: ComponentType<{
+    size?: number;
+    color?: string;
+    strokeWidth?: number;
+  }>;
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  bold?: boolean;
 }) {
   return (
     <Pressable
@@ -658,8 +664,12 @@ function DrawerRow({
         disabled && { opacity: 0.5 },
       ]}
     >
-      <Feather name={icon} size={18} color={colors.lime} />
-      <T size={15} weight="semi">
+      <Icon
+        size={19}
+        color={bold ? colors.lime : colors.text}
+        strokeWidth={2.2}
+      />
+      <T size={15} weight={bold ? "bold" : "semi"}>
         {label}
       </T>
     </Pressable>
@@ -774,7 +784,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: 12,
     borderRadius: 14,
   },

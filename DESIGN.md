@@ -125,11 +125,28 @@ Rules:
 - **Recents is a section of this drawer.** There is no separate "chat history" screen. Opening a past conversation must be one tap from the drawer.
 - **Every recents row**: title (2-line clamp), live dot when it is the open one, and a `🗑` delete control. Tapping the row opens it; tapping `🗑` asks first.
 - **Delete is never the loudest action** on a row. It is a dim icon, not a filled button.
-- **Footer controls** (`Search chats`, `Settings`) are pinned to the bottom edge, below the rule, outside the scroll. Search toggles an input above `New chat` and **filters the same list in place** — it is not a new screen or a navigation.
+- **Footer controls** (`Search chats`, `Settings`) are **full-width rows with an icon and a label**, `50 px` tall — the same weight as the rows above them, not small icon buttons. They are pinned to the bottom edge, below the rule, outside the scroll.
+- Search toggles an input above `New chat` and **filters the same list in place** — it is not a new screen or a navigation. While open, its row label and icon take the accent colour.
 - **Empty states**: `No saved chats yet. Your conversations appear here.` / `No saved chats match that search.`
 - **Dismiss** by backdrop (`Dismiss menu`) or `✕` (`Close menu`).
 
 ---
+
+### Icons
+
+- **`lucide-react-native` is the only icon library.** No `@expo/vector-icons`
+  (Feather, Ionicons), no hand-drawn SVG for standard glyphs, no emoji.
+- Import the icon by name: `import { Mic, Search } from "lucide-react-native"`.
+  Tree-shaken per icon; no font loading, no glyph-map keys.
+- Sizes: `19–20` in chrome, `21–22` in the composer, `14–17` inline in cards.
+  `strokeWidth` `2–2.2`; `2.6–3` for small confirming ticks so they stay legible.
+- Colour always comes from a token. Never a Lucide default.
+- Custom SVG is allowed **only** for marks that do not exist in the set — and
+  prefers are drawn to Lucide's grid and stroke so they sit with it.
+- Jest: Lucide ships ESM and resolves to `.mjs`, so `jest.config.cjs` maps it to
+  the CJS build and allowlists it for transformation. Metro already handles
+  `.mjs` under Expo SDK 58 with package exports on — verified against
+  `getDefaultConfig`, not assumed.
 
 ## 6. Components and states
 
@@ -178,7 +195,8 @@ Rules:
 
 - **No web-only UI dependencies.** AI Elements needs Next.js/shadcn/Tailwind. Anything that cannot run on Hermes is out, regardless of how good it looks.
 - **No UI library that owns conversation state.** assistant-ui would move redaction, budget and validated streaming off the device. Revisit only if the safety layer is deliberately re-homed — a decision, not a refactor.
-- **No new dependency** without checking it against Expo/Hermes first. `react-native-svg` was already present, so icons need nothing new.
+- **No new dependency** without checking it against Expo/Hermes first. `lucide-react-native` was checked first: peer `react-native-svg` range satisfied by the installed `15.16.0`, `.mjs` in Metro's `sourceExts`, package exports enabled.
+- **Mockups are not evidence.** A design preview must use inline SVG — an emoji stands in for nothing and reads as a shipped icon even when it is not.
 - **No provider-specific branches in the UI.** Route copy and chip labels are data (`MODEL_SHORT`, `MODEL_LABEL`), never `if (provider === ...)`.
 - **Never log or display a key.** Not in a label, not in an error, not in a test snapshot.
 
@@ -188,11 +206,12 @@ Rules:
 
 Append one entry per UI change. No entry, no merge.
 
-| Date       | Change                                                                                                                                                                              |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-11 | Chat restructured: drawer replaces the stacked nav pills; short model chip with full accessible name; disclosure moved below the transcript; `How can I help?` empty state          |
-| 2026-11-11 | Native primitives added: reasoning block, message actions, SVG dots and ring (Reduce Motion aware)                                                                                  |
-| 2026-11-11 | Recents moved into the drawer; separate chat-history screen removed. Footer pinned with `Search chats` (in-place filter) and `Settings`. Themed SVG mic replaces the platform glyph |
+| Date       | Change                                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-11 | Chat restructured: drawer replaces the stacked nav pills; short model chip with full accessible name; disclosure moved below the transcript; `How can I help?` empty state                                    |
+| 2026-11-11 | Native primitives added: reasoning block, message actions, SVG dots and ring (Reduce Motion aware)                                                                                                            |
+| 2026-11-11 | Recents moved into the drawer; separate chat-history screen removed. Footer pinned with `Search chats` (in-place filter) and `Settings`                                                                       |
+| 2026-11-11 | `lucide-react-native` adopted as the only icon library; every `@expo/vector-icons` usage and the hand-drawn mic removed. Footer controls made full-width rows. Mockups must use inline SVG paths, never emoji |
 
 ---
 

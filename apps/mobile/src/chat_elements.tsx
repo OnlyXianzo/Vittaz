@@ -22,13 +22,16 @@ import {
   View,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { Feather } from "@expo/vector-icons";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  LoaderCircle,
+} from "lucide-react-native";
 import { colors } from "./theme";
 import type { ChatStep } from "./domain";
 import { B, M, Row, T } from "./ui";
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 function useReduceMotion(): boolean {
   const [reduce, set_reduce] = useState(false);
@@ -63,35 +66,34 @@ function useLoop(active: boolean, duration = 1400): Animated.Value {
  * matches the rest of the app instead of the platform default.
  */
 export function ThinkingDots({ label }: { label: string }) {
-  // The dots fade in sequence; a single driver value drives all three offsets.
+  // Three plain views fading in sequence off one shared driver value. No SVG is
+  // needed for circles, and animated Views are cheaper on the native thread.
   const progress = useLoop(true);
   const reduce = useReduceMotion();
-  const dots = [0, 1, 2];
   return (
     <Row start gap={8} style={{ alignItems: "center" }}>
-      <Svg width={34} height={14} accessibilityElementsHidden>
-        {dots.map((index) => {
-          // Stagger by shifting this dot's slice of the shared 0→1 loop.
-          const shift = index / dots.length;
-          const opacity = reduce
-            ? 0.75
-            : progress.interpolate({
-                inputRange: [0, shift, shift + 0.2, 1],
-                outputRange: [0.25, 0.25, 1, 0.25],
-                extrapolate: "clamp",
-              });
-          return (
-            <AnimatedCircle
-              key={index}
-              cx={5 + index * 11}
-              cy={7}
-              r={3.6}
-              fill={colors.lime}
-              opacity={opacity}
-            />
-          );
-        })}
-      </Svg>
+      {[0, 1, 2].map((index) => {
+        const shift = index / 3;
+        const opacity = reduce
+          ? 0.75
+          : progress.interpolate({
+              inputRange: [0, shift, shift + 0.2, 1],
+              outputRange: [0.25, 0.25, 1, 0.25],
+              extrapolate: "clamp",
+            });
+        return (
+          <Animated.View
+            key={index}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 4,
+              backgroundColor: colors.lime,
+              opacity,
+            }}
+          />
+        );
+      })}
       <M size={12}>{label}</M>
     </Row>
   );
@@ -145,19 +147,19 @@ export function ReasoningBlock({
           pressed && { opacity: 0.7 },
         ]}
       >
-        <Feather
-          name={running ? "loader" : "check-circle"}
-          size={14}
-          color={colors.lime}
-        />
+        {running ? (
+          <LoaderCircle size={14} color={colors.lime} strokeWidth={2.4} />
+        ) : (
+          <Check size={14} color={colors.lime} strokeWidth={3} />
+        )}
         <T size={13} weight="semi" style={{ flex: 1 }}>
           {running ? "Reading your ledger" : summary}
         </T>
-        <Feather
-          name={open ? "chevron-up" : "chevron-down"}
-          size={16}
-          color={colors.muted}
-        />
+        {open ? (
+          <ChevronUp size={16} color={colors.muted} strokeWidth={2.2} />
+        ) : (
+          <ChevronDown size={16} color={colors.muted} strokeWidth={2.2} />
+        )}
       </Pressable>
       {open
         ? steps.map((step) => (
@@ -212,7 +214,7 @@ function StepGlyph({ state }: { state: ChatStep["state"] }) {
           marginTop: 1,
         }}
       >
-        <Feather name="check" size={11} color={colors.limeDark} />
+        <Check size={11} color={colors.limeDark} strokeWidth={3} />
       </View>
     );
   if (state === "running") return <SpinningRing />;
@@ -230,37 +232,17 @@ function StepGlyph({ state }: { state: ChatStep["state"] }) {
   );
 }
 
-/** A ring that rotates via SVG, avoiding the platform ActivityIndicator. */
+/** Running state: Lucide's LoaderCircle, rotated by a native driver value. */
 function SpinningRing() {
   const spin = useLoop(true, 900);
-  const reduce = useReduceMotion();
   const rotate = spin.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
+  // `spin` never leaves 0 under Reduce Motion, so the ring simply stays still.
   return (
-    <Animated.View
-      style={{ width: 18, height: 18, marginTop: 1, transform: [{ rotate }] }}
-    >
-      <Svg width={18} height={18}>
-        <Circle
-          cx={9}
-          cy={9}
-          r={7}
-          stroke={reduce ? colors.lime : "rgba(184,242,60,0.25)"}
-          strokeWidth={2.5}
-          fill="none"
-        />
-        {reduce ? null : (
-          <Path
-            d="M9 2 a7 7 0 0 1 7 7"
-            stroke={colors.lime}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            fill="none"
-          />
-        )}
-      </Svg>
+    <Animated.View style={{ transform: [{ rotate }], marginTop: 1 }}>
+      <LoaderCircle size={17} color={colors.lime} strokeWidth={2.4} />
     </Animated.View>
   );
 }
@@ -291,48 +273,15 @@ export function MessageActions({ text }: { text: string }) {
           pressed && { opacity: 0.6 },
         ]}
       >
-        <Feather
-          name={copied ? "check" : "copy"}
-          size={13}
-          color={copied ? colors.lime : colors.dim}
-        />
+        {copied ? (
+          <Check size={13} color={colors.lime} strokeWidth={3} />
+        ) : (
+          <Copy size={13} color={colors.dim} strokeWidth={2.2} />
+        )}
         <T size={11} weight="semi" color={copied ? colors.lime : colors.dim}>
           {copied ? "Copied" : "Copy"}
         </T>
       </Pressable>
     </Row>
-  );
-}
-
-/**
- * Composer microphone, drawn to Vittaz's own line weight instead of borrowing
- * the platform glyph set. Same 1.7 stroke and 24-unit grid as the other marks,
- * so it reads as part of the app rather than a stock icon.
- */
-export function MicGlyph({ size = 20, color }: { size?: number; color: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect
-        x={9}
-        y={2.5}
-        width={6}
-        height={11}
-        rx={3}
-        stroke={color}
-        strokeWidth={1.7}
-      />
-      <Path
-        d="M5.5 11.5a6.5 6.5 0 0 0 13 0"
-        stroke={color}
-        strokeWidth={1.7}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M12 18v3.4"
-        stroke={color}
-        strokeWidth={1.7}
-        strokeLinecap="round"
-      />
-    </Svg>
   );
 }
