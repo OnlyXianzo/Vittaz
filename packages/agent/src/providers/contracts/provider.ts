@@ -245,6 +245,18 @@ export function key_nickname_for(config: ProviderConfig): string {
   return config.key_nickname ?? config.id;
 }
 
+/**
+ * `base_url` as validation proved it.
+ *
+ * `validate_provider_config` rejects an `openai_compatible` config without a
+ * base URL, but the type still allows `undefined`. Call sites use this rather
+ * than inventing a `?? ""` fallback no real request could reach.
+ */
+export function require_base_url(config: ProviderConfig): string {
+  if (!config.base_url) throw new InvalidProviderConfigError();
+  return config.base_url;
+}
+
 /** The model an adapter should use: explicit selection, else the default. */
 export function resolve_model(
   config: ProviderConfig,

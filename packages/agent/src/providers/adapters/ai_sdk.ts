@@ -25,6 +25,7 @@ import {
 import {
   key_nickname_for,
   resolve_model,
+  require_base_url,
   validate_provider_config,
   type ProviderAdapter,
   type ProviderAuth,
@@ -173,7 +174,7 @@ export function create_ai_sdk_provider(
   if (validated.kind !== "openai_compatible")
     throw new InvalidProviderConfigError();
   const base_url = validate_endpoint(
-    validated.base_url ?? "",
+    require_base_url(validated),
     validated.api_suffix,
   );
   const model_id = resolve_model(validated, options.model);
@@ -414,8 +415,9 @@ export function create_ai_sdk_provider(
             keyNickname: entry.nickname,
           };
         } catch (error) {
+          // A failed delta callback is the caller's error and outranks the
+          // transport error the abort produced; nothing below may reclassify it.
           if (callback_failed) throw new CallbackError();
-          if (error instanceof CallbackError) throw error;
           if (signal.aborted) throw cancelled();
           if (
             error instanceof MissingCredentialError ||

@@ -113,6 +113,18 @@ function status_reason(status: number): KeyFailureRecord["reason"] {
   return "provider_http_error";
 }
 
+/**
+ * Token counts the SDK reports as optional.
+ *
+ * The SDK types every usage field as possibly `undefined` because not every
+ * provider reports every count, but Anthropic's own response schema requires
+ * them, so the fallback can never fire on a parsed message. Keeping it in one
+ * tested function means the call sites carry no unreachable branch.
+ */
+export function token_count(value: number | undefined): number {
+  return value ?? 0;
+}
+
 function status_of(error: unknown): number | undefined {
   if (typeof error !== "object" || error === null) return undefined;
   const status = (error as { statusCode?: unknown }).statusCode;
@@ -258,8 +270,8 @@ export function create_anthropic_provider(
           text = await streamed.text;
           tool_calls = to_tool_calls(await streamed.toolCalls);
           const usage = await streamed.usage;
-          prompt_tokens = usage.inputTokens ?? 0;
-          completion_tokens = usage.outputTokens ?? 0;
+          prompt_tokens = token_count(usage.inputTokens);
+          completion_tokens = token_count(usage.outputTokens);
           finish_reason = await streamed.finishReason;
         } else {
           const generated = await generateText({
@@ -268,13 +280,15 @@ export function create_anthropic_provider(
           });
           text = generated.text;
           tool_calls = to_tool_calls(generated.toolCalls);
-          prompt_tokens = generated.usage.inputTokens ?? 0;
-          completion_tokens = generated.usage.outputTokens ?? 0;
+          prompt_tokens = token_count(generated.usage.inputTokens);
+          completion_tokens = token_count(generated.usage.outputTokens);
           finish_reason = generated.finishReason;
         }
       } catch (error) {
         if (callback_failed) {
-          if (wire.stream) params.onStreamReset?.();
+          // The delta callback only runs while streaming, so a callback failure
+          // always has a stream to reset.
+          params.onStreamReset?.();
           throw new CallbackError();
         }
         if (signal.aborted) {
