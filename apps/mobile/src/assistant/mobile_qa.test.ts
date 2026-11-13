@@ -508,7 +508,7 @@ it("keeps a base path ending in /v1 when the suffix is explicitly empty", async 
     ledger,
     {
       kind: "openai_compatible",
-      api_key: "synthetic",
+      api_key: "synthetic-key",
       base_url: "https://synthetic.invalid/gateway/v1",
       api_suffix: "",
       model: "synthetic-model",
