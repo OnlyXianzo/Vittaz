@@ -2,7 +2,7 @@ import { fetch as expo_fetch } from "expo/fetch";
 import {
   ANTHROPIC_API_VERSION,
   ANTHROPIC_DEFAULT_MODEL,
-} from "../../../../packages/agent/src/anthropic_messages_client";
+} from "../../../../packages/agent/src/providers";
 import { KILO_FREE_MODEL, KILO_GATEWAY_BASE_URL } from "./mobile_qa";
 import {
   DEFAULT_ASSISTANT_PROVIDER_PROFILE,

@@ -9,7 +9,7 @@ import type { KeyFailureRecord } from "../../key_pool.js";
  * stack traces, so an adapter cannot leak secrets by throwing.
  *
  * The reason vocabulary is the existing `KeyFailureRecord` union: the transport
- * classifiers in `provider_client.ts` and `anthropic_messages_client.ts` are
+ * classifiers in `adapters/ai_sdk.ts` and `adapters/anthropic.ts` are
  * authoritative and are deliberately not re-implemented here.
  */
 export type ProviderFailureReason = KeyFailureRecord["reason"];

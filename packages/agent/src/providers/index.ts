@@ -43,7 +43,12 @@ export type {
   ProviderKind,
 } from "./contracts/provider.js";
 
-export { create_anthropic_provider } from "./adapters/anthropic.js";
+export {
+  ANTHROPIC_API_VERSION,
+  ANTHROPIC_DEFAULT_MODEL,
+  ANTHROPIC_MESSAGES_URL,
+  create_anthropic_provider,
+} from "./adapters/anthropic.js";
 export { create_ai_sdk_provider } from "./adapters/ai_sdk.js";
 
 export { ProviderRegistry } from "./registry/provider_registry.js";

@@ -9,7 +9,7 @@ import {
   create_ai_sdk_provider,
 } from "../../../../packages/agent/src/providers";
 import type { AgentDiagnosticEvent } from "../../../../packages/agent/src/diagnostics";
-import { ANTHROPIC_DEFAULT_MODEL } from "../../../../packages/agent/src/anthropic_messages_client";
+import { ANTHROPIC_DEFAULT_MODEL } from "../../../../packages/agent/src/providers";
 export { ANTHROPIC_DEFAULT_MODEL };
 import type { CompletionClient } from "../../../../packages/agent/src/provider_client";
 import { mobile_diagnostics } from "./diagnostics";
