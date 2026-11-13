@@ -76,14 +76,17 @@ CONTRACT (new) ─────────────────────�
     contracts/provider.ts        ProviderAdapter, ProviderConfig
     contracts/capabilities.ts    what a model can/can't do
     contracts/errors.ts          normalized failures
-    adapters/anthropic.ts        ┐ thin wrappers: validate config, resolve
-    adapters/openai_compatible.ts┘ credential lazily, build the transport
+    adapters/anthropic.ts        ┐ both build an AI SDK provider handle,
+    adapters/ai_sdk.ts           │ resolve the credential lazily, and keep
+    adapters/sdk_prompt.ts       ┘ the shared prompt/tool mapping
     registry/                    config registry + capability registry
         │
         ▼
-TRANSPORT (unchanged, the actual network code) ───────────────────────────
-  packages/agent/src/provider_client.ts            OpenAI-compatible
-  packages/agent/src/anthropic_messages_client.ts  Anthropic Messages
+TRANSPORT (the actual network code) ───────────────────────────────────────
+  @ai-sdk/openai-compatible                        OpenAI-compatible wire
+  @ai-sdk/anthropic                                Anthropic Messages wire
+  packages/agent/src/provider_client.ts            our shared contract +
+                                                   the single preflight
   packages/agent/src/key_pool.ts                   multi-key retry/cooldown
         │  HTTPS + SSE
         ▼
@@ -288,10 +291,15 @@ it runs **on the device** (inside the app), not on a server.
 | Endpoint safety, key pool, rotation, cooldown, 400-no-fallback, the eight failure reasons, cancellation, diagnostics codebook | Vittaz                                                           | `ai_sdk.ts` + `key_pool.ts`                        |
 | Behaviour, system prompts, tools, allowlists, execution loop                                                                  | Vittaz (untouched)                                               | `qa_loop.ts`, `tools.ts`, `assistant.ts`           |
 
-The deleted file is `providers/adapters/openai_compatible.ts` — roughly 500 lines
-of hand-written request/stream code that now has a library owner. The
-`anthropic.ts` adapter is **kept deliberately**: it speaks a different protocol
-that `@ai-sdk/openai-compatible` cannot serve.
+Two transports were replaced, not one:
+
+| Removed                                    | Lines  | Now                                                     |
+| ------------------------------------------ | ------ | ------------------------------------------------------- |
+| `adapters/openai_compatible.ts`            | ~500   | `@ai-sdk/openai-compatible`                             |
+| `anthropic_messages_client.ts` + its tests | ~1,900 | `@ai-sdk/anthropic`, wrapped by `adapters/anthropic.ts` |
+
+Both adapters share one prompt and tool mapping (`adapters/sdk_prompt.ts`),
+because "our messages → SDK prompt parts" is the same translation either way.
 
 Tools are passed to the SDK as **definitions only, with no `execute`**. So the
 SDK stops with `finishReason: "tool-calls"` and hands the calls back; the Vittaz

@@ -745,8 +745,9 @@ payloads. The root CI `test:coverage` command still runs the complete suite.
   `docs/ai_sdk_evaluation.md` (Outcome B) recommended exactly this step, and
   `DECISIONS.md` records the reasoning. The AI SDK question stays closed unless provider
   breadth becomes a real requirement with a device test plan.
-- Transport behaviour was re-verified, not re-derived: `provider_client.test.ts` and
-  `anthropic_messages_client.test.ts` still drive the real HTTP/SSE paths unchanged, and
+- Transport behaviour was re-verified, not re-derived: the transport suites drive the real
+  HTTP/SSE paths against local fake servers (`ai_sdk_transport.test.ts`,
+  `anthropic_ai_sdk.test.ts`), and
   the new `provider_pipeline.test.ts` re-asserts the guarantees that previously ran
   through LangChain (read-only SQLite projections, no added retries, 400 → no fallback,
   401 → next key, 429 → exhaustion, static abort text, no nickname leakage).

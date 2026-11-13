@@ -77,6 +77,66 @@ On-device React Native/Hermes behaviour. The SDK imports `TextDecoder` and
 but no device or emulator exists in this environment, so the claim is untested.
 Per the owner's rule, a passing Node suite is not device evidence.
 
+## 2026-11-11 — Anthropic transport also moves to the AI SDK
+
+Directly after the OpenAI-compatible swap, the owner asked for the same treatment
+for Anthropic: `@ai-sdk/anthropic` replaces the hand-written
+`AnthropicMessagesClient` (640 lines) and its 1,248-line test suite. Same split
+as before — the SDK owns request encoding, SSE framing and usage extraction;
+Vittaz keeps preflight, credential rules, the failure vocabulary, cancellation
+and the result contract.
+
+Pinned: `@ai-sdk/anthropic@4.0.104` (its `engines` field says Node >= 22; the
+project already runs Node 24).
+
+### Preserved deliberately
+
+- **Endpoint pinned** to `https://api.anthropic.com/v1/messages`. It is never
+  taken from configuration; supplying a `base_url` for an Anthropic config is
+  rejected at construction rather than silently ignored.
+- **`anthropic-version` kept at the project's verified value** via a caller
+  header override (verified to reach the wire). The SDK's own default differs.
+- **Default reply budget stays 1024 tokens.** The SDK defaults to the model
+  maximum (128000). Silently multiplying the worst case of every un-capped
+  request is a cost change, not a migration detail.
+- **In-band SSE error discards the partial answer.** Measured: the SDK resolves
+  with the partial text and `finishReason: "error"`. Returning that would
+  reproduce the historical truncation bug, so it is mapped to `protocol_error`.
+- **Malformed 200 bodies are protocol failures.** Measured: the SDK throws an
+  `AI_APICallError` carrying HTTP status **200**; without special handling that
+  would be reported as a successful HTTP response.
+- **Unpaired `tool` messages are rejected before HTTP**, as the deleted client
+  did. The SDK looks the tool _name_ up by call id, so an unpaired message would
+  otherwise go out with an empty name instead of failing fast.
+- **Reply bounds re-applied post-parse**: ≤16 tool calls, ≤32768 characters,
+  tool name `^[a-z][a-z0-9_]{0,127}$`, tool id `^[a-zA-Z0-9_-]{1,128}$`.
+- **`Provider callback failed`** on a throwing stream callback, as before.
+
+### Accepted differences
+
+1. `system` text is sent as a content-block array; the old client sent a string.
+   The API accepts both.
+2. A `tool_choice: {"type":"auto"}` field and an `anthropic-beta` header are now
+   sent; the SDK adds them. Harmless, but they were not on the wire before.
+3. The 64 KiB request-size cap is now enforced on the pre-mapped wire (shared
+   with the OpenAI-compatible transport) rather than on the final Anthropic body.
+   The mapped body can exceed it by per-block overhead (~50 bytes/block).
+
+### Test coverage moved, not lost
+
+The deleted suite's 25 tests mostly probed SSE framing minutiae (fragmented
+frames, out-of-order frames, unknown events, unterminated final frames,
+`thinking` deltas). That is now the SDK's job and is deliberately not re-tested.
+The replacement, `anthropic_ai_sdk.test.ts` (21 tests), asserts the _contract_
+against a real local HTTP/SSE fake server: request mapping, pinned version,
+reply budget, tool-use mapping, streaming, in-band error, all HTTP status
+classes, preflight and redaction, cancellation, and no key/endpoint leakage.
+
+### Still unverified
+
+On-device React Native/Hermes behaviour for `@ai-sdk/anthropic`, and any live
+Anthropic call. No device, and no API credentials, exist in this environment.
+
 ## Open
 
 - License. Undecided. Do not add a license file until it is chosen.
