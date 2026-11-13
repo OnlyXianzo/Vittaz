@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
 import { Markdown } from "../Markdown";
+import { format_tokens } from "../assistant/tokens";
 import { InstructionsScreen } from "./InstructionsScreen";
 import { formatPaise } from "../domain";
 import type { AppState } from "../domain";
@@ -276,7 +277,18 @@ export function ChatScreen() {
                 </T>
               </LinearGradient>
             ) : (
-              <Markdown key={m.id} text={m.text} style={{ maxWidth: "90%" }} />
+              <View key={m.id} style={{ maxWidth: "90%" }}>
+                <Markdown text={m.text} />
+                {m.tokens !== undefined ? (
+                  <T
+                    size={11}
+                    color={colors.muted}
+                    style={{ marginTop: 4, marginLeft: 2 }}
+                  >
+                    {`${format_tokens(m.tokens)} tokens`}
+                  </T>
+                ) : null}
+              </View>
             ),
           )}
 
@@ -514,6 +526,13 @@ export function ChatScreen() {
             <Feather name="arrow-up" size={20} color={colors.limeDark} />
           </Pressable>
         </Row>
+        {(state.chatTokens ?? 0) > 0 ? (
+          // Session usage built only from counts the provider reported. No
+          // prompt, reply or key text can reach this label.
+          <T size={11} color={colors.dim}>
+            {`${format_tokens(state.chatTokens ?? 0)} tokens this session`}
+          </T>
+        ) : null}
       </KeyboardAvoidingView>
     </Screen>
   );

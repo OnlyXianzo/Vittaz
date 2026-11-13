@@ -67,6 +67,12 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
+  /**
+   * Tokens the provider reported for the answer that produced this message.
+   * Optional and display-only: absent on user messages and on older persisted
+   * history. It is a count, never prompt or reply text.
+   */
+  tokens?: number;
 }
 
 export interface Settings {
@@ -95,6 +101,8 @@ export interface AppState {
   chatSteps: ChatStep[];
   chatProposalId: string | null;
   chatQuestion: string | null;
+  /** Cumulative provider tokens for this app session. Display-only. */
+  chatTokens?: number;
   quickInput: string;
   quickRecentIds: string[];
   addDraft: AddDraft;

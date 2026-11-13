@@ -89,6 +89,7 @@ const default_state: AppState = {
   chatSteps: [],
   chatProposalId: null,
   chatQuestion: null,
+  chatTokens: 0,
   quickInput: "",
   quickRecentIds: [],
   addDraft: {
@@ -962,11 +963,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     ),
                   );
               });
+            // Record the provider's own token count (already computed by the
+            // QA loop for its budget) so the user can see what an answer cost.
             setState((value) => ({
               ...value,
               chatMode: "idle",
               chatSteps: steps,
-              chatMessages: messages,
+              chatMessages: messages.map((message) =>
+                message.id === assistant_id
+                  ? { ...message, tokens: result.tokensUsed }
+                  : message,
+              ),
+              chatTokens: (value.chatTokens ?? 0) + result.tokensUsed,
             }));
           }
         })()
