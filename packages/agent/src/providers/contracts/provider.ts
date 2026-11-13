@@ -5,6 +5,7 @@ import type {
   ChatCompletionResult,
   CompletionClient,
 } from "../../provider_client.js";
+import type { KeyPool } from "../../key_pool.js";
 import type { ModelCapabilities } from "./capabilities.js";
 import {
   credential_ref_schema,
@@ -52,6 +53,13 @@ export type CredentialResolver = (
 /** Everything an adapter needs that is not part of the configuration. */
 export interface ProviderDependencies {
   readonly resolve_credential: CredentialResolver;
+  /**
+   * Optional pre-built key pool. When supplied it is authoritative and
+   * `resolve_credential` is not consulted, so multi-key rotation and cooldown
+   * stay exactly the key pool's business. Mobile and CLI pass a single key via
+   * `credential_ref` instead.
+   */
+  readonly key_pool?: KeyPool;
   readonly fetch?: typeof fetch;
   readonly timeout_ms?: number;
   readonly redactor?: PrivacyRedactor;
