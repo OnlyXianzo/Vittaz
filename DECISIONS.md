@@ -222,12 +222,27 @@ rather than silently left out:
   protected by an app passcode. Alternative: the Gemini preset, same models,
   plain AI Studio key.
 
-### Not done in this commit
+### Wired into the app
 
-The mobile Keys screen still only exposes base URL / key / model. The new fields
-exist in the contract and are tested at the transport level, but the form fields
-(API path, auth header, extra headers) are the next small UI step. Until then the
-Gemini preset works via the agent layer but is not yet selectable in the app.
+The Keys screen now offers these presets plus Custom. A preset only prefills
+fields; it is the same code path as a hand-typed custom endpoint. Advanced fields
+(API path, auth header, auth scheme) open automatically when a preset deviates
+from `/v1` + `Bearer`, so Gemini's `/v1beta/openai` is visible rather than magic.
+
+Model discovery uses the same API path and key header as chat. Previously a
+Gemini-style profile would have listed models from one URL and chatted to
+another.
+
+`extra_headers` is supported by the contract and tested at the transport level,
+but has no form field yet: it needs a key/value editor, and no preset requires it.
+
+### Bug found while wiring this
+
+Attribution and the custom auth header were both passed to the SDK as a
+`headers` option. Two spreads with the same key meant the later one won, so
+configuring attribution **silently dropped the credential** — on a phone that
+would have looked like an invalid key. Merged into a single object, with a
+regression test asserting key + attribution + extra headers arrive together.
 
 ## Open
 
