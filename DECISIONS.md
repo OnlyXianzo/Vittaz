@@ -163,10 +163,15 @@ Constraints enforced by the schema:
 When `attribution` is absent the wire is byte-identical to before; a test asserts
 the headers are absent, present, and title-only.
 
-**Not yet set for the mobile app.** Wiring it needs a public URL the owner
-controls; inventing one would misattribute traffic in someone else's dashboard.
-Until then the mobile app sends no attribution headers and usage still shows as
-"Unknown".
+**Wired:** the mobile app sends `X-Title: Vittaz` and
+`HTTP-Referer: https://github.com/OnlyXianzo/Vittaz` on the OpenAI-compatible
+BYOK path only (`APP_ATTRIBUTION` in `mobile_qa.ts`). The Kilo free gateway and
+the Anthropic path are left byte-identical, because neither reads these headers
+and adding them would be fingerprinting without a benefit.
+
+The CLI does not set it: `attribution` is a configuration field, and the CLI
+builds its config from environment variables only. Adding an env pair for it is
+a separate, small change — not done here, to keep this commit to one thing.
 
 ## Open
 

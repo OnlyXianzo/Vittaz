@@ -17,6 +17,16 @@ import type { MobileDiagnostics } from "./diagnostics";
 
 export const KILO_GATEWAY_BASE_URL = "https://ai-gateway.kilo.ai/api";
 export const KILO_FREE_MODEL = "kilo-auto/free";
+/**
+ * App attribution for gateways that name the calling app (OpenRouter files
+ * unattributed traffic under "Unknown"). These are the app's own public
+ * identity — the repository URL — and never identify a person, a device or a
+ * key. Sent only on the OpenAI-compatible BYOK path, where such gateways live.
+ */
+export const APP_ATTRIBUTION = {
+  title: "Vittaz",
+  referer: "https://github.com/OnlyXianzo/Vittaz",
+} as const;
 
 export type MobileQaProvider =
   | { kind: "kilo"; api_key: string | null }
@@ -242,6 +252,9 @@ export function create_mobile_qa_agent(
         base_url: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
         default_model: kilo_selected ? KILO_FREE_MODEL : profile!.model,
         key_nickname: kilo_selected ? "kilo_free" : "openai_compatible_byok",
+        // Only the BYOK path carries attribution: that is where a gateway such
+        // as OpenRouter reads it. Kilo and Anthropic are left byte-identical.
+        ...(kilo_selected ? {} : { attribution: APP_ATTRIBUTION }),
       },
       dependencies,
     );

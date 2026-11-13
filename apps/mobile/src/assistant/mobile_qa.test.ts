@@ -250,9 +250,14 @@ it("routes explicitly selected OpenAI-compatible BYOK to the configured endpoint
   expect(requests[0]?.url).toBe(
     "https://compatible.example/api/v1/chat/completions",
   );
-  expect(
-    new Headers(requests[0]?.init.headers as HeadersInit).get("authorization"),
-  ).toBe("Bearer test-key");
+  const byok_headers = new Headers(requests[0]?.init.headers as HeadersInit);
+  expect(byok_headers.get("authorization")).toBe("Bearer test-key");
+  // App attribution: the OpenAI-compatible BYOK path carries the app's public
+  // identity so a gateway such as OpenRouter does not file usage as "Unknown".
+  expect(byok_headers.get("x-title")).toBe("Vittaz");
+  expect(byok_headers.get("http-referer")).toBe(
+    "https://github.com/OnlyXianzo/Vittaz",
+  );
   const body = JSON.parse(String(requests[0]?.init.body)) as {
     model?: string;
     stream?: boolean;
