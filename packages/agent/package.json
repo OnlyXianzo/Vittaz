@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.104",
     "@ai-sdk/openai-compatible": "3.0.90",
     "@vittaz/core": "0.0.1",
     "ai": "7.0.169",
