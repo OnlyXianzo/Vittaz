@@ -262,3 +262,72 @@ test("transport_callback_errors_stop_without_retry_and_stay_static", async () =>
   ).rejects.toThrow(/callback/i);
   expect(server.recordedRequests).toHaveLength(1);
 });
+
+// App attribution (`X-Title` / `HTTP-Referer`) is opt-in per configuration.
+// It exists because OpenRouter files unattributed traffic under "Unknown", and
+// it is never inferred from the hostname: that would be a provider-specific
+// branch and would fingerprint every request to every endpoint.
+test("transport_sends_attribution_headers_only_when_configured", async () => {
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  const config = {
+    id: "or",
+    kind: "openai_compatible" as const,
+    credential_ref: "OPENROUTER_KEY",
+    base_url: server.baseUrl,
+    default_model: "synthetic/model",
+  };
+  const deps = { resolve_credential: async () => "synthetic_key" };
+
+  // Unset: the wire must be byte-identical to before this option existed.
+  await provider.create_ai_sdk_provider(config, deps).chatCompletion(ask());
+  expect(server.recordedRequests[0]!.headers["x-title"]).toBeUndefined();
+  expect(server.recordedRequests[0]!.headers["http-referer"]).toBeUndefined();
+
+  // Configured: both reach the wire.
+  await provider
+    .create_ai_sdk_provider(
+      {
+        ...config,
+        attribution: { title: "Vittaz", referer: "https://vittaz.example" },
+      },
+      deps,
+    )
+    .chatCompletion(ask());
+  const sent = server.recordedRequests[1]!.headers;
+  expect(sent["x-title"]).toBe("Vittaz");
+  expect(sent["http-referer"]).toBe("https://vittaz.example");
+
+  // Title without a referer is allowed; the header is simply omitted.
+  await provider
+    .create_ai_sdk_provider(
+      { ...config, attribution: { title: "Vittaz" } },
+      deps,
+    )
+    .chatCompletion(ask());
+  expect(server.recordedRequests[2]!.headers["x-title"]).toBe("Vittaz");
+  expect(server.recordedRequests[2]!.headers["http-referer"]).toBeUndefined();
+});
+
+test("attribution_rejects_unsafe_values", async () => {
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  const base = {
+    id: "or",
+    kind: "openai_compatible" as const,
+    credential_ref: "OPENROUTER_KEY",
+    base_url: "https://openrouter.ai/api",
+    default_model: "synthetic/model",
+  };
+  const deps = { resolve_credential: async () => "synthetic_key" };
+  for (const attribution of [
+    { title: "" },
+    { title: "x".repeat(81) },
+    { title: "bad\nheader" },
+    { title: "Vittaz", referer: "not-a-url" },
+    { title: "Vittaz", referer: "ftp://example.invalid" },
+  ])
+    expect(() =>
+      provider.create_ai_sdk_provider({ ...base, attribution }, deps),
+    ).toThrow(/Invalid provider configuration/i);
+});

@@ -31,7 +31,12 @@ import {
   type ProviderDependencies,
 } from "../contracts/provider.js";
 import { capabilities_for_model } from "../registry/model_registry.js";
-import { to_sdk_messages, to_sdk_tools, to_tool_calls } from "./sdk_prompt.js";
+import {
+  attribution_headers,
+  to_sdk_messages,
+  to_sdk_tools,
+  to_tool_calls,
+} from "./sdk_prompt.js";
 
 /**
  * OpenAI-compatible transport backed by the Vercel AI SDK.
@@ -145,6 +150,7 @@ export function create_ai_sdk_provider(
     throw new InvalidProviderConfigError();
   const base_url = validate_endpoint(validated.base_url ?? "");
   const model_id = resolve_model(validated, options.model);
+  const attribution = attribution_headers(validated.attribution);
   const timeout_ms = deps.timeout_ms ?? 30000;
   if (
     !Number.isSafeInteger(timeout_ms) ||
@@ -246,6 +252,8 @@ export function create_ai_sdk_provider(
             // Keyless configurations (Kilo Auto Free) must send no header at all.
             ...(entry.apiKey ? { apiKey: entry.apiKey } : {}),
             ...(deps.fetch ? { fetch: deps.fetch } : {}),
+            // Opt-in only; absent means the wire is unchanged.
+            ...(attribution ? { headers: attribution } : {}),
             // NOTE: the SDK sets its own `user-agent`
             // ("ai/7.0.169 ai-sdk-provider-utils/5.0.79 node.js/24") after
             // merging caller headers, so it cannot be overridden from here.

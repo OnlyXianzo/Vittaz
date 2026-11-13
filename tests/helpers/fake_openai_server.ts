@@ -3,6 +3,8 @@ import type { AddressInfo } from "node:net";
 export interface RecordedOpenAIRequest {
   index: number;
   apiKey: string | null;
+  /** Every request header, lowercased by the platform. */
+  headers: Record<string, string>;
   rawBody: string;
   parsedBody: Record<string, unknown> | null;
 }
@@ -75,6 +77,12 @@ export async function startFakeOpenAIServer(responder?: FakeResponder) {
           apiKey:
             /^Bearer\s+(.+)$/i.exec(req.headers.authorization ?? "")?.[1] ??
             null,
+          headers: Object.fromEntries(
+            Object.entries(req.headers).map(([key, value]) => [
+              key.toLowerCase(),
+              Array.isArray(value) ? value.join(",") : (value ?? ""),
+            ]),
+          ),
           rawBody,
           parsedBody,
         };

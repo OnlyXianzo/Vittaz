@@ -44,6 +44,17 @@ export interface ProviderConfig {
   readonly default_model: string;
   /** Optional key-pool nickname override; defaults to `id`. */
   readonly key_nickname?: string;
+  /**
+   * Opt-in app-attribution headers. Absent means no attribution headers are
+   * sent at all; see `attribution_schema` for why this is never inferred.
+   */
+  readonly attribution?: ProviderAttribution;
+}
+
+/** App name and optional app URL for gateway dashboards. Never user data. */
+export interface ProviderAttribution {
+  readonly title: string;
+  readonly referer?: string;
 }
 
 export type CredentialResolver = (
@@ -86,6 +97,39 @@ const base_url_schema = z
   .max(2048)
   .refine((value) => !has_forbidden_characters(value));
 
+/**
+ * Optional app-attribution headers (`X-Title`, `HTTP-Referer`).
+ *
+ * Some gateways — OpenRouter is the documented one — name the calling app in
+ * their dashboards from these two headers; without them every request is filed
+ * under "Unknown". They are **opt-in and per configuration**, deliberately not
+ * auto-detected from the hostname: inferring them would mean a provider-specific
+ * branch, and it would silently fingerprint every request to every endpoint.
+ *
+ * Neither value may identify a person. `title` is the app name; `referer` is a
+ * public URL that the owner of the deployment controls, never a user or device
+ * identifier.
+ */
+const attribution_schema = z.strictObject({
+  title: z
+    .string()
+    .min(1)
+    .max(80)
+    .refine((value) => !has_forbidden_characters(value)),
+  // A public https URL that the deployment owner controls. Rejected otherwise:
+  // a referer is shown in a third party's dashboard, so a typo or a
+  // user-identifying URL must fail loudly rather than be sent.
+  referer: base_url_schema
+    .refine((value) => {
+      try {
+        return new URL(value).protocol === "https:";
+      } catch {
+        return false;
+      }
+    })
+    .optional(),
+});
+
 const provider_config_schema = z.strictObject({
   id: provider_id_schema,
   kind: z.enum(["anthropic", "openai_compatible"]),
@@ -93,6 +137,7 @@ const provider_config_schema = z.strictObject({
   base_url: base_url_schema.optional(),
   default_model: model_id_schema,
   key_nickname: provider_id_schema.optional(),
+  attribution: attribution_schema.optional(),
 });
 
 /**

@@ -135,3 +135,17 @@ export function to_tool_calls(
     },
   }));
 }
+
+/**
+ * Opt-in app-attribution headers, as configured. Returns `undefined` when the
+ * configuration sets none, so the request stays byte-identical to before.
+ */
+export function attribution_headers(
+  attribution: { title: string; referer?: string } | undefined,
+): Record<string, string> | undefined {
+  if (!attribution) return undefined;
+  return {
+    "X-Title": attribution.title,
+    ...(attribution.referer ? { "HTTP-Referer": attribution.referer } : {}),
+  };
+}

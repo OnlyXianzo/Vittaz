@@ -137,6 +137,37 @@ classes, preflight and redaction, cancellation, and no key/endpoint leakage.
 On-device React Native/Hermes behaviour for `@ai-sdk/anthropic`, and any live
 Anthropic call. No device, and no API credentials, exist in this environment.
 
+## 2026-11-11 — Opt-in app-attribution headers
+
+Mechanism: some gateways name the calling app from two optional request headers
+— `X-Title` (app name) and `HTTP-Referer` (app URL). OpenRouter uses them for its
+dashboard; without them all usage is filed under "Unknown", which is exactly what
+the first live test showed.
+
+Decision: add `attribution?: { title, referer? }` to `ProviderConfig`. It is
+**opt-in and per configuration**, not inferred from the hostname. Inferring it
+would require a provider-specific branch (`if host is openrouter`), which this
+codebase forbids, and it would silently fingerprint every request to every
+endpoint — including self-hosted Ollama on a laptop.
+
+Constraints enforced by the schema:
+
+- `title` is 1–80 characters and rejects control characters, so a header cannot
+  be split or injected.
+- `referer`, when present, must be `https:` and a URL. It is displayed in a third
+  party's dashboard, so a typo or a user-identifying URL fails loudly instead of
+  being sent.
+- Neither field may identify a person. They carry the app name and the
+  deployment's own public URL, nothing else, and no key or ledger data.
+
+When `attribution` is absent the wire is byte-identical to before; a test asserts
+the headers are absent, present, and title-only.
+
+**Not yet set for the mobile app.** Wiring it needs a public URL the owner
+controls; inventing one would misattribute traffic in someone else's dashboard.
+Until then the mobile app sends no attribution headers and usage still shows as
+"Unknown".
+
 ## Open
 
 - License. Undecided. Do not add a license file until it is chosen.

@@ -27,7 +27,12 @@ import {
   type ProviderDependencies,
 } from "../contracts/provider.js";
 import { capabilities_for_model } from "../registry/model_registry.js";
-import { to_sdk_messages, to_sdk_tools, to_tool_calls } from "./sdk_prompt.js";
+import {
+  attribution_headers,
+  to_sdk_messages,
+  to_sdk_tools,
+  to_tool_calls,
+} from "./sdk_prompt.js";
 
 /**
  * Anthropic transport, backed by `@ai-sdk/anthropic`.
@@ -165,6 +170,7 @@ export function create_anthropic_provider(
   // configuration mistake, not something to silently ignore.
   if (validated.base_url) throw new InvalidProviderConfigError();
   const model_id = resolve_model(validated, options.model);
+  const attribution = attribution_headers(validated.attribution);
   const timeout_ms = deps.timeout_ms ?? 30000;
   if (
     !Number.isSafeInteger(timeout_ms) ||
@@ -207,7 +213,10 @@ export function create_anthropic_provider(
         // Preserve the documented version this project verifies against. The
         // SDK defaults to its own (`2023-06-01`) and adds a beta header; the
         // override is verified to reach the wire.
-        headers: { "anthropic-version": ANTHROPIC_API_VERSION },
+        headers: {
+          "anthropic-version": ANTHROPIC_API_VERSION,
+          ...(attribution ?? {}),
+        },
       });
 
       assert_tool_pairing(wire.messages);
