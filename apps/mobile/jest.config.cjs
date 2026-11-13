@@ -1,11 +1,13 @@
 const preset = require("jest-expo/jest-preset");
 
 // jest-expo already knows which RN/Expo packages ship untranspiled code; extend
-// its allowlist with the two extra native view packages this app uses.
+// its allowlist with the two extra native view packages this app uses, plus the
+// AI SDK packages. `ai` and `@ai-sdk/*` are ESM-only on disk, so Jest's
+// CommonJS runtime must transform them rather than require them raw.
 const transformIgnorePatterns = preset.transformIgnorePatterns.map((pattern) =>
   pattern.replace(
     "standard-navigation",
-    "standard-navigation|react-native-svg|react-native-safe-area-context",
+    "standard-navigation|react-native-svg|react-native-safe-area-context|@ai-sdk|@workflow|ai",
   ),
 );
 
@@ -23,6 +25,9 @@ module.exports = {
   moduleNameMapper: {
     "^@vittaz/core$": "<rootDir>/../../packages/core/src/index.ts",
     "^zod$": "<rootDir>/node_modules/zod/index.cjs",
+    // The AI SDK imports zod subpaths (e.g. `zod/v4/locales/en.js`) which are
+    // ESM on disk. Zod ships a `.cjs` beside every one, so route them there.
+    "^zod/(.*)\\.js$": "<rootDir>/node_modules/zod/$1.cjs",
     // Core uses NodeNext ".js" specifiers over ".ts" sources.
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },

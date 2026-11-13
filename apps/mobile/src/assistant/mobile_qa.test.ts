@@ -201,9 +201,11 @@ it("sends an optional synthetic Kilo key only in the authorization header", asyn
   ).answerQuestion("Synthetic question");
   expect(answer.answer).toBe("Synthetic answer");
   expect(recorded).not.toBeNull();
-  expect(recorded!.init.headers).toMatchObject({
-    Authorization: "Bearer fake-kilo-key",
-  });
+  // The SDK sends lower-case header names; HTTP header names are
+  // case-insensitive, so assert the value rather than the casing.
+  const sent = new Headers(recorded!.init.headers as HeadersInit);
+  expect(sent.get("authorization")).toBe("Bearer fake-kilo-key");
+  // The credential travels only in the header: never in the body.
   expect(String(recorded!.init.body)).not.toContain("fake-kilo-key");
 });
 
@@ -248,12 +250,19 @@ it("routes explicitly selected OpenAI-compatible BYOK to the configured endpoint
   expect(requests[0]?.url).toBe(
     "https://compatible.example/api/v1/chat/completions",
   );
-  expect(requests[0]?.init.headers).toMatchObject({
-    Authorization: "Bearer test-key",
-  });
-  expect(JSON.parse(String(requests[0]?.init.body))).toMatchObject({
+  expect(
+    new Headers(requests[0]?.init.headers as HeadersInit).get("authorization"),
+  ).toBe("Bearer test-key");
+  const body = JSON.parse(String(requests[0]?.init.body)) as {
+    model?: string;
+    stream?: boolean;
+  };
+  // The SDK omits `stream` for a non-streaming call instead of sending
+  // `stream: false`. Providers treat an absent flag as false, so assert the
+  // effective value rather than the exact wire shape.
+  expect(body.stream ?? false).toBe(false);
+  expect(body).toMatchObject({
     model: "synthetic-compatible-model",
-    stream: false,
   });
   expect(String(requests[0]?.init.body)).not.toContain("test-key");
   expect(requests[0]?.url).not.toContain("kilo.ai");

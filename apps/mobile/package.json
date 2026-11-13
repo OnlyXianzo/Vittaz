@@ -3,9 +3,11 @@
   "version": "0.0.1",
   "main": "index.ts",
   "dependencies": {
+    "@ai-sdk/openai-compatible": "3.0.90",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/metro-runtime": "~58.0.17",
     "@expo/vector-icons": "^15.0.2",
+    "ai": "7.0.169",
     "expo": "~58.0.23",
     "expo-clipboard": "~58.0.4",
     "expo-crypto": "~58.0.7",
