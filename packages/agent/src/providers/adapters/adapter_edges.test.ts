@@ -623,8 +623,18 @@ test("anthropic_resets_a_stream_that_failed_with_a_server_error", async () => {
 });
 
 test("anthropic_resets_a_stream_whose_reply_broke_a_protocol_cap", async () => {
+  // Any shape breach resets the consumer's stream. The tool-id cap is used here
+  // rather than the reply-length cap: the same branch, without streaming 33k
+  // frames to reach it.
   const { fetch_impl } = await open_anthropic(() => ({
-    content: [{ type: "text", text: "x".repeat(40000) }],
+    content: [
+      {
+        type: "tool_use",
+        id: "call with spaces!",
+        name: "get_balance",
+        input: {},
+      },
+    ],
   }));
   let reset = false;
   await expect(
