@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import type { ComponentRef } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
 import { Markdown } from "../Markdown";
+import { MessageActions, ReasoningBlock, ThinkingDots } from "../chat_elements";
 import { format_tokens } from "../assistant/tokens";
 import { InstructionsScreen } from "./InstructionsScreen";
 import { formatPaise } from "../domain";
@@ -268,85 +268,33 @@ export function ChatScreen() {
               ) : (
                 <View key={m.id} style={{ maxWidth: "92%", gap: 4 }}>
                   <Markdown text={m.text} />
-                  {m.tokens !== undefined ? (
-                    <T size={11} color={colors.dim} style={{ marginLeft: 2 }}>
-                      {`${format_tokens(m.tokens)} tokens`}
-                    </T>
-                  ) : null}
+                  <Row start gap={10} style={{ alignItems: "center" }}>
+                    {m.tokens !== undefined ? (
+                      <T size={11} color={colors.dim}>
+                        {`${format_tokens(m.tokens)} tokens`}
+                      </T>
+                    ) : null}
+                    <MessageActions text={m.text} />
+                  </Row>
                 </View>
               ),
             )}
 
-            {state.chatSteps.length > 0 ? (
-              <LinearGradient
-                colors={gradients.hero}
-                start={{ x: 0.1, y: 0 }}
-                end={{ x: 0.9, y: 1 }}
-                style={{
-                  borderRadius: 18,
-                  borderWidth: 1,
-                  borderColor: "rgba(190,255,120,0.28)",
-                  paddingVertical: 4,
-                  paddingHorizontal: 14,
-                }}
-              >
-                {state.chatSteps.map((step, index) => (
-                  <Row
-                    key={step.tool}
-                    start
-                    gap={10}
-                    style={[
-                      { paddingVertical: 10, alignItems: "flex-start" },
-                      index > 0 && {
-                        borderTopWidth: 1,
-                        borderTopColor: colors.hairline,
-                      },
-                    ]}
-                  >
-                    {step.state === "done" ? (
-                      <View style={styles.stepDone}>
-                        <Feather name="check" size={11} color={colors.limeDark} />
-                      </View>
-                    ) : step.state === "running" ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={colors.lime}
-                        style={styles.stepSpinner}
-                      />
-                    ) : (
-                      <View style={styles.stepPending} />
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <B size={14}>{step.label}</B>
-                      <Row
-                        start
-                        gap={6}
-                        style={{ marginTop: 4, flexWrap: "wrap" }}
-                      >
-                        <View style={styles.toolTag}>
-                          <T size={12} weight="bold" color={colors.lime}>
-                            {step.tool}
-                          </T>
-                        </View>
-                        <M size={12}>{step.detail}</M>
-                      </Row>
-                    </View>
-                  </Row>
-                ))}
-              </LinearGradient>
-            ) : null}
+            <ReasoningBlock
+              steps={state.chatSteps}
+              running={state.chatMode === "thinking"}
+            />
 
             {state.chatMode === "thinking" ? (
-              <Row start gap={8} style={{ alignItems: "center" }}>
-                <ActivityIndicator size="small" color={colors.lime} />
-                <M size={12}>
-                  {state.model === "openai-compatible"
+              <ThinkingDots
+                label={
+                  state.model === "openai-compatible"
                     ? "Asking your selected provider…"
                     : state.model === "claude"
                       ? "Asking Anthropic Claude…"
-                      : "Asking Kilo Auto Free…"}
-                </M>
-              </Row>
+                      : "Asking Kilo Auto Free…"
+                }
+              />
             ) : null}
 
             {proposal && state.chatMode === "approval" ? (
@@ -623,30 +571,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
-  },
-  stepDone: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.lime,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  stepSpinner: { width: 18, height: 18, marginTop: 1 },
-  stepPending: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: "#f5a524",
-    marginTop: 1,
-  },
-  toolTag: {
-    backgroundColor: "rgba(184,242,60,0.12)",
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
   },
   disclosure: {
     lineHeight: 16,

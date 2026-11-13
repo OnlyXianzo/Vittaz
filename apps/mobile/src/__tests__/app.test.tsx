@@ -957,6 +957,12 @@ describe("Vittaz native shell backed by core", () => {
       );
       expect(chunk_times[1] - chunk_times[0]).toBeGreaterThanOrEqual(10);
       expect(screen.getByText("Checked this month's totals")).toBeTruthy();
+      // The lookups are grouped in a reasoning block that starts expanded, so
+      // the tool row above is what the owner sees without tapping anything.
+      expect(screen.getByText("1 ledger lookup")).toBeTruthy();
+      expect(
+        screen.getByRole("button", { name: "Hide 1 ledger lookup" }),
+      ).toBeTruthy();
     });
 
     it("restores local chat history and passes a bounded recent context window", async () => {
