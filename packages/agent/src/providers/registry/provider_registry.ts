@@ -10,7 +10,7 @@ import type {
   ProviderDependencies,
 } from "../contracts/provider.js";
 import { create_anthropic_provider } from "../adapters/anthropic.js";
-import { create_openai_compatible_provider } from "../adapters/openai_compatible.js";
+import { create_ai_sdk_provider } from "../adapters/ai_sdk.js";
 import { capabilities_for_model } from "./model_registry.js";
 
 export interface RegistryOptions {
@@ -27,7 +27,7 @@ function create_adapter(
 ): ProviderAdapter {
   return config.kind === "anthropic"
     ? create_anthropic_provider(config, deps, { model })
-    : create_openai_compatible_provider(config, deps, { model });
+    : create_ai_sdk_provider(config, deps, { model });
 }
 
 /**

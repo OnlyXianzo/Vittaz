@@ -3,12 +3,15 @@
  *
  * Layout:
  *   contracts/  provider configuration, capability metadata, normalized errors
- *   adapters/   thin wrappers over the existing `provider_client.ts` and
- *               `anthropic_messages_client.ts` transports
+ *   adapters/   `ai_sdk.ts` speaks OpenAI-compatible wire formats through the
+ *               Vercel AI SDK; `anthropic.ts` wraps the Anthropic Messages
+ *               transport, which is a different protocol the SDK's
+ *               openai-compatible package cannot serve
  *   registry/   explicit provider selection and model capability metadata
  *
- * No provider framework type crosses this boundary. The transports remain the
- * only authority for wire formats, HTTP classification and credentials.
+ * No SDK type crosses this boundary: `ProviderAdapter` is exactly what the QA
+ * loop already consumed. Vittaz keeps the preflight, key pool, error contract
+ * and diagnostics; the SDK owns only wire encoding and SSE decoding.
  */
 export {
   declare_capabilities,
@@ -41,7 +44,7 @@ export type {
 } from "./contracts/provider.js";
 
 export { create_anthropic_provider } from "./adapters/anthropic.js";
-export { create_openai_compatible_provider } from "./adapters/openai_compatible.js";
+export { create_ai_sdk_provider } from "./adapters/ai_sdk.js";
 
 export { ProviderRegistry } from "./registry/provider_registry.js";
 export type { RegistryOptions } from "./registry/provider_registry.js";

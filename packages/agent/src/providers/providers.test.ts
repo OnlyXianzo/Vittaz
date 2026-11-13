@@ -3,7 +3,7 @@ import { PrivacyRedactor } from "@vittaz/core";
 import { startFakeOpenAIServer } from "../../../../tests/helpers/fake_openai_server.js";
 import { AllKeysFailedError, BadRequestNoFallbackError } from "../key_pool.js";
 import { create_anthropic_provider } from "./adapters/anthropic.js";
-import { create_openai_compatible_provider } from "./adapters/openai_compatible.js";
+import { create_ai_sdk_provider } from "./adapters/ai_sdk.js";
 import {
   declare_capabilities,
   UNKNOWN_CAPABILITIES,
@@ -126,13 +126,13 @@ test("model_and_nickname_resolution_prefer_explicit_values", () => {
 
 test("openai_compatible_adapter_sends_the_configured_endpoint_key_and_model", async () => {
   const server = await open(() => ({ content: "Synthetic answer" }));
-  const provider = create_openai_compatible_provider(openai_config(), {
+  const provider = create_ai_sdk_provider(openai_config(), {
     resolve_credential: async () => "synthetic_key_value",
     base_url: server.baseUrl,
     redactor: new PrivacyRedactor([]),
   } as never);
   // The endpoint comes from configuration, not from the dependency bag.
-  const configured = create_openai_compatible_provider(
+  const configured = create_ai_sdk_provider(
     openai_config({ base_url: server.baseUrl }),
     { resolve_credential: async () => "synthetic_key_value" },
     { model: "synthetic-model" },
@@ -149,7 +149,7 @@ test("openai_compatible_adapter_sends_the_configured_endpoint_key_and_model", as
 
 test("openai_compatible_adapter_is_keyless_only_when_no_reference_is_configured", async () => {
   const server = await open(() => ({ content: "Synthetic answer" }));
-  const keyless = create_openai_compatible_provider(
+  const keyless = create_ai_sdk_provider(
     openai_config({ credential_ref: "", base_url: server.baseUrl }),
     { resolve_credential: async () => "should_never_be_read" },
   );
@@ -157,7 +157,7 @@ test("openai_compatible_adapter_is_keyless_only_when_no_reference_is_configured"
   expect(server.recordedRequests[0]!.apiKey).toBeNull();
 
   const resolve = vi.fn(async () => null);
-  const missing = create_openai_compatible_provider(
+  const missing = create_ai_sdk_provider(
     openai_config({ base_url: server.baseUrl }),
     { resolve_credential: resolve },
   );
@@ -179,7 +179,7 @@ test("openai_compatible_adapter_maps_http_and_protocol_failures_to_existing_cate
   ];
   for (const [status, reason] of cases) {
     const server = await open(() => ({ status }));
-    const provider = create_openai_compatible_provider(
+    const provider = create_ai_sdk_provider(
       openai_config({ base_url: server.baseUrl }),
       { resolve_credential: async () => "synthetic_key_value" },
     );
@@ -194,7 +194,7 @@ test("openai_compatible_adapter_maps_http_and_protocol_failures_to_existing_cate
   }
 
   const malformed = await open(() => ({ wireChunks: ["data: {oops}\n\n"] }));
-  const provider = create_openai_compatible_provider(
+  const provider = create_ai_sdk_provider(
     openai_config({ base_url: malformed.baseUrl }),
     { resolve_credential: async () => "synthetic_key_value" },
   );
@@ -206,7 +206,7 @@ test("openai_compatible_adapter_maps_http_and_protocol_failures_to_existing_cate
   );
 
   const bad = await open(() => ({ status: 400 }));
-  const rejects = create_openai_compatible_provider(
+  const rejects = create_ai_sdk_provider(
     openai_config({ base_url: bad.baseUrl }),
     { resolve_credential: async () => "synthetic_key_value" },
   );
@@ -332,19 +332,32 @@ test("provider_registry_applies_per_configuration_and_active_model_overrides", a
 });
 
 test("adapters_reject_a_config_of_the_wrong_kind_and_close_credential_gaps", async () => {
-  // A transport that rejects its own configuration (unsafe endpoint) is a
-  // configuration error, never a silently degraded provider.
-  const unsafe = create_openai_compatible_provider(
-    openai_config({ base_url: "http://plaintext.example/v1" }),
-    { resolve_credential: async () => "synthetic_key_value" },
-  );
-  await expect(unsafe.chatCompletion({ messages })).rejects.toBeInstanceOf(
-    InvalidProviderConfigError,
-  );
+  // An unsafe endpoint is rejected when the adapter is built, before any
+  // request can be attempted. Stronger than the previous transport, which only
+  // rejected it on first use.
+  for (const base_url of [
+    "http://plaintext.example/v1", // https is required outside loopback
+    "https://user:pass@host.example/v1", // no embedded credentials
+    "https://host.example/v1?x=1", // no query string
+    "https://host.example/v1#frag", // no fragment
+    "not-a-url",
+  ])
+    expect(() =>
+      create_ai_sdk_provider(openai_config({ base_url }), {
+        resolve_credential: async () => "synthetic_key_value",
+      }),
+    ).toThrow(InvalidProviderConfigError);
+  // Loopback over http stays allowed for local model servers.
+  expect(() =>
+    create_ai_sdk_provider(
+      openai_config({ base_url: "http://127.0.0.1:11434/v1" }),
+      { resolve_credential: async () => "synthetic_key_value" },
+    ),
+  ).not.toThrow();
 
   // A kind mismatch is caught when the adapter is built, before any request.
   expect(() =>
-    create_openai_compatible_provider(
+    create_ai_sdk_provider(
       { ...openai_config(), kind: "anthropic" as never },
       { resolve_credential: async () => "synthetic_key_value" },
     ),
@@ -469,7 +482,7 @@ test("anthropic_adapter_runs_the_real_messages_transport_end_to_end", async () =
 
 test("capabilities_are_reported_per_adapter_and_never_inferred_from_success", async () => {
   const server = await open(() => ({ content: "Synthetic answer" }));
-  const provider = create_openai_compatible_provider(
+  const provider = create_ai_sdk_provider(
     openai_config({ base_url: server.baseUrl }),
     { resolve_credential: async () => "synthetic_key_value" },
   );

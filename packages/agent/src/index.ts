@@ -8,7 +8,6 @@ export type {
   KeyStatusSnapshot,
   KeyFailureRecord,
 } from "./key_pool.js";
-export { OpenAICompatibleClient } from "./provider_client.js";
 export type {
   ChatMessage,
   ToolCallPayload,
@@ -40,7 +39,7 @@ export type { QuestionAnsweringAgent } from "./qa_loop.js";
 export {
   ProviderRegistry,
   create_anthropic_provider,
-  create_openai_compatible_provider,
+  create_ai_sdk_provider,
   create_model_registry,
   capabilities_for_model,
   declare_capabilities,
