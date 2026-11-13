@@ -1,10 +1,10 @@
+import { test_client } from "../../../tests/helpers/test_client.js";
 import { afterEach, expect, test } from "vitest";
 import { PrivacyRedactor, getWalletSummary } from "@vittaz/core";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 import { KeyPool } from "./key_pool.js";
-import { OpenAICompatibleClient } from "./provider_client.js";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
-import { create_openai_compatible_provider } from "./providers/adapters/openai_compatible.js";
+import { create_ai_sdk_provider } from "./providers/adapters/ai_sdk.js";
 import { openLedgerStore } from "../../storage/src/repositories.js";
 
 /**
@@ -52,7 +52,7 @@ function without_global_crypto<T>(run: () => Promise<T>): Promise<T> {
 
 test("hermes_no_web_crypto_transport_still_reaches_the_provider", async () => {
   const server = await open(() => ({ content: "Synthetic answer" }));
-  const client = new OpenAICompatibleClient({
+  const client = test_client({
     baseUrl: server.baseUrl,
     keyPool: new KeyPool([{ nickname: "alpha", apiKey: "synthetic_alpha" }]),
   });
@@ -70,7 +70,7 @@ test("hermes_no_web_crypto_provider_contract_path_answers_without_an_unclassifie
   const server = await open(() => ({ content: "Synthetic answer" }));
   const store = openLedgerStore(":memory:");
   stores.push(store);
-  const provider = create_openai_compatible_provider(
+  const provider = create_ai_sdk_provider(
     {
       id: "hermes_check",
       kind: "openai_compatible",

@@ -47,7 +47,9 @@ test("keyless_smoke_uses_actual_adapter_fixed_origin_no_auth_and_three_requests"
   }
   const body = JSON.parse(send.mock.calls[1]![1]!.body as string);
   expect(body.model).toBe("synthetic/model:free");
-  expect(body.max_completion_tokens).toBe(512);
+  // The SDK sends the cap as `max_tokens`; the old transport used
+  // `max_completion_tokens`. Both are accepted by OpenAI-compatible servers.
+  expect(body.max_completion_tokens ?? body.max_tokens).toBe(512);
   expect(body.messages).toEqual([
     {
       role: "user",

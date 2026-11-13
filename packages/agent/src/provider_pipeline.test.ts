@@ -15,7 +15,7 @@ import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server
 import { AllKeysFailedError, BadRequestNoFallbackError } from "./key_pool.js";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
 import {
-  create_openai_compatible_provider,
+  create_ai_sdk_provider,
   normalize_failure_reason,
 } from "./providers/index.js";
 
@@ -46,7 +46,7 @@ const request = {
 };
 
 function provider_for(base_url: string, api_key = "synthetic_key") {
-  return create_openai_compatible_provider(
+  return create_ai_sdk_provider(
     {
       id: "pipeline_check",
       kind: "openai_compatible",
@@ -136,9 +136,9 @@ test("pipeline_adapter_adds_no_retries_and_preserves_400_and_exhausted_keys", as
   expect(server.recordedRequests).toHaveLength(1);
 });
 
-test("pipeline_keeps_developer_null_tool_protocol_wire_exact_and_never_caches", async () => {
+test("pipeline_keeps_system_and_tool_protocol_wire_exact_and_never_caches", async () => {
   const calls: unknown[] = [];
-  const provider = create_openai_compatible_provider(
+  const provider = create_ai_sdk_provider(
     {
       id: "wire_check",
       kind: "openai_compatible",
@@ -179,7 +179,28 @@ test("pipeline_keeps_developer_null_tool_protocol_wire_exact_and_never_caches", 
   await provider.chatCompletion({ messages, maxCompletionTokens: 50 });
   await provider.chatCompletion({ messages, maxCompletionTokens: 50 });
   expect(calls).toHaveLength(2);
-  expect(calls[0]).toMatchObject({ messages, max_completion_tokens: 50 });
+  // Deliberate wire change with the SDK: `developer` (and `system`) text is
+  // carried as a system message the SDK is allowed to send, because this SDK
+  // version rejects those roles inside `messages`. The text is preserved
+  // verbatim, and the assistant tool call plus the tool result still travel as
+  // protocol messages rather than being flattened into prose.
+  const body = calls[0] as {
+    messages: { role: string; content: unknown }[];
+    max_tokens?: number;
+    max_completion_tokens?: number;
+  };
+  const wire = JSON.stringify(body.messages);
+  expect(wire).toContain("Synthetic instruction");
+  expect(wire).toContain("synthetic_call");
+  expect(wire).toContain("get_balance");
+  expect(body.messages.some((m) => m.role === "developer")).toBe(false);
+  expect(
+    body.messages.some(
+      (m) => m.role === "system" && m.content === "Synthetic instruction",
+    ),
+  ).toBe(true);
+  expect(body.max_tokens ?? body.max_completion_tokens).toBe(50);
+  // Identical input produces an identical request: nothing is cached.
   expect(calls[1]).toEqual(calls[0]);
 });
 

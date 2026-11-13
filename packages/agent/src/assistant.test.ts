@@ -1,3 +1,4 @@
+import { test_client } from "../../../tests/helpers/test_client.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,7 +10,6 @@ import {
 } from "../../storage/src/repositories.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
-import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
 import { ValidatedLocalModelTasks } from "./local_tasks.js";
 import { SharedAssistantService, createPendingDraft } from "./assistant.js";
@@ -39,7 +39,7 @@ async function fixture() {
   clean.push(() => server.close());
   const redactor = new PrivacyRedactor(["SynthPerson"]);
   const qa = new ReadOnlyQaLoop({
-    client: new OpenAICompatibleClient({
+    client: test_client({
       baseUrl: server.baseUrl,
       keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
     }),

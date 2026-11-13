@@ -451,7 +451,7 @@ test("telegram_actual_shared_assistant_native_history_app_and_paired_telegram_no
   const { SharedAssistantService } = await import("./assistant.js");
   const { ReadOnlyQaLoop } = await import("./qa_loop.js");
   const { ValidatedLocalModelTasks } = await import("./local_tasks.js");
-  const { OpenAICompatibleClient } = await import("./provider_client.js");
+  const { test_client } = await import("../../../tests/helpers/test_client.js");
   const { KeyPool } = await import("./key_pool.js");
   const { startFakeOpenAIServer } =
     await import("../../../tests/helpers/fake_openai_server.js");
@@ -471,7 +471,7 @@ test("telegram_actual_shared_assistant_native_history_app_and_paired_telegram_no
       redactor,
       local: new ValidatedLocalModelTasks({ run }),
       qa: new ReadOnlyQaLoop({
-        client: new OpenAICompatibleClient({
+        client: test_client({
           baseUrl: server.baseUrl,
           keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
         }),

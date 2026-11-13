@@ -5,7 +5,7 @@ import {
   getWalletSummary,
 } from "@vittaz/core";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
-import { OpenAICompatibleClient } from "./provider_client.js";
+import { test_client } from "../../../tests/helpers/test_client.js";
 import { KeyPool } from "./key_pool.js";
 import { openLedgerStore } from "../../storage/src/repositories.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
@@ -57,7 +57,7 @@ test("rules_stored_behavior_reaches_provider_http_with_immutable_safety_policy",
       ]),
     );
     const agent = new ReadOnlyQaLoop({
-      client: new OpenAICompatibleClient({
+      client: test_client({
         baseUrl: server.baseUrl,
         keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
       }),

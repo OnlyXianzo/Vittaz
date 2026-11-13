@@ -1,3 +1,4 @@
+import { test_client } from "../../../tests/helpers/test_client.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,7 +17,6 @@ import {
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 import { SharedAssistantService } from "./assistant.js";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
-import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
 import { ValidatedLocalModelTasks } from "./local_tasks.js";
 
@@ -58,7 +58,7 @@ async function fixture() {
     run: vi.fn(async () => null),
   });
   const qa = new ReadOnlyQaLoop({
-    client: new OpenAICompatibleClient({
+    client: test_client({
       baseUrl: server.baseUrl,
       keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
     }),
@@ -165,7 +165,7 @@ test("privacy_provider_boundary_sensitive_question_and_sensitive_history_never_r
   ).rejects.toThrow("Conversation history operation failed");
   // History persistence rejects sensitive content; direct QA options must also filter it.
   const qa = new ReadOnlyQaLoop({
-    client: new OpenAICompatibleClient({
+    client: test_client({
       baseUrl: f.server.baseUrl,
       keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
     }),
@@ -185,7 +185,7 @@ test("privacy_provider_boundary_sensitive_question_and_sensitive_history_never_r
 
 test("privacy_provider_boundary_low_level_sensitive_wire_is_rejected_before_fetch", async () => {
   const transport = vi.fn();
-  const client = new OpenAICompatibleClient({
+  const client = test_client({
     baseUrl: "https://example.invalid",
     keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
     fetch: transport as unknown as typeof fetch,

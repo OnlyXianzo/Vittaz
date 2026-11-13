@@ -1,3 +1,4 @@
+import { test_client } from "../../../tests/helpers/test_client.js";
 import { expect, test, vi } from "vitest";
 import {
   PrivacyRedactor,
@@ -6,7 +7,6 @@ import {
 } from "@vittaz/core";
 import { openLedgerStore } from "../../storage/src/repositories.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
-import { OpenAICompatibleClient } from "./provider_client.js";
 import { KeyPool } from "./key_pool.js";
 import { ReadOnlyQaLoop } from "./qa_loop.js";
 test("preferences_persisted_values_reach_actual_provider_http_context_without_new_authority", async () => {
@@ -20,7 +20,7 @@ test("preferences_persisted_values_reach_actual_provider_http_context_without_ne
     } as const;
     await store.preferences.set(preferences);
     const agent = new ReadOnlyQaLoop({
-      client: new OpenAICompatibleClient({
+      client: test_client({
         baseUrl: server.baseUrl,
         keyPool: new KeyPool([
           { nickname: "synthetic", apiKey: "", model: "synthetic" },
