@@ -284,6 +284,12 @@ export function create_ai_sdk_provider(
           const provider = createOpenAICompatible({
             name: "vittaz-byok",
             baseURL: base_url,
+            // The previous transport always sent
+            // `stream_options: { include_usage: true }`. Without it a streamed
+            // answer reports zero tokens (verified against Gemini, which then
+            // returns no usage block at all), which would silently break the
+            // token counter the owner relies on. Restores exact parity.
+            includeUsage: true,
             // Keyless configurations (Kilo Auto Free) must send no header at
             // all. A custom auth header means the key is sent below instead.
             ...(entry.apiKey && !custom_auth ? { apiKey: entry.apiKey } : {}),

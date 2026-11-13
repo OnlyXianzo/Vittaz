@@ -495,3 +495,31 @@ test("transport_sends_attribution_and_custom_auth_together", async () => {
   expect(sent["anthropic-version"]).toBe("2026-10-21");
   expect(sent.authorization).toBeUndefined();
 });
+
+/**
+ * Regression: the deleted transport always asked for usage on streamed
+ * responses (`stream_options.include_usage`). Without it, providers that only
+ * send usage when asked — Gemini's compatibility layer among them — report zero
+ * tokens for every streamed answer, silently emptying the token counter.
+ */
+test("transport_requests_usage_on_streamed_calls", async () => {
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  await provider
+    .create_ai_sdk_provider(
+      {
+        id: "p",
+        kind: "openai_compatible",
+        credential_ref: "K",
+        base_url: server.baseUrl,
+        default_model: "synthetic/model",
+      },
+      { resolve_credential: async () => "synthetic_key" },
+    )
+    .chatCompletion({ ...ask(), stream: true });
+  expect(server.recordedRequests[0]!.parsedBody).toMatchObject({
+    stream: true,
+    stream_options: { include_usage: true },
+  });
+});
