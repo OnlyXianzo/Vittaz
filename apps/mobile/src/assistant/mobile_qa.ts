@@ -66,7 +66,7 @@ const kilo_failure_copy: Record<QaStopReason, string> = {
   provider_protocol_error:
     "Kilo replied in an unsupported format, so no answer was accepted. Code: KILO_PROTOCOL. No ledger changes were made.",
   provider_http_error:
-    "Kilo returned an HTTP error outside the known auth, rate-limit, and request-format cases. Code: KILO_HTTP. No ledger changes were made.",
+    "Kilo returned an HTTP error outside the known auth, rate-limit, and request-format cases. The most common cause is a model that is no longer offered; check the model name. Code: KILO_HTTP. No ledger changes were made.",
   provider_error:
     "The request failed for an unclassified reason. If it continues, report code KILO_UNKNOWN. No ledger changes were made.",
   tool_rejected:
@@ -100,7 +100,7 @@ const openai_compatible_failure_copy: Record<QaStopReason, string> = {
   provider_protocol_error:
     "The OpenAI-compatible service replied in an unsupported format, so no answer was accepted. Code: BYOK_PROTOCOL. No ledger changes were made.",
   provider_http_error:
-    "The OpenAI-compatible service returned an HTTP error. Code: BYOK_HTTP. No ledger changes were made.",
+    "The OpenAI-compatible service returned an HTTP error. The most common cause is that the selected model is not available to your account or has been retired by the provider; check the model name. Code: BYOK_HTTP. No ledger changes were made.",
   provider_error:
     "The selected provider request failed for an unclassified reason. If it continues, report code BYOK_UNKNOWN. No ledger changes were made.",
   tool_rejected:
