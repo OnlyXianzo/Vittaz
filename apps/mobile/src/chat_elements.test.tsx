@@ -31,11 +31,17 @@ it("reasoning_block_starts_expanded_so_lookups_are_visible_and_can_collapse", as
   expect(screen.getByText("Checked a ledger contact")).toBeTruthy();
   expect(screen.getByText("find_person")).toBeTruthy();
 
-  await fireEvent.press(screen.getByRole("button", { name: "Hide 2 ledger lookups" }));
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Hide 2 ledger lookups" }),
+  );
   expect(screen.queryByText("Checked a ledger contact")).toBeNull();
-  expect(screen.getByRole("button", { name: "Show 2 ledger lookups" })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Show 2 ledger lookups" }),
+  ).toBeTruthy();
 
-  await fireEvent.press(screen.getByRole("button", { name: "Show 2 ledger lookups" }));
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Show 2 ledger lookups" }),
+  );
   expect(screen.getByText("Checked a ledger contact")).toBeTruthy();
 });
 
@@ -60,7 +66,9 @@ it("message_actions_copies_the_answer_and_says_so", async () => {
   expect(Clipboard.setStringAsync).toHaveBeenCalledWith(
     "Two people owe you money.",
   );
-  expect(await screen.findByRole("button", { name: "Answer copied" })).toBeTruthy();
+  expect(
+    await screen.findByRole("button", { name: "Answer copied" }),
+  ).toBeTruthy();
 });
 
 it("thinking_dots_show_the_provider_label", async () => {

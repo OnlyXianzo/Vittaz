@@ -117,9 +117,7 @@ export function ReasoningBlock({
   const [open, set_open] = useState(true);
   if (steps.length === 0) return null;
   const summary =
-    steps.length === 1
-      ? "1 ledger lookup"
-      : `${steps.length} ledger lookups`;
+    steps.length === 1 ? "1 ledger lookup" : `${steps.length} ledger lookups`;
   return (
     <View
       style={{

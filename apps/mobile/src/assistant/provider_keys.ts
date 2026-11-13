@@ -21,10 +21,7 @@ export const KEY_PROFILES_NAME = "assistant_key_profiles_v1";
 export type KeyProvider = AssistantProviderSelection;
 
 export type AuthHeader =
-  | "authorization"
-  | "api-key"
-  | "x-api-key"
-  | "x-goog-api-key";
+  "authorization" | "api-key" | "x-api-key" | "x-goog-api-key";
 
 export interface KeyProfile {
   id: string;

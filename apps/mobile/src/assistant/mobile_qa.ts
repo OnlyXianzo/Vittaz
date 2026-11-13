@@ -36,7 +36,8 @@ export type MobileQaProvider =
       /** API path appended to `base_url`; defaults to `/v1`. */
       api_suffix?: string;
       /** Where the key goes on the wire; defaults to `Authorization: Bearer`. */
-      auth_header?: "authorization" | "api-key" | "x-api-key" | "x-goog-api-key";
+      auth_header?:
+        "authorization" | "api-key" | "x-api-key" | "x-goog-api-key";
       auth_scheme?: string;
       base_url: string;
       model: string;
@@ -205,9 +206,7 @@ function validate_openai_compatible_provider(provider: {
       suffix !== "" &&
       url.pathname.toLowerCase().endsWith(suffix.toLowerCase())
     )
-      url.pathname = url.pathname
-        .slice(0, -suffix.length)
-        .replace(/\/+$/, "");
+      url.pathname = url.pathname.slice(0, -suffix.length).replace(/\/+$/, "");
     return {
       base_url: url.origin + url.pathname.replace(/\/+$/, ""),
       model,

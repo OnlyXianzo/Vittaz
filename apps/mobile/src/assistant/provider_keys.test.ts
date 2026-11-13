@@ -155,20 +155,22 @@ it("stores a Gemini-style API path and key header, and discovers models there", 
     auth_scheme: "",
   });
 
-  const fetch_impl = jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    // Discovery must use the same path and key header as the chat transport,
-    // or the app would list models it cannot then talk to.
-    expect(String(input)).toBe(
-      "https://generativelanguage.googleapis.com/v1beta/openai/models",
-    );
-    expect((init?.headers as Record<string, string>)["x-goog-api-key"]).toBe(
-      "AIza-synth",
-    );
-    expect(init?.headers).not.toHaveProperty("authorization");
-    return new Response(
-      JSON.stringify({ data: [{ id: "gemini-2.5-flash" }] }),
-    );
-  });
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      // Discovery must use the same path and key header as the chat transport,
+      // or the app would list models it cannot then talk to.
+      expect(String(input)).toBe(
+        "https://generativelanguage.googleapis.com/v1beta/openai/models",
+      );
+      expect((init?.headers as Record<string, string>)["x-goog-api-key"]).toBe(
+        "AIza-synth",
+      );
+      expect(init?.headers).not.toHaveProperty("authorization");
+      return new Response(
+        JSON.stringify({ data: [{ id: "gemini-2.5-flash" }] }),
+      );
+    },
+  );
   expect(await fetch_model_choices(store, profile, fetch_impl)).toEqual([
     { id: "gemini-2.5-flash", label: "gemini-2.5-flash" },
   ]);
@@ -202,8 +204,16 @@ it("rejects unsafe API paths and unknown auth headers", async () => {
     model: "m",
     api_key: "k",
   };
-  for (const api_suffix of ["../admin", "v1", "/v1?x=1", "/a b", "/" + "x".repeat(64)])
-    await expect(add_key_profile(store, { ...base, api_suffix })).rejects.toThrow();
+  for (const api_suffix of [
+    "../admin",
+    "v1",
+    "/v1?x=1",
+    "/a b",
+    "/" + "x".repeat(64),
+  ])
+    await expect(
+      add_key_profile(store, { ...base, api_suffix }),
+    ).rejects.toThrow();
   await expect(
     add_key_profile(store, { ...base, auth_header: "cookie" as never }),
   ).rejects.toThrow();
@@ -241,12 +251,14 @@ it("defaults every existing profile to /v1 with Bearer", async () => {
   });
   expect(profile.api_suffix).toBeUndefined();
   expect(profile.auth_header).toBeUndefined();
-  const fetch_impl = jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toBe("https://api.openai.com/v1/models");
-    expect((init?.headers as Record<string, string>).authorization).toBe(
-      "Bearer k",
-    );
-    return new Response(JSON.stringify({ data: [{ id: "gpt-4o-mini" }] }));
-  });
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api.openai.com/v1/models");
+      expect((init?.headers as Record<string, string>).authorization).toBe(
+        "Bearer k",
+      );
+      return new Response(JSON.stringify({ data: [{ id: "gpt-4o-mini" }] }));
+    },
+  );
   await fetch_model_choices(store, profile, fetch_impl);
 });

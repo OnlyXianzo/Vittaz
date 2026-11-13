@@ -133,7 +133,9 @@ it("keeps chat navigation in a drawer instead of above the transcript", async ()
   );
 
   // The transcript area must not be crowded by navigation buttons.
-  expect(screen.queryByRole("button", { name: "Custom instructions" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Custom instructions" }),
+  ).toBeNull();
 
   // The menu button is the single entry point and the drawer holds the items.
   await open_assistant_menu();
@@ -152,7 +154,9 @@ it("keeps chat navigation in a drawer instead of above the transcript", async ()
 
   // The disclosure still has to be readable without opening any menu.
   expect(
-    screen.getByText(/Kilo Auto Free may route prompts to providers that log them/),
+    screen.getByText(
+      /Kilo Auto Free may route prompts to providers that log them/,
+    ),
   ).toBeTruthy();
 });
 
@@ -173,29 +177,45 @@ it("lists saved chats in the drawer and searches them in place", async () => {
   await open_assistant_menu();
   // Both conversations are listed as rows, with no intermediate screen.
   expect(
-    screen.getByRole("button", { name: "Open conversation: Food spend this month" }),
+    screen.getByRole("button", {
+      name: "Open conversation: Food spend this month",
+    }),
   ).toBeTruthy();
   expect(
-    screen.getByRole("button", { name: "Open conversation: Synthetic owed totals" }),
+    screen.getByRole("button", {
+      name: "Open conversation: Synthetic owed totals",
+    }),
   ).toBeTruthy();
 
   // Search filters the same list rather than navigating anywhere.
   await fireEvent.press(screen.getByRole("button", { name: "Search chats" }));
-  await fireEvent.changeText(screen.getByLabelText("Search saved chats"), "food");
+  await fireEvent.changeText(
+    screen.getByLabelText("Search saved chats"),
+    "food",
+  );
   expect(
-    screen.getByRole("button", { name: "Open conversation: Food spend this month" }),
+    screen.getByRole("button", {
+      name: "Open conversation: Food spend this month",
+    }),
   ).toBeTruthy();
   expect(
-    screen.queryByRole("button", { name: "Open conversation: Synthetic owed totals" }),
+    screen.queryByRole("button", {
+      name: "Open conversation: Synthetic owed totals",
+    }),
   ).toBeNull();
 
-  await fireEvent.changeText(screen.getByLabelText("Search saved chats"), "zzz");
+  await fireEvent.changeText(
+    screen.getByLabelText("Search saved chats"),
+    "zzz",
+  );
   expect(screen.getByText("No saved chats match that search.")).toBeTruthy();
 
   // Closing search restores the full list and clears the query.
   await fireEvent.press(screen.getByRole("button", { name: "Close search" }));
   expect(
-    screen.getByRole("button", { name: "Open conversation: Synthetic owed totals" }),
+    screen.getByRole("button", {
+      name: "Open conversation: Synthetic owed totals",
+    }),
   ).toBeTruthy();
   expect(screen.queryByLabelText("Search saved chats")).toBeNull();
 });

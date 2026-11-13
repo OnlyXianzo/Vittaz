@@ -1,5 +1,15 @@
 import type { ComponentType } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, House, Inbox, Plus, Settings, Users, X } from "lucide-react-native";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  House,
+  Inbox,
+  Plus,
+  Settings,
+  Users,
+  X,
+} from "lucide-react-native";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -517,9 +527,7 @@ export function SettingRow({
         </M>
       </View>
       {right}
-      {onPress ? (
-        <ChevronRight size={18} color={colors.dim} />
-      ) : null}
+      {onPress ? <ChevronRight size={18} color={colors.dim} /> : null}
     </>
   );
   const style = [styles.settingRow, !first && styles.hairlineTop];

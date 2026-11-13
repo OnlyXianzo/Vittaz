@@ -1,4 +1,10 @@
-import { Check, Download, Inbox, MessageCircle, Plus } from "lucide-react-native";
+import {
+  Check,
+  Download,
+  Inbox,
+  MessageCircle,
+  Plus,
+} from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, View } from "react-native";
 import { useApp } from "../store";

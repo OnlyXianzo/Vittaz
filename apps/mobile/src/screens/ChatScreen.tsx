@@ -137,7 +137,9 @@ export function ChatScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={MODEL_LABEL[state.model]}
-                  onPress={() => dispatch({ type: "navigate", screen: "models" })}
+                  onPress={() =>
+                    dispatch({ type: "navigate", screen: "models" })
+                  }
                   style={({ pressed }) => [
                     styles.modelPill,
                     pressed && { opacity: 0.7 },
@@ -146,7 +148,11 @@ export function ChatScreen() {
                   <T size={12} weight="bold" color={colors.lime}>
                     {MODEL_SHORT[state.model]}
                   </T>
-                  <ChevronDown size={14} color={colors.lime} strokeWidth={2.6} />
+                  <ChevronDown
+                    size={14}
+                    color={colors.lime}
+                    strokeWidth={2.6}
+                  />
                 </Pressable>
                 <IconBtn
                   label="Assistant menu"
@@ -181,14 +187,18 @@ export function ChatScreen() {
             {state.chatMessages.length === 0 ? (
               <View style={{ paddingTop: 20, gap: 10 }}>
                 <View style={styles.emptyGlyph}>
-                  <MessageCircle size={22} color={colors.lime} strokeWidth={2} />
+                  <MessageCircle
+                    size={22}
+                    color={colors.lime}
+                    strokeWidth={2}
+                  />
                 </View>
                 <T size={24} weight="heavy" style={{ lineHeight: 30 }}>
                   How can I help?
                 </T>
                 <M size={13} style={{ lineHeight: 19 }}>
-                  Ask read-only questions about your ledger. The assistant cannot
-                  add or approve entries.
+                  Ask read-only questions about your ledger. The assistant
+                  cannot add or approve entries.
                 </M>
               </View>
             ) : null}
@@ -270,7 +280,9 @@ export function ChatScreen() {
                     label="Approve"
                     small
                     style={{ flex: 1.4 }}
-                    onPress={() => dispatch({ type: "approve", id: proposal.id })}
+                    onPress={() =>
+                      dispatch({ type: "approve", id: proposal.id })
+                    }
                   />
                   <Button
                     label="Edit"
@@ -286,7 +298,9 @@ export function ChatScreen() {
                     variant="ghost"
                     small
                     style={{ flex: 1 }}
-                    onPress={() => dispatch({ type: "reject", id: proposal.id })}
+                    onPress={() =>
+                      dispatch({ type: "reject", id: proposal.id })
+                    }
                   />
                 </Row>
               </Card>
@@ -598,7 +612,12 @@ function AssistantDrawer({
                   {chat.id === active_id ? (
                     <View style={styles.liveDot} />
                   ) : null}
-                  <T size={13} weight="semi" numberOfLines={2} style={{ flex: 1 }}>
+                  <T
+                    size={13}
+                    weight="semi"
+                    numberOfLines={2}
+                    style={{ flex: 1 }}
+                  >
                     {chat.title}
                   </T>
                 </Pressable>
