@@ -248,6 +248,27 @@ So a provider that omits usage from streams would have shown a **token-budget
 failure instead of the answer** on a real phone. Fixed in `1bcab8d` and now
 verified live on two providers.
 
+### How the live checks were permitted, given the synthetic-data rule
+
+`AGENTS.md` requires synthetic data only: no real transactions, names, bank
+messages, keys or spreadsheets anywhere. The live checks above were run against
+throwaway provider accounts created for the purpose, with **owner authorization**
+and **throwaway keys**, and the rule was applied to everything else:
+
+- The prompts sent were a fixed synthetic question. No ledger, transaction,
+  account name or export was involved, and none was available to the checker.
+- Throwaway keys were used only in the shell session that ran the check. They
+  were never written to the repository, a test file, a log, a screenshot or the
+  workspace, and were revoked afterwards.
+- Everything committed to the tree uses synthetic credentials: fake keys such as
+  `sk-ant-synthetic`, and local fake servers (`tests/helpers/fake_*_server.ts`) that
+  speak the real wire protocols.
+- No test asserts against a live provider. The suite runs entirely offline; the
+  live results were recorded here as evidence, not encoded as tests.
+
+So the policy holds: the repository contains synthetic data only, and the live
+key checks were an owner-authorized exception that left no credential behind.
+
 Lesson recorded for future work: the fake server always returns usage, so the
 whole Node suite could not see this. Any transport property that a real provider
 may simply omit needs a fake that omits it.
