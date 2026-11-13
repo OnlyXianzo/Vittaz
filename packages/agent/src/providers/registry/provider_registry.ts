@@ -56,6 +56,12 @@ export class ProviderRegistry {
     const validated = configs.map((config) => validate_provider_config(config));
     if (new Set(validated.map((config) => config.id)).size !== validated.length)
       throw new InvalidProviderConfigError();
+    // An injected pool is authoritative and carries one endpoint's credentials.
+    // With several configurations it would be reused for every one of them,
+    // sending an account's keys to another account's endpoint — the exact
+    // substitution this class exists to refuse.
+    if (deps.key_pool && validated.length > 1)
+      throw new InvalidProviderConfigError();
     this.#configs = validated;
     this.#deps = deps;
     this.#options = options;

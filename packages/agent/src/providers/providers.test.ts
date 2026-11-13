@@ -1,7 +1,11 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { PrivacyRedactor } from "@vittaz/core";
 import { startFakeOpenAIServer } from "../../../../tests/helpers/fake_openai_server.js";
-import { AllKeysFailedError, BadRequestNoFallbackError } from "../key_pool.js";
+import {
+  AllKeysFailedError,
+  BadRequestNoFallbackError,
+  type KeyPool,
+} from "../key_pool.js";
 import { create_anthropic_provider } from "./adapters/anthropic.js";
 import { create_ai_sdk_provider } from "./adapters/ai_sdk.js";
 import {
@@ -288,6 +292,35 @@ test("provider_registry_never_falls_back_and_cannot_guess_the_active_account", a
     "secondary",
   ]);
   expect(registry.capabilities("primary")).toEqual(UNKNOWN_CAPABILITIES);
+});
+
+test("provider_registry_refuses_one_key_pool_for_several_configurations", () => {
+  // A pool belongs to one endpoint. Reusing it across configurations would send
+  // one account's keys to another account's endpoint.
+  const pool = {
+    getCandidateEntries: () => [],
+    getStatusSnapshot: () => [],
+    markUnauthorized: () => undefined,
+    markRateLimited: () => undefined,
+  } as unknown as KeyPool;
+  const configs = [
+    openai_config({ id: "primary", base_url: "https://one.invalid" }),
+    openai_config({ id: "secondary", base_url: "https://two.invalid" }),
+  ];
+  expect(
+    () =>
+      new ProviderRegistry(configs, {
+        resolve_credential: async () => "k",
+        key_pool: pool,
+      }),
+  ).toThrow(InvalidProviderConfigError);
+  // One configuration is unambiguous, so the same pool is accepted.
+  expect(
+    new ProviderRegistry([configs[0]!], {
+      resolve_credential: async () => "k",
+      key_pool: pool,
+    }).active_id,
+  ).toBe("primary");
 });
 
 test("provider_registry_rejects_duplicate_ids_and_empty_configuration", () => {
