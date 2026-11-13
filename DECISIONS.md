@@ -236,6 +236,22 @@ another.
 `extra_headers` is supported by the contract and tested at the transport level,
 but has no form field yet: it needs a key/value editor, and no preset requires it.
 
+### Follow-up: the missing `include_usage` was user-facing
+
+Live testing against Gemini (and then Groq) proved this was not a cosmetic
+token-counter gap. `qa_loop.ts` treats `usage.total_tokens === 0` as a failure
+and returns `stopped("token_budget")`. The mobile app streams. A local fake
+server that streams text _without_ usage reproduces it exactly:
+`{answered: false, stopReason: "token_budget", chunks: 0}`.
+
+So a provider that omits usage from streams would have shown a **token-budget
+failure instead of the answer** on a real phone. Fixed in `1bcab8d` and now
+verified live on two providers.
+
+Lesson recorded for future work: the fake server always returns usage, so the
+whole Node suite could not see this. Any transport property that a real provider
+may simply omit needs a fake that omits it.
+
 ### Bug found while wiring this
 
 Attribution and the custom auth header were both passed to the SDK as a
