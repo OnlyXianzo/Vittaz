@@ -5,6 +5,7 @@ import {
   add_key_profile,
   auth_header_for,
   fetch_model_choices,
+  mobile_supports_preset,
   profile_api_suffix,
   read_key_registry,
   read_key_secret,
@@ -261,4 +262,42 @@ it("defaults every existing profile to /v1 with Bearer", async () => {
     },
   );
   await fetch_model_choices(store, profile, fetch_impl);
+});
+
+describe("mobile_supports_preset", () => {
+  it("refuses a keyless preset the key flow cannot save", () => {
+    // Ollama is defined for the CLI, where a loopback endpoint and no key are
+    // fine. Offering it on the phone means offering a form that always fails.
+    expect(
+      mobile_supports_preset({
+        id: "ollama",
+        base_url: "http://127.0.0.1:11434",
+        keyless: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("accepts the keyless provider the phone flow does allow", () => {
+    expect(
+      mobile_supports_preset({
+        id: "kilo",
+        base_url: "https://kilo.example",
+        keyless: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("refuses a non-https endpoint and accepts a keyed https one", () => {
+    expect(
+      mobile_supports_preset({ id: "custom", base_url: "http://host.invalid" }),
+    ).toBe(false);
+    expect(
+      mobile_supports_preset({
+        id: "custom",
+        base_url: "https://host.invalid",
+      }),
+    ).toBe(true);
+    // A preset without an endpoint inherits the form's own value.
+    expect(mobile_supports_preset({ id: "anthropic" })).toBe(true);
+  });
 });

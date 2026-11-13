@@ -728,12 +728,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // key profile, not on the legacy projection. They are read here so
             // the request matches what the user configured; absent means the
             // plain OpenAI defaults.
+            // Select by the registry's own active id. Matching on `base_url`
+            // would pick the first profile that shares an endpoint, so a second
+            // account on the same host could be handed the first one's API path
+            // and auth header.
+            const registry = await read_key_registry(SecureStore);
             const active_profile =
               profile.selected_provider === "openai_compatible"
-                ? (await read_key_registry(SecureStore)).profiles.find(
+                ? registry.profiles.find(
                     (candidate) =>
-                      candidate.provider === "openai_compatible" &&
-                      candidate.base_url === profile.base_url,
+                      candidate.id === registry.active_id &&
+                      candidate.provider === "openai_compatible",
                   )
                 : undefined;
             provider =

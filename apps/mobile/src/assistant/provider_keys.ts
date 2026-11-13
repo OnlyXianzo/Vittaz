@@ -2,6 +2,7 @@ import { fetch as expo_fetch } from "expo/fetch";
 import {
   ANTHROPIC_API_VERSION,
   ANTHROPIC_DEFAULT_MODEL,
+  type ProviderPreset,
 } from "../../../../packages/agent/src/providers";
 import { KILO_FREE_MODEL, KILO_GATEWAY_BASE_URL } from "./mobile_qa";
 import {
@@ -304,6 +305,26 @@ export async function read_key_secret(
   } catch {
     return null;
   }
+}
+
+/** The one provider the phone flow lets a user save without a credential. */
+const MOBILE_KEYLESS_PRESET_ID = "kilo";
+
+/**
+ * Whether the phone flow can actually save this preset.
+ *
+ * Two rules decide it, and both come from this app rather than from the
+ * provider: the key flow requires `https` (a phone app has no loopback/LAN
+ * endpoint it can dial on the user's behalf), and a profile without a
+ * credential is only allowed for Kilo. A preset that breaks either rule would
+ * be offered and then refuse to save, so it is not offered at all.
+ */
+export function mobile_supports_preset(
+  preset: Pick<ProviderPreset, "base_url" | "keyless" | "id">,
+): boolean {
+  if (preset.base_url !== undefined && !/^https:\/\//i.test(preset.base_url))
+    return false;
+  return !preset.keyless || preset.id === MOBILE_KEYLESS_PRESET_ID;
 }
 
 export async function add_key_profile(

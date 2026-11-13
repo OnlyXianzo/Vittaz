@@ -480,6 +480,49 @@ it("reaches a Gemini-style endpoint at its own API path with its own key header"
   expect(headers.get("authorization")).toBeNull();
 });
 
+it("keeps a base path ending in /v1 when the suffix is explicitly empty", async () => {
+  // An explicit empty suffix means nothing is appended, so the pasted path is
+  // the endpoint. Stripping its `/v1` would send the request to a path the
+  // gateway does not serve.
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({ transactions: { list: async () => [] } } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  const requests: Array<{ url: string; init: RequestInit }> = [];
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), init: init ?? {} });
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "ok", tool_calls: [] } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    },
+  ) as typeof fetch;
+
+  const answer = await create_mobile_qa_agent(
+    ledger,
+    {
+      kind: "openai_compatible",
+      api_key: "synthetic",
+      base_url: "https://synthetic.invalid/gateway/v1",
+      api_suffix: "",
+      model: "synthetic-model",
+    },
+    fetch_impl,
+  ).answerQuestion("Synthetic only: what is my balance?");
+
+  expect(answer).toMatchObject({ answered: true });
+  // `/v1` stays: only the transport's own path is appended.
+  expect(requests[0]?.url).toBe(
+    "https://synthetic.invalid/gateway/v1/chat/completions",
+  );
+});
+
 it("keeps the plain OpenAI shape unchanged when no wire overrides are given", async () => {
   const ledger = {
     read: async (work: (repos: never) => Promise<unknown>) =>

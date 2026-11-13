@@ -199,7 +199,9 @@ function validate_openai_compatible_provider(provider: {
         /[?#\s]/.test(suffix)
       )
         throw new Error();
-    } else
+    } else if (suffix === undefined)
+      // Only the implicit `/v1` is stripped. An explicit empty suffix means no
+      // suffix at all, so a base path ending in `/v1` is the caller's real path.
       url.pathname = url.pathname.replace(/\/+$/, "").replace(/\/v1$/i, "");
     if (
       suffix !== undefined &&

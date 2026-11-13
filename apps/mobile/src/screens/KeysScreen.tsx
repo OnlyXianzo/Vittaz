@@ -8,6 +8,7 @@ import {
   type AuthHeader,
   activate_key_profile,
   fetch_model_choices,
+  mobile_supports_preset,
   read_key_registry,
   read_key_secret,
   remove_key_profile,
@@ -40,6 +41,9 @@ const MODEL_FOR_PROVIDER: Record<KeyProvider, AppState["model"]> = {
 };
 
 /** Prefills for known endpoints; everything else is a custom entry. */
+// Only presets this app can actually save are offered: the key flow requires a
+// credential and an https endpoint, so a keyless local server is not listed
+// here even though the registry defines it for the CLI.
 const PRESET_CHOICES = [
   { id: "openai", label: "OpenAI" },
   { id: "openrouter", label: "OpenRouter" },
@@ -49,9 +53,13 @@ const PRESET_CHOICES = [
   { id: "xai", label: "xAI" },
   { id: "mistral", label: "Mistral" },
   { id: "gemini", label: "Gemini" },
-  { id: "ollama", label: "Ollama (LAN)" },
   { id: "anthropic", label: "Anthropic" },
-] as const;
+]
+  .filter((choice) => {
+    const preset = PROVIDER_PRESETS.find((entry) => entry.id === choice.id);
+    return preset === undefined || mobile_supports_preset(preset);
+  })
+  .map((choice) => choice as { id: string; label: string });
 
 const AUTH_CHOICES = [
   { id: "authorization", label: "Bearer" },
