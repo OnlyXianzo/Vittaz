@@ -33,6 +33,11 @@ export type MobileQaProvider =
   | {
       kind: "openai_compatible";
       api_key: string;
+      /** API path appended to `base_url`; defaults to `/v1`. */
+      api_suffix?: string;
+      /** Where the key goes on the wire; defaults to `Authorization: Bearer`. */
+      auth_header?: "authorization" | "api-key" | "x-api-key" | "x-goog-api-key";
+      auth_scheme?: string;
       base_url: string;
       model: string;
     }
@@ -159,7 +164,8 @@ function validate_openai_compatible_provider(provider: {
   api_key: string;
   base_url: string;
   model: string;
-}): { base_url: string; model: string } {
+  api_suffix?: string;
+}): { base_url: string; model: string; api_suffix?: string } {
   try {
     const key = provider.api_key.trim();
     const has_control_character = Array.from(key).some((character) => {
@@ -181,8 +187,32 @@ function validate_openai_compatible_provider(provider: {
       !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(model)
     )
       throw new Error();
-    url.pathname = url.pathname.replace(/\/+$/, "").replace(/\/v1$/i, "");
-    return { base_url: url.origin + url.pathname, model };
+    // Strip the API path the transport will re-append, so a pasted full
+    // endpoint is not doubled. The suffix itself is validated by the contract.
+    const suffix = provider.api_suffix;
+    if (suffix !== undefined && suffix !== "") {
+      if (
+        suffix.length > 64 ||
+        !suffix.startsWith("/") ||
+        suffix.includes("..") ||
+        /[?#\s]/.test(suffix)
+      )
+        throw new Error();
+    } else
+      url.pathname = url.pathname.replace(/\/+$/, "").replace(/\/v1$/i, "");
+    if (
+      suffix !== undefined &&
+      suffix !== "" &&
+      url.pathname.toLowerCase().endsWith(suffix.toLowerCase())
+    )
+      url.pathname = url.pathname
+        .slice(0, -suffix.length)
+        .replace(/\/+$/, "");
+    return {
+      base_url: url.origin + url.pathname.replace(/\/+$/, ""),
+      model,
+      ...(suffix !== undefined ? { api_suffix: suffix } : {}),
+    };
   } catch {
     throw new Error("Invalid provider configuration");
   }
@@ -251,6 +281,27 @@ export function create_mobile_qa_agent(
           : "openai_compatible_api_key",
         base_url: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
         default_model: kilo_selected ? KILO_FREE_MODEL : profile!.model,
+        // Wire-shape overrides for servers that are not plain OpenAI. Only the
+        // BYOK path needs them; Kilo is a single fixed endpoint.
+        ...(kilo_selected
+          ? {}
+          : {
+              ...(profile!.api_suffix !== undefined
+                ? { api_suffix: profile!.api_suffix }
+                : {}),
+              ...(provider.auth_header || provider.auth_scheme
+                ? {
+                    auth: {
+                      ...(provider.auth_header
+                        ? { header: provider.auth_header }
+                        : {}),
+                      ...(provider.auth_scheme !== undefined
+                        ? { scheme: provider.auth_scheme }
+                        : {}),
+                    },
+                  }
+                : {}),
+            }),
         key_nickname: kilo_selected ? "kilo_free" : "openai_compatible_byok",
         // Only the BYOK path carries attribution: that is where a gateway such
         // as OpenRouter reads it. Kilo and Anthropic are left byte-identical.

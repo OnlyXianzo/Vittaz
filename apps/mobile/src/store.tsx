@@ -31,6 +31,7 @@ import {
   read_kilo_key,
   read_openai_compatible_key,
 } from "./assistant/secure_key";
+import { read_key_registry } from "./assistant/provider_keys";
 import type { Action, AppState, ChatStep, Transaction } from "./domain";
 import {
   create_conversation,
@@ -723,6 +724,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
           );
           let provider: Parameters<typeof create_mobile_qa_agent>[1];
           try {
+            // Wire-shape overrides (API path, auth header) live on the active
+            // key profile, not on the legacy projection. They are read here so
+            // the request matches what the user configured; absent means the
+            // plain OpenAI defaults.
+            const active_profile =
+              profile.selected_provider === "openai_compatible"
+                ? (await read_key_registry(SecureStore)).profiles.find(
+                    (candidate) =>
+                      candidate.provider === "openai_compatible" &&
+                      candidate.base_url === profile.base_url,
+                  )
+                : undefined;
             provider =
               profile.selected_provider === "openai_compatible"
                 ? {
@@ -731,6 +744,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
                       (await read_openai_compatible_key(SecureStore)) ?? "",
                     base_url: profile.base_url,
                     model: profile.model,
+                    ...(active_profile?.api_suffix !== undefined
+                      ? { api_suffix: active_profile.api_suffix }
+                      : {}),
+                    ...(active_profile?.auth_header !== undefined
+                      ? { auth_header: active_profile.auth_header }
+                      : {}),
+                    ...(active_profile?.auth_scheme !== undefined
+                      ? { auth_scheme: active_profile.auth_scheme }
+                      : {}),
                   }
                 : profile.selected_provider === "anthropic"
                   ? {

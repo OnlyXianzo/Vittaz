@@ -462,3 +462,36 @@ test("transport_rejects_unsafe_api_paths_and_auth_overrides", async () => {
     ),
   ).toThrow(/Invalid provider configuration/i);
 });
+
+/**
+ * Regression: attribution and the custom auth header are both request headers.
+ * When they were passed as two separate `headers` spreads, the later one won and
+ * the credential was silently dropped — a failure that would have looked like a
+ * bad key on a real phone.
+ */
+test("transport_sends_attribution_and_custom_auth_together", async () => {
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  await provider
+    .create_ai_sdk_provider(
+      {
+        id: "p",
+        kind: "openai_compatible",
+        credential_ref: "K",
+        base_url: server.baseUrl,
+        default_model: "synthetic/model",
+        auth: { header: "x-goog-api-key", scheme: "" },
+        attribution: { title: "Vittaz", referer: "https://vittaz.example" },
+        extra_headers: { "anthropic-version": "2026-10-21" },
+      },
+      { resolve_credential: async () => "synthetic_key" },
+    )
+    .chatCompletion(ask());
+  const sent = server.recordedRequests[0]!.headers;
+  expect(sent["x-goog-api-key"]).toBe("synthetic_key");
+  expect(sent["x-title"]).toBe("Vittaz");
+  expect(sent["http-referer"]).toBe("https://vittaz.example");
+  expect(sent["anthropic-version"]).toBe("2026-10-21");
+  expect(sent.authorization).toBeUndefined();
+});

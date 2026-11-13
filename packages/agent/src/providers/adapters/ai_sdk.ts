@@ -287,10 +287,13 @@ export function create_ai_sdk_provider(
             // Keyless configurations (Kilo Auto Free) must send no header at
             // all. A custom auth header means the key is sent below instead.
             ...(entry.apiKey && !custom_auth ? { apiKey: entry.apiKey } : {}),
-            ...(headers ? { headers } : {}),
             ...(deps.fetch ? { fetch: deps.fetch } : {}),
-            // Opt-in only; absent means the wire is unchanged.
-            ...(attribution ? { headers: attribution } : {}),
+            // ONE `headers` object. Two separate spreads both named `headers`
+            // silently overwrite each other, which dropped the credential
+            // whenever attribution was configured. Merged deliberately.
+            ...(headers || attribution
+              ? { headers: { ...(attribution ?? {}), ...(headers ?? {}) } }
+              : {}),
             // NOTE: the SDK sets its own `user-agent`
             // ("ai/7.0.169 ai-sdk-provider-utils/5.0.79 node.js/24") after
             // merging caller headers, so it cannot be overridden from here.
