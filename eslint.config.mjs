@@ -11,6 +11,8 @@ export default defineConfig(
       "canvas/**",
       ".agents/**",
       "apps/mobile/**",
+      // Isolated evaluation harness, not application code. See docs/ai_sdk_evaluation.md.
+      "spikes/**",
     ],
   },
   {

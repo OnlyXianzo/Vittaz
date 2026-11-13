@@ -156,13 +156,18 @@ credential bytes; this is not an arbitrary unknown-secret detector. Sensitive an
 provider-rejected requests create no analytics. Operational rows excluded from
 financial backups/restore payloads and inaccessible to model tools.
 
-S25 uses a private LangChain callback manager whose copy remains restrictive and
-whose addHandler always fails before message dispatch. Ambient tracing/verbose/
-context-hook requests therefore fail closed; parent callbacks are not inherited.
-Malformed/sensitive/pre-aborted requests never invoke LangChain. No process-global
-telemetry switches changed. Native message/result objects are transient, no cache;
-original validated wire retained for controlled provider calls. This proves the
-pinned Node adapter boundary, not future device/library-version behavior.
+S25 used a private LangChain callback manager whose copy remained restrictive and
+whose addHandler always failed before message dispatch. Ambient tracing/verbose/
+context-hook requests therefore failed closed; parent callbacks were not inherited.
+**Superseded 2026-11-11:** the LangChain decorator is gone, so that manager no longer
+exists. The privacy properties it was built to protect are unchanged and now hold
+because there is no third-party callback surface at all: the provider contract has
+no tracing, no callbacks and no ambient context, and `ProviderAdapter` only exposes
+`id`, `kind`, `model`, `capabilities()` and `chatCompletion`. Malformed, sensitive or
+pre-aborted requests still never reach a transport; native message/result objects
+stay transient with no cache, and the validated wire is retained only for the
+controlled provider call. Adapters resolve credentials through a closure, so a key
+never enters a config object, diagnostic, log or error.
 
 S26 local task port retains raw local names (no cloud callback accepted), drops
 sensitive input before fake/driver invocation, rejects malformed or sensitive

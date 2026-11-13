@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - "apps/mobile/**"
+      - "packages/agent/**"
       - "packages/core/**"
       - "packages/storage/src/expo_sqlite_store.ts"
       - ".github/workflows/native.yml"
   pull_request:
     paths:
       - "apps/mobile/**"
+      - "packages/agent/**"
       - "packages/core/**"
       - "packages/storage/src/expo_sqlite_store.ts"
       - ".github/workflows/native.yml"
@@ -33,7 +35,15 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
-          cache-dependency-path: apps/mobile/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            apps/mobile/package-lock.json
+      # The app consumes packages/agent as source, and that source imports the
+      # AI SDK. TypeScript resolves those from the workspace root, so the root
+      # install is required before typecheck, not just the app's own.
+      - name: Install workspace dependencies
+        working-directory: .
+        run: npm ci
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check

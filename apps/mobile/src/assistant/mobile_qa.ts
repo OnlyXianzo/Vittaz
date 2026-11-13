@@ -3,14 +3,13 @@ import { getWalletSummary, PrivacyRedactor } from "@vittaz/core";
 import type { LedgerStore } from "@vittaz/core";
 import type { QaStopReason } from "../../../../packages/agent/src/qa_loop";
 export type { QaStopReason };
-import { LangChainQaAgent } from "../../../../packages/agent/src/langchain_adapter";
-import { KeyPool } from "../../../../packages/agent/src/key_pool";
-import { OpenAICompatibleClient } from "../../../../packages/agent/src/provider_client";
-import type { AgentDiagnosticEvent } from "../../../../packages/agent/src/diagnostics";
+import { ReadOnlyQaLoop } from "../../../../packages/agent/src/qa_loop";
 import {
-  AnthropicMessagesClient,
-  ANTHROPIC_DEFAULT_MODEL,
-} from "../../../../packages/agent/src/anthropic_messages_client";
+  create_anthropic_provider,
+  create_ai_sdk_provider,
+} from "../../../../packages/agent/src/providers";
+import type { AgentDiagnosticEvent } from "../../../../packages/agent/src/diagnostics";
+import { ANTHROPIC_DEFAULT_MODEL } from "../../../../packages/agent/src/providers";
 export { ANTHROPIC_DEFAULT_MODEL };
 import type { CompletionClient } from "../../../../packages/agent/src/provider_client";
 import { mobile_diagnostics } from "./diagnostics";
@@ -18,12 +17,28 @@ import type { MobileDiagnostics } from "./diagnostics";
 
 export const KILO_GATEWAY_BASE_URL = "https://ai-gateway.kilo.ai/api";
 export const KILO_FREE_MODEL = "kilo-auto/free";
+/**
+ * App attribution for gateways that name the calling app (OpenRouter files
+ * unattributed traffic under "Unknown"). These are the app's own public
+ * identity — the repository URL — and never identify a person, a device or a
+ * key. Sent only on the OpenAI-compatible BYOK path, where such gateways live.
+ */
+export const APP_ATTRIBUTION = {
+  title: "Vittaz",
+  referer: "https://github.com/OnlyXianzo/Vittaz",
+} as const;
 
 export type MobileQaProvider =
   | { kind: "kilo"; api_key: string | null }
   | {
       kind: "openai_compatible";
       api_key: string;
+      /** API path appended to `base_url`; defaults to `/v1`. */
+      api_suffix?: string;
+      /** Where the key goes on the wire; defaults to `Authorization: Bearer`. */
+      auth_header?:
+        "authorization" | "api-key" | "x-api-key" | "x-goog-api-key";
+      auth_scheme?: string;
       base_url: string;
       model: string;
     }
@@ -52,7 +67,7 @@ const kilo_failure_copy: Record<QaStopReason, string> = {
   provider_protocol_error:
     "Kilo replied in an unsupported format, so no answer was accepted. Code: KILO_PROTOCOL. No ledger changes were made.",
   provider_http_error:
-    "Kilo returned an HTTP error outside the known auth, rate-limit, and request-format cases. Code: KILO_HTTP. No ledger changes were made.",
+    "Kilo returned an HTTP error outside the known auth, rate-limit, and request-format cases. The most common cause is a model that is no longer offered; check the model name. Code: KILO_HTTP. No ledger changes were made.",
   provider_error:
     "The request failed for an unclassified reason. If it continues, report code KILO_UNKNOWN. No ledger changes were made.",
   tool_rejected:
@@ -86,7 +101,7 @@ const openai_compatible_failure_copy: Record<QaStopReason, string> = {
   provider_protocol_error:
     "The OpenAI-compatible service replied in an unsupported format, so no answer was accepted. Code: BYOK_PROTOCOL. No ledger changes were made.",
   provider_http_error:
-    "The OpenAI-compatible service returned an HTTP error. Code: BYOK_HTTP. No ledger changes were made.",
+    "The OpenAI-compatible service returned an HTTP error. The most common cause is that the selected model is not available to your account or has been retired by the provider; check the model name. Code: BYOK_HTTP. No ledger changes were made.",
   provider_error:
     "The selected provider request failed for an unclassified reason. If it continues, report code BYOK_UNKNOWN. No ledger changes were made.",
   tool_rejected:
@@ -150,7 +165,8 @@ function validate_openai_compatible_provider(provider: {
   api_key: string;
   base_url: string;
   model: string;
-}): { base_url: string; model: string } {
+  api_suffix?: string;
+}): { base_url: string; model: string; api_suffix?: string } {
   try {
     const key = provider.api_key.trim();
     const has_control_character = Array.from(key).some((character) => {
@@ -172,8 +188,32 @@ function validate_openai_compatible_provider(provider: {
       !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(model)
     )
       throw new Error();
-    url.pathname = url.pathname.replace(/\/+$/, "").replace(/\/v1$/i, "");
-    return { base_url: url.origin + url.pathname, model };
+    // Strip the API path the transport will re-append, so a pasted full
+    // endpoint is not doubled. The suffix itself is validated by the contract.
+    const suffix = provider.api_suffix;
+    if (suffix !== undefined && suffix !== "") {
+      if (
+        suffix.length > 64 ||
+        !suffix.startsWith("/") ||
+        suffix.includes("..") ||
+        /[?#\s]/.test(suffix)
+      )
+        throw new Error();
+    } else if (suffix === undefined)
+      // Only the implicit `/v1` is stripped. An explicit empty suffix means no
+      // suffix at all, so a base path ending in `/v1` is the caller's real path.
+      url.pathname = url.pathname.replace(/\/+$/, "").replace(/\/v1$/i, "");
+    if (
+      suffix !== undefined &&
+      suffix !== "" &&
+      url.pathname.toLowerCase().endsWith(suffix.toLowerCase())
+    )
+      url.pathname = url.pathname.slice(0, -suffix.length).replace(/\/+$/, "");
+    return {
+      base_url: url.origin + url.pathname.replace(/\/+$/, ""),
+      model,
+      ...(suffix !== undefined ? { api_suffix: suffix } : {}),
+    };
   } catch {
     throw new Error("Invalid provider configuration");
   }
@@ -200,42 +240,78 @@ export function create_mobile_qa_agent(
       event.count,
       event.failure_stage,
     );
+  // The provider contract owns configuration and credential references; the
+  // transports below it stay the only authority for wire behavior. The key is
+  // already read from secure storage by the caller and is resolved through a
+  // closure, so it never enters a configuration object.
+  let credential = "";
+  const dependencies = {
+    resolve_credential: async () => credential,
+    fetch: fetch_impl,
+    timeout_ms: 45000,
+    redactor,
+  };
   let client: CompletionClient;
   if (provider.kind === "anthropic") {
-    client = new AnthropicMessagesClient({
-      apiKey: provider.api_key,
-      fetch: fetch_impl,
-      timeoutMs: 45000,
-      redactor,
-    });
+    credential = provider.api_key;
+    client = create_anthropic_provider(
+      {
+        id: "anthropic_byok",
+        kind: "anthropic",
+        credential_ref: "anthropic_api_key",
+        default_model: ANTHROPIC_DEFAULT_MODEL,
+        key_nickname: "anthropic_byok",
+      },
+      dependencies,
+    );
   } else {
     const kilo_selected = provider.kind === "kilo";
     const profile = kilo_selected
       ? null
       : validate_openai_compatible_provider(provider);
-    client = new OpenAICompatibleClient({
-      baseUrl: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
-      keyPool: new KeyPool([
-        kilo_selected
-          ? {
-              nickname: "kilo_free",
-              apiKey: provider.api_key ?? "",
-              provider: "kilo_gateway",
-              model: KILO_FREE_MODEL,
-            }
+    credential = provider.api_key ?? "";
+    client = create_ai_sdk_provider(
+      {
+        id: kilo_selected ? "kilo_free" : "openai_compatible_byok",
+        kind: "openai_compatible",
+        // An empty reference means deliberately keyless (Kilo Auto Free).
+        credential_ref: kilo_selected
+          ? provider.api_key
+            ? "kilo_gateway_api_key"
+            : ""
+          : "openai_compatible_api_key",
+        base_url: kilo_selected ? KILO_GATEWAY_BASE_URL : profile!.base_url,
+        default_model: kilo_selected ? KILO_FREE_MODEL : profile!.model,
+        // Wire-shape overrides for servers that are not plain OpenAI. Only the
+        // BYOK path needs them; Kilo is a single fixed endpoint.
+        ...(kilo_selected
+          ? {}
           : {
-              nickname: "openai_compatible_byok",
-              apiKey: provider.api_key,
-              provider: "openai_compatible",
-              model: profile!.model,
-            },
-      ]),
-      fetch: fetch_impl,
-      timeoutMs: 45000,
-      redactor,
-    });
+              ...(profile!.api_suffix !== undefined
+                ? { api_suffix: profile!.api_suffix }
+                : {}),
+              ...(provider.auth_header || provider.auth_scheme
+                ? {
+                    auth: {
+                      ...(provider.auth_header
+                        ? { header: provider.auth_header }
+                        : {}),
+                      ...(provider.auth_scheme !== undefined
+                        ? { scheme: provider.auth_scheme }
+                        : {}),
+                    },
+                  }
+                : {}),
+            }),
+        key_nickname: kilo_selected ? "kilo_free" : "openai_compatible_byok",
+        // Only the BYOK path carries attribution: that is where a gateway such
+        // as OpenRouter reads it. Kilo and Anthropic are left byte-identical.
+        ...(kilo_selected ? {} : { attribution: APP_ATTRIBUTION }),
+      },
+      dependencies,
+    );
   }
-  return new LangChainQaAgent({
+  return new ReadOnlyQaLoop({
     client,
     redactor,
     onDiagnostic: on_diagnostic,

@@ -31,6 +31,7 @@ import {
   read_kilo_key,
   read_openai_compatible_key,
 } from "./assistant/secure_key";
+import { read_key_registry } from "./assistant/provider_keys";
 import type { Action, AppState, ChatStep, Transaction } from "./domain";
 import {
   create_conversation,
@@ -89,6 +90,7 @@ const default_state: AppState = {
   chatSteps: [],
   chatProposalId: null,
   chatQuestion: null,
+  chatTokens: 0,
   quickInput: "",
   quickRecentIds: [],
   addDraft: {
@@ -722,6 +724,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
           );
           let provider: Parameters<typeof create_mobile_qa_agent>[1];
           try {
+            // Wire-shape overrides (API path, auth header) live on the active
+            // key profile, not on the legacy projection. They are read here so
+            // the request matches what the user configured; absent means the
+            // plain OpenAI defaults.
+            // Select by the registry's own active id. Matching on `base_url`
+            // would pick the first profile that shares an endpoint, so a second
+            // account on the same host could be handed the first one's API path
+            // and auth header.
+            const registry = await read_key_registry(SecureStore);
+            const active_profile =
+              profile.selected_provider === "openai_compatible"
+                ? registry.profiles.find(
+                    (candidate) =>
+                      candidate.id === registry.active_id &&
+                      candidate.provider === "openai_compatible",
+                  )
+                : undefined;
             provider =
               profile.selected_provider === "openai_compatible"
                 ? {
@@ -730,6 +749,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
                       (await read_openai_compatible_key(SecureStore)) ?? "",
                     base_url: profile.base_url,
                     model: profile.model,
+                    ...(active_profile?.api_suffix !== undefined
+                      ? { api_suffix: active_profile.api_suffix }
+                      : {}),
+                    ...(active_profile?.auth_header !== undefined
+                      ? { auth_header: active_profile.auth_header }
+                      : {}),
+                    ...(active_profile?.auth_scheme !== undefined
+                      ? { auth_scheme: active_profile.auth_scheme }
+                      : {}),
                   }
                 : profile.selected_provider === "anthropic"
                   ? {
@@ -962,11 +990,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     ),
                   );
               });
+            // Record the provider's own token count (already computed by the
+            // QA loop for its budget) so the user can see what an answer cost.
             setState((value) => ({
               ...value,
               chatMode: "idle",
               chatSteps: steps,
-              chatMessages: messages,
+              chatMessages: messages.map((message) =>
+                message.id === assistant_id
+                  ? { ...message, tokens: result.tokensUsed }
+                  : message,
+              ),
+              chatTokens: (value.chatTokens ?? 0) + result.tokensUsed,
             }));
           }
         })()
@@ -985,7 +1020,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : failure_stage === "context_build"
                   ? "secure_store_error"
                   : failure_stage === "agent_create"
-                    ? "langchain_error"
+                    ? "provider_error"
                     : "provider_error",
               undefined,
               undefined,

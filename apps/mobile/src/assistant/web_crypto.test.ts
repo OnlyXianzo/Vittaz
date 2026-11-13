@@ -55,7 +55,11 @@ function ok_fetch() {
 }
 
 describe("web_crypto polyfill for Hermes (no global crypto.getRandomValues)", () => {
-  it("reproduces the device failure: without the polyfill the question fails before any HTTP", async () => {
+  it("no longer needs the polyfill: the assistant answers with no global crypto at all", async () => {
+    // The historical device failure was a LangChain run-id UUID read before the
+    // provider call. That adapter is gone, so the same conditions must now reach
+    // the provider and answer normally. This is the regression guard that the
+    // dependency does not come back with a future transport change.
     remove_global_crypto();
     const fetch_impl = ok_fetch();
     const agent = create_mobile_qa_agent(
@@ -64,10 +68,9 @@ describe("web_crypto polyfill for Hermes (no global crypto.getRandomValues)", ()
       fetch_impl,
     );
     const answer = await agent.answerQuestion("Synthetic question");
-    expect(answer.answered).toBe(false);
-    expect(answer.stopReason).toBe("provider_error");
-    // The LangChain run-id step throws before the provider is ever called.
-    expect(fetch_impl).not.toHaveBeenCalled();
+    expect(answer.answered).toBe(true);
+    expect(answer.stopReason).toBe("completed");
+    expect(fetch_impl).toHaveBeenCalledTimes(1);
   });
 
   it("fixes the device failure: installing the polyfill lets the question answer end-to-end", async () => {

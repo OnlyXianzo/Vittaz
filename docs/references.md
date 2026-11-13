@@ -686,3 +686,71 @@ payloads. The root CI `test:coverage` command still runs the complete suite.
 
 - React Native 0.88.1 accessibility, consulted 2026-11-08:
   https://reactnative.dev/docs/accessibility — labels, roles and control state.
+
+### Vercel AI SDK evaluation references (2026-11-11)
+
+- `ai@7.0.169`, `@ai-sdk/anthropic@4.0.102`, `@ai-sdk/openai@4.0.114`,
+  `@ai-sdk/openai-compatible@3.0.90`, `@ai-sdk/provider@4.0.37`,
+  `@ai-sdk/provider-utils@5.0.79`, `@ai-sdk/gateway@4.0.142`, `@vercel/oidc@3.2.0` —
+  installed from the npm registry on 2026-11-11 and inspected at source level. All
+  Apache-2.0; peer `zod ^3.25.76 || ^4.1.8` (the repository already pins `zod@4.6.7`).
+  `provider-utils` declares `undici@7.30.2`, loaded only when `isNodeRuntime()` is true;
+  `@vercel/oidc` maps the `react-native` export condition to `dist/index-browser.js`, which
+  is why its `fs`/`path`/`os` requires never reach a Metro bundle.
+- AI SDK Expo quickstart: https://ai-sdk.dev/docs/getting-started/expo — consulted
+  2026-11-11. The documented Expo path is a server-side API route plus `useChat` with
+  `expo/fetch`, i.e. a proxy architecture; Vittaz calls providers directly from the device
+  with BYOK, so this guide does not cover the path under evaluation.
+- Expo SDK 58 Encoding APIs: https://docs.expo.dev/versions/latest/sdk/expo/ — consulted
+  2026-11-11. "The TextEncoder API and, starting with SDK 58 and React Native 0.88, the
+  TextDecoder API are provided by Hermes." TextEncoderStream/TextDecoderStream are
+  available on all platforms.
+- Expo SDK 58 Streams API: same page, consulted 2026-11-11. "Global support for standard
+  web streams is available on native platforms"; `ReadableStream`, `WritableStream` and
+  `TransformStream` are global. Corroborated by source: `expo/src/winter/runtime.native.ts`
+  installs `TextDecoderStream`, `TextEncoderStream`, `URL`, `URLSearchParams`,
+  `DOMException`, `structuredClone` and `fetch`, and leaves `ReadableStream` to the
+  runtime. `@expo/metro-config` injects `expo/build/winter` plus
+  `@react-native/js-polyfills` as pre-modules.
+- React Native 0.88.1 `Libraries/Core/setUpXHR.js` installs `AbortController`;
+  `Libraries/Core/setUpGlobals.js` sets `global.process = {}` and `process.env`. Read from
+  the installed package on 2026-11-11.
+- `babel-preset-expo` (Expo SDK 58) `build/configs/hermes-v1.js`, consulted 2026-11-11:
+  the Hermes V1 profile applies `@babel/plugin-transform-block-scoping`,
+  `@babel/plugin-transform-class-static-block` and
+  `@babel/plugin-transform-async-generator-functions`. This is why the AI SDK's async
+  generators compile for Hermes; without that pass `hermesc` rejects them.
+- `hermes-compiler@260318099.0.5` (the exact compiler React Native 0.88.1 pins), consulted
+  2026-11-11: `hermesc -emit-binary -O` compiles the Babel-transformed AI SDK bundle.
+- Meta Hermes releases: https://github.com/meta/hermes/releases — consulted 2026-11-11 for
+  a runnable VM. The public `v0.13.0` Linux CLI build rejects `class` syntax and is
+  therefore **not** a valid stand-in for RN 0.88's Hermes V1; it was used only to record a
+  bare-engine global snapshot and no conclusion rests on executing the SDK on it.
+- Known AI SDK/React Native reports, consulted 2026-11-11 and used only as context, not as
+  evidence for this repository: vercel/ai#3705 (Expo SDK 52 `expo/fetch` stream state),
+  vercel/ai#21771 (`TextDecoderStream is not a constructor` in Expo-like runtimes), and
+  `bidah/react-native-vercel-ai` (React Native fetch does not stream; buffered responses
+  were used instead). The TextDecoderStream problem is closed on this app's stack by Expo
+  SDK 58 / RN 0.88, which the local source inspection above confirms.
+
+## S40 (2026-11-11) — LangChain removal and the Vittaz provider contract
+
+- No new external source was required. The pinned-version LangChain findings recorded
+  above for S25, S36 and S38 stay in this file as history and remain the evidence for
+  why the decorator was removed: `handleChatModelStart` minted a UUID v7 run id with
+  `crypto.getRandomValues` before `_generate`, which is the S38 device failure, and the
+  private callback manager existed only to neutralise LangChain's own ambient tracing.
+  With the dependency gone, neither mechanism can recur; the local sources are deleted.
+- The design follows this repository's own conclusions rather than a framework document:
+  `docs/ai_sdk_evaluation.md` (Outcome B) recommended exactly this step, and
+  `DECISIONS.md` records the reasoning. The AI SDK question stays closed unless provider
+  breadth becomes a real requirement with a device test plan.
+- Transport behaviour was re-verified, not re-derived: the transport suites drive the real
+  HTTP/SSE paths against local fake servers (`ai_sdk_transport.test.ts`,
+  `anthropic_ai_sdk.test.ts`), and
+  the new `provider_pipeline.test.ts` re-asserts the guarantees that previously ran
+  through LangChain (read-only SQLite projections, no added retries, 400 → no fallback,
+  401 → next key, 429 → exhaustion, static abort text, no nickname leakage).
+- Hermes remains unverifiable here: no Android SDK, JDK 17, `adb` or emulator exists in
+  this environment, and the Hermes VM CLI cannot evaluate a Metro bundle. The Android
+  export is static bundle evidence only.

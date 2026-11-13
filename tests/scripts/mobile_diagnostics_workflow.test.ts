@@ -109,13 +109,13 @@ test("mobile_typecheck_and_jest_resolution_stay_pinned_for_the_temp_apk", () => 
   const config = JSON.parse(read("apps/mobile/tsconfig.json")) as {
     compilerOptions?: { paths?: Record<string, string[]> };
   };
-  expect(config.compilerOptions?.paths?.["@langchain/core/*"]).toEqual([
-    "node_modules/@langchain/core/dist/*",
-  ]);
+  // The Zod mappings stay pinned for the temporary APK. The LangChain-specific
+  // mappings are gone with the dependency, so a reintroduction fails here.
   expect(config.compilerOptions?.paths?.["zod"]).toEqual([
     "node_modules/zod/index.d.cts",
   ]);
+  expect(config.compilerOptions?.paths?.["@langchain/core/*"]).toBeUndefined();
   const jest_config = read("apps/mobile/jest.config.cjs").replace(/\s+/g, " ");
-  expect(jest_config).toContain("@langchain/core/dist/messages/index.cjs");
   expect(jest_config).toContain("node_modules/zod/index.cjs");
+  expect(jest_config).not.toContain("@langchain/core");
 });

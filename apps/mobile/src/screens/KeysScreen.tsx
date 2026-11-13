@@ -5,8 +5,10 @@ import * as Clipboard from "expo-clipboard";
 import { useApp } from "../store";
 import {
   add_key_profile,
+  type AuthHeader,
   activate_key_profile,
   fetch_model_choices,
+  mobile_supports_preset,
   read_key_registry,
   read_key_secret,
   remove_key_profile,
@@ -17,6 +19,7 @@ import type {
   KeyProvider,
   ModelChoice,
 } from "../assistant/provider_keys";
+import { PROVIDER_PRESETS } from "../../../../packages/agent/src/providers";
 import type { AppState } from "../domain";
 import {
   B,
@@ -36,6 +39,34 @@ const MODEL_FOR_PROVIDER: Record<KeyProvider, AppState["model"]> = {
   openai_compatible: "openai-compatible",
   anthropic: "claude",
 };
+
+/** Prefills for known endpoints; everything else is a custom entry. */
+// Only presets this app can actually save are offered: the key flow requires a
+// credential and an https endpoint, so a keyless local server is not listed
+// here even though the registry defines it for the CLI.
+const PRESET_CHOICES = [
+  { id: "openai", label: "OpenAI" },
+  { id: "openrouter", label: "OpenRouter" },
+  { id: "groq", label: "Groq" },
+  { id: "deepseek", label: "DeepSeek" },
+  { id: "together", label: "Together" },
+  { id: "xai", label: "xAI" },
+  { id: "mistral", label: "Mistral" },
+  { id: "gemini", label: "Gemini" },
+  { id: "anthropic", label: "Anthropic" },
+]
+  .filter((choice) => {
+    const preset = PROVIDER_PRESETS.find((entry) => entry.id === choice.id);
+    return preset === undefined || mobile_supports_preset(preset);
+  })
+  .map((choice) => choice as { id: string; label: string });
+
+const AUTH_CHOICES = [
+  { id: "authorization", label: "Bearer" },
+  { id: "x-api-key", label: "x-api-key" },
+  { id: "x-goog-api-key", label: "x-goog-api-key" },
+  { id: "api-key", label: "api-key" },
+] as const;
 
 const PROVIDER_LABEL: Record<KeyProvider, string> = {
   kilo: "Kilo Gateway",
@@ -58,6 +89,21 @@ export function KeysScreen() {
   const [models, set_models] = useState<ModelChoice[]>([]);
   const [busy, set_busy] = useState(false);
   const [editing_id, set_editing_id] = useState<string | null>(null);
+  const [api_suffix, set_api_suffix] = useState("/v1");
+  const [auth_header, set_auth_header] = useState<AuthHeader>("authorization");
+  const [auth_scheme, set_auth_scheme] = useState("Bearer");
+  const [show_advanced, set_show_advanced] = useState(false);
+  const [preset_id, set_preset_id] = useState<string>("custom");
+
+  /** Advanced fields open automatically when a preset deviates from /v1+Bearer. */
+  const setShowAdvancedForPreset = (id: string) => {
+    const preset = PROVIDER_PRESETS.find((entry) => entry.id === id);
+    const deviates =
+      (preset?.api_suffix !== undefined && preset.api_suffix !== "/v1") ||
+      (preset?.auth?.header !== undefined &&
+        preset.auth.header !== "authorization");
+    if (deviates) set_show_advanced(true);
+  };
 
   const refresh = useCallback(async () => {
     const registry = await read_key_registry(SecureStore);
@@ -85,6 +131,32 @@ export function KeysScreen() {
     set_model("");
     set_models([]);
     set_show_form_key(false);
+    set_api_suffix("/v1");
+    set_auth_header("authorization");
+    set_auth_scheme("Bearer");
+    set_show_advanced(false);
+    set_preset_id("custom");
+  };
+
+  /**
+   * Applies a preset: a base URL plus how that server wants its key. This is
+   * pure prefill — the user can then edit anything, which is what makes
+   * "custom provider" the same code path as a listed one.
+   */
+  const apply_preset = (id: string) => {
+    const preset = PROVIDER_PRESETS.find((entry) => entry.id === id);
+    set_preset_id(id);
+    if (!preset) return;
+    set_provider(
+      preset.kind === "anthropic" ? "anthropic" : "openai_compatible",
+    );
+    if (preset.base_url) set_base_url(preset.base_url);
+    set_api_suffix(preset.api_suffix ?? "/v1");
+    set_auth_header(preset.auth?.header ?? "authorization");
+    set_auth_scheme(preset.auth?.scheme ?? "Bearer");
+    if (preset.default_model) set_model(preset.default_model);
+    if (!label) set_label(preset.label);
+    setShowAdvancedForPreset(preset.id);
   };
 
   const save = async () => {
@@ -96,6 +168,9 @@ export function KeysScreen() {
           label,
           base_url,
           model,
+          api_suffix,
+          auth_header,
+          auth_scheme,
           ...(api_key.trim() ? { api_key } : {}),
         });
       } else {
@@ -104,6 +179,9 @@ export function KeysScreen() {
           label,
           base_url,
           model,
+          api_suffix,
+          auth_header,
+          auth_scheme,
           api_key,
           activate: true,
         });
@@ -132,6 +210,9 @@ export function KeysScreen() {
         label: label || "Draft",
         base_url,
         model: model || "draft",
+        api_suffix,
+        auth_header,
+        auth_scheme,
       };
       const choices = await fetch_model_choices(
         SecureStore,
@@ -181,6 +262,15 @@ export function KeysScreen() {
     set_model(profile.model);
     set_api_key("");
     set_models([]);
+    set_api_suffix(profile.api_suffix ?? "/v1");
+    set_auth_header(profile.auth_header ?? "authorization");
+    set_auth_scheme(profile.auth_scheme ?? "Bearer");
+    set_preset_id("custom");
+    set_show_advanced(
+      (profile.api_suffix !== undefined && profile.api_suffix !== "/v1") ||
+        (profile.auth_header !== undefined &&
+          profile.auth_header !== "authorization"),
+    );
   };
 
   const use_profile = async (profile: KeyProfile) => {
@@ -236,6 +326,35 @@ export function KeysScreen() {
             </Pressable>
           ))}
         </Row>
+        <M size={11} style={{ marginBottom: 6 }}>
+          Start from a preset, or pick Custom and type any HTTPS endpoint.
+        </M>
+        <Row gap={8} style={{ flexWrap: "wrap", marginBottom: 10 }}>
+          {PRESET_CHOICES.map((choice) => (
+            <Pressable
+              key={choice.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Preset ${choice.label}`}
+              onPress={() => apply_preset(choice.id)}
+              style={{ opacity: preset_id === choice.id ? 1 : 0.55 }}
+            >
+              <Pill tone={preset_id === choice.id ? "lime" : "amber"}>
+                {choice.label}
+              </Pill>
+            </Pressable>
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Preset Custom"
+            onPress={() => {
+              set_preset_id("custom");
+              set_provider("openai_compatible");
+            }}
+            style={{ opacity: preset_id === "custom" ? 1 : 0.55 }}
+          >
+            <Pill tone={preset_id === "custom" ? "lime" : "amber"}>Custom</Pill>
+          </Pressable>
+        </Row>
         <Input label="Label" value={label} onChangeText={set_label} />
         <Input
           label="API key"
@@ -260,6 +379,62 @@ export function KeysScreen() {
           />
         ) : null}
         <Input label="Model" value={model} onChangeText={set_model} />
+        {provider === "openai_compatible" ? (
+          <>
+            <Row gap={8} style={{ marginTop: 6, flexWrap: "wrap" }}>
+              <Button
+                label={show_advanced ? "Hide advanced" : "Advanced"}
+                variant="ghost"
+                small
+                onPress={() => set_show_advanced((value) => !value)}
+              />
+            </Row>
+            {show_advanced ? (
+              <>
+                <M size={11}>
+                  API path is appended to the base URL. Gemini needs
+                  /v1beta/openai; servers with no version segment need an empty
+                  path.
+                </M>
+                <Input
+                  label="API path (default /v1)"
+                  value={api_suffix}
+                  onChangeText={set_api_suffix}
+                  autoCapitalize="none"
+                />
+                <M size={11} style={{ marginTop: 6 }}>
+                  Where the key is sent. Bearer is the OpenAI convention.
+                </M>
+                <Row gap={8} style={{ flexWrap: "wrap" }}>
+                  {AUTH_CHOICES.map((choice) => (
+                    <Pressable
+                      key={choice.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Auth header ${choice.label}`}
+                      onPress={() => {
+                        set_auth_header(choice.id);
+                        set_auth_scheme(
+                          choice.id === "authorization" ? "Bearer" : "",
+                        );
+                      }}
+                      style={{ opacity: auth_header === choice.id ? 1 : 0.55 }}
+                    >
+                      <Pill tone={auth_header === choice.id ? "lime" : "amber"}>
+                        {choice.label}
+                      </Pill>
+                    </Pressable>
+                  ))}
+                </Row>
+                <Input
+                  label="Auth scheme (empty sends the bare key)"
+                  value={auth_scheme}
+                  onChangeText={set_auth_scheme}
+                  autoCapitalize="none"
+                />
+              </>
+            ) : null}
+          </>
+        ) : null}
         <Row gap={8} style={{ marginTop: 8, flexWrap: "wrap" }}>
           <Button
             label="Fetch models"
@@ -310,6 +485,13 @@ export function KeysScreen() {
             <M size={12}>
               {PROVIDER_LABEL[profile.provider]} · {profile.model || "default"}
               {profile.base_url ? ` · ${profile.base_url}` : ""}
+              {profile.api_suffix !== undefined && profile.api_suffix !== "/v1"
+                ? ` · path ${profile.api_suffix || "(none)"}`
+                : ""}
+              {profile.auth_header !== undefined &&
+              profile.auth_header !== "authorization"
+                ? ` · ${profile.auth_header}`
+                : ""}
             </M>
             <M size={12} style={{ marginTop: 4 }}>
               {revealed[profile.id] ?? hints[profile.id] ?? "No key"}

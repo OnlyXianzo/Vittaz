@@ -1,5 +1,4 @@
-import { KeyPool } from "../../packages/agent/src/key_pool.js";
-import { OpenAICompatibleClient } from "../../packages/agent/src/provider_client.js";
+import { create_ai_sdk_provider } from "../../packages/agent/src/providers/adapters/ai_sdk.js";
 const base = "https://ai-gateway.kilo.ai/api";
 const zero = (v: unknown) => typeof v === "string" && /^0(?:\.0+)?$/.test(v);
 const object = (v: unknown): v is Record<string, unknown> =>
@@ -75,8 +74,10 @@ export async function runKeylessSmoke(
       throw new Error();
     if (chat) {
       const body = JSON.parse(init?.body as string);
-      if (!model || body.model !== model || body.max_completion_tokens !== 512)
-        throw new Error();
+      // The SDK names the cap `max_tokens`; the previous transport sent
+      // `max_completion_tokens`. Providers accept either, so assert the value.
+      const cap = body.max_completion_tokens ?? body.max_tokens;
+      if (!model || body.model !== model || cap !== 512) throw new Error();
     }
     requests++;
     const deadline = AbortSignal.timeout(20000);
@@ -100,12 +101,17 @@ export async function runKeylessSmoke(
     const response = await guard(`${base}/v1/models`, { method: "GET" });
     if (!response.ok) throw new Error();
     model = selectModel(await response.json());
-    const client = new OpenAICompatibleClient({
-      baseUrl: base,
-      fetch: guard,
-      timeoutMs: 20000,
-      keyPool: new KeyPool([{ nickname: "keyless_free", apiKey: "", model }]),
-    });
+    const client = create_ai_sdk_provider(
+      {
+        id: "keyless_free",
+        kind: "openai_compatible",
+        // Deliberately keyless: the free gateway accepts no credential.
+        credential_ref: "",
+        base_url: base,
+        default_model: model,
+      },
+      { resolve_credential: async () => null, fetch: guard, timeout_ms: 20000 },
+    );
     const reply = await client.chatCompletion({
       maxCompletionTokens: 512,
       messages: [

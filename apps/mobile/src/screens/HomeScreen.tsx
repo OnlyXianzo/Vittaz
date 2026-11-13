@@ -1,6 +1,6 @@
+import { Bell, Mic, Settings, Sparkles } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather, Ionicons } from "@expo/vector-icons";
 import { useApp } from "../store";
 import { formatPaise, selectPending, selectSummary } from "../domain";
 import { colors, fonts, gradients, radii } from "../theme";
@@ -40,7 +40,7 @@ export function HomeScreen() {
               paddingRight: 6,
             }}
           >
-            <Ionicons name="sparkles" size={20} color={colors.limeDark} />
+            <Sparkles size={20} color={colors.limeDark} strokeWidth={2.2} />
             <T
               size={15}
               weight="bold"
@@ -59,7 +59,7 @@ export function HomeScreen() {
                 justifyContent: "center",
               }}
             >
-              <Feather name="mic" size={20} color={colors.limeDark} />
+              <Mic size={20} color={colors.limeDark} />
             </View>
           </LinearGradient>
         </Pressable>
@@ -90,13 +90,13 @@ export function HomeScreen() {
             label="Settings"
             onPress={() => dispatch({ type: "navigate", screen: "settings" })}
           >
-            <Feather name="settings" size={22} color={colors.text} />
+            <Settings size={22} color={colors.text} />
           </IconBtn>
           <IconBtn
             label="Notifications"
             onPress={() => dispatch({ type: "navigate", screen: "inbox" })}
           >
-            <Feather name="bell" size={22} color={colors.text} />
+            <Bell size={22} color={colors.text} />
           </IconBtn>
         </Row>
       </Row>

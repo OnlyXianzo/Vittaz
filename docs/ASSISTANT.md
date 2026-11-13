@@ -4,7 +4,7 @@
 
 Vittaz has one assistant. `packages/core` defines an `AssistantService` port, and `packages/agent` implements it. The Android chat, the CLI and Telegram all call it. Each message carries a `source` (`app`, `cli` or `telegram`) and a conversation identifier. The source says where a message came from. It does not choose a different AI.
 
-The agent framework (LangChain in v1) lives only inside `packages/agent`. The core never imports it, so it can be replaced without touching financial logic.
+The provider boundary lives only inside `packages/agent/src/providers`, as a Vittaz-owned contract over the Anthropic and OpenAI-compatible transports. The core never imports it, and no third-party agent framework is installed, so a provider can be replaced without touching financial logic.
 
 ## Fixed workflows and the one open loop
 

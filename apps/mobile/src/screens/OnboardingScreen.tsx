@@ -1,6 +1,12 @@
+import {
+  Check,
+  Download,
+  Inbox,
+  MessageCircle,
+  Plus,
+} from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
 import { colors, radii } from "../theme";
 import {
@@ -196,7 +202,7 @@ export function OnboardingScreen() {
                     justifyContent: "center",
                   }}
                 >
-                  <Feather name="check" size={11} color={colors.lime} />
+                  <Check size={11} color={colors.lime} />
                 </View>
                 <T size={15}>{text}</T>
               </Row>
@@ -236,21 +242,21 @@ export function OnboardingScreen() {
           <View style={{ marginTop: 14 }}>
             {[
               {
-                icon: "plus" as const,
+                icon: Plus,
                 title: "Tap it in",
                 copy: "Amount, category, save. Entries you add yourself are marked verified.",
               },
               {
-                icon: "message-circle" as const,
+                icon: MessageCircle,
                 title: "Message it",
                 copy: "Send a text in the app or on Telegram. The AI drafts the entry and waits for you.",
               },
               {
-                icon: "inbox" as const,
+                icon: Inbox,
                 title: "Catch the rest",
                 copy: "Bank alerts land in an inbox as unverified until you confirm them.",
               },
-            ].map(({ icon, title, copy }) => (
+            ].map(({ icon: Icon, title, copy }) => (
               <Card key={title} style={{ marginTop: 12 }}>
                 <Row start gap={14} style={{ alignItems: "flex-start" }}>
                   <View
@@ -263,7 +269,7 @@ export function OnboardingScreen() {
                       justifyContent: "center",
                     }}
                   >
-                    <Feather name={icon} size={22} color={colors.lime} />
+                    <Icon size={22} color={colors.lime} strokeWidth={2} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <B size={16}>{title}</B>
@@ -324,7 +330,7 @@ export function OnboardingScreen() {
               label="Download model"
               variant="ghost"
               small
-              icon={<Feather name="download" size={16} color={colors.text} />}
+              icon={<Download size={16} color={colors.text} />}
               onPress={() =>
                 dispatch({
                   type: "show_toast",

@@ -201,9 +201,11 @@ it("sends an optional synthetic Kilo key only in the authorization header", asyn
   ).answerQuestion("Synthetic question");
   expect(answer.answer).toBe("Synthetic answer");
   expect(recorded).not.toBeNull();
-  expect(recorded!.init.headers).toMatchObject({
-    Authorization: "Bearer fake-kilo-key",
-  });
+  // The SDK sends lower-case header names; HTTP header names are
+  // case-insensitive, so assert the value rather than the casing.
+  const sent = new Headers(recorded!.init.headers as HeadersInit);
+  expect(sent.get("authorization")).toBe("Bearer fake-kilo-key");
+  // The credential travels only in the header: never in the body.
   expect(String(recorded!.init.body)).not.toContain("fake-kilo-key");
 });
 
@@ -248,12 +250,24 @@ it("routes explicitly selected OpenAI-compatible BYOK to the configured endpoint
   expect(requests[0]?.url).toBe(
     "https://compatible.example/api/v1/chat/completions",
   );
-  expect(requests[0]?.init.headers).toMatchObject({
-    Authorization: "Bearer test-key",
-  });
-  expect(JSON.parse(String(requests[0]?.init.body))).toMatchObject({
+  const byok_headers = new Headers(requests[0]?.init.headers as HeadersInit);
+  expect(byok_headers.get("authorization")).toBe("Bearer test-key");
+  // App attribution: the OpenAI-compatible BYOK path carries the app's public
+  // identity so a gateway such as OpenRouter does not file usage as "Unknown".
+  expect(byok_headers.get("x-title")).toBe("Vittaz");
+  expect(byok_headers.get("http-referer")).toBe(
+    "https://github.com/OnlyXianzo/Vittaz",
+  );
+  const body = JSON.parse(String(requests[0]?.init.body)) as {
+    model?: string;
+    stream?: boolean;
+  };
+  // The SDK omits `stream` for a non-streaming call instead of sending
+  // `stream: false`. Providers treat an absent flag as false, so assert the
+  // effective value rather than the exact wire shape.
+  expect(body.stream ?? false).toBe(false);
+  expect(body).toMatchObject({
     model: "synthetic-compatible-model",
-    stream: false,
   });
   expect(String(requests[0]?.init.body)).not.toContain("test-key");
   expect(requests[0]?.url).not.toContain("kilo.ai");
@@ -415,4 +429,132 @@ it("forwards only allowlisted assistant stage metadata into mobile logs", async 
   expect(serialized).not.toContain("synthetic_private_prompt_marker");
   expect(serialized).not.toMatch(/api_key|response_body|stack|authorization/i);
   expect(ledger.transaction).not.toHaveBeenCalled();
+});
+
+it("reaches a Gemini-style endpoint at its own API path with its own key header", async () => {
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({ transactions: { list: async () => [] } } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  const requests: Array<{ url: string; init: RequestInit }> = [];
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), init: init ?? {} });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            { message: { content: "Synthetic Gemini answer", tool_calls: [] } },
+          ],
+          usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    },
+  ) as typeof fetch;
+
+  const answer = await create_mobile_qa_agent(
+    ledger,
+    {
+      kind: "openai_compatible",
+      api_key: "AIza-synth",
+      // A user may paste the full compatibility endpoint; it must not double.
+      base_url: "https://generativelanguage.googleapis.com/v1beta/openai",
+      api_suffix: "/v1beta/openai",
+      auth_header: "x-goog-api-key",
+      auth_scheme: "",
+      model: "gemini-2.5-flash",
+    },
+    fetch_impl,
+  ).answerQuestion("Synthetic only: what is my balance?");
+
+  expect(answer).toMatchObject({ answered: true });
+  expect(requests).toHaveLength(1);
+  expect(requests[0]?.url).toBe(
+    "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+  );
+  const headers = new Headers(requests[0]?.init.headers as HeadersInit);
+  expect(headers.get("x-goog-api-key")).toBe("AIza-synth");
+  // The key must not also travel as a bearer token.
+  expect(headers.get("authorization")).toBeNull();
+});
+
+it("keeps a base path ending in /v1 when the suffix is explicitly empty", async () => {
+  // An explicit empty suffix means nothing is appended, so the pasted path is
+  // the endpoint. Stripping its `/v1` would send the request to a path the
+  // gateway does not serve.
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({ transactions: { list: async () => [] } } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  const requests: Array<{ url: string; init: RequestInit }> = [];
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), init: init ?? {} });
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "ok", tool_calls: [] } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    },
+  ) as typeof fetch;
+
+  const answer = await create_mobile_qa_agent(
+    ledger,
+    {
+      kind: "openai_compatible",
+      api_key: "synthetic-key",
+      base_url: "https://synthetic.invalid/gateway/v1",
+      api_suffix: "",
+      model: "synthetic-model",
+    },
+    fetch_impl,
+  ).answerQuestion("Synthetic only: what is my balance?");
+
+  expect(answer).toMatchObject({ answered: true });
+  // `/v1` stays: only the transport's own path is appended.
+  expect(requests[0]?.url).toBe(
+    "https://synthetic.invalid/gateway/v1/chat/completions",
+  );
+});
+
+it("keeps the plain OpenAI shape unchanged when no wire overrides are given", async () => {
+  const ledger = {
+    read: async (work: (repos: never) => Promise<unknown>) =>
+      work({ transactions: { list: async () => [] } } as never),
+    transaction: jest.fn(),
+    close: jest.fn(async () => undefined),
+  } as unknown as LedgerStore;
+  const requests: Array<{ url: string; init: RequestInit }> = [];
+  const fetch_impl = jest.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), init: init ?? {} });
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "ok", tool_calls: [] } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    },
+  ) as typeof fetch;
+  await create_mobile_qa_agent(
+    ledger,
+    {
+      kind: "openai_compatible",
+      api_key: "sk-synthetic",
+      base_url: "https://api.openai.com",
+      model: "gpt-4o-mini",
+    },
+    fetch_impl,
+  ).answerQuestion("Synthetic only: what is my balance?");
+  expect(requests[0]?.url).toBe("https://api.openai.com/v1/chat/completions");
+  expect(
+    new Headers(requests[0]?.init.headers as HeadersInit).get("authorization"),
+  ).toBe("Bearer sk-synthetic");
 });

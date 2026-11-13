@@ -2,22 +2,22 @@
 
 Record every deviation from the plan here, with a date and a reason.
 
-| #   | Decision                                                                                                                                                     | Status                               |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
-| 1   | The app is named Vittaz.                                                                                                                                     | Settled                              |
-| 2   | Repository interfaces in core are asynchronous. This replaces the earlier synchronous `Db` interface idea, because Expo's recommended APIs are asynchronous. | Settled                              |
-| 3   | SQLite with Drizzle behind a separate `storage` package. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile.                               | Settled, verify against current docs |
-| 4   | The CLI and CI run on Node 20 or newer in v1. Bun is evaluated later.                                                                                        | Settled                              |
-| 5   | The assistant runs inside the app and CLI. One `AssistantService` serves app, CLI and Telegram.                                                              | Settled                              |
-| 6   | Native TypeScript tools with `snake_case` names. No MCP in v1.                                                                                               | Settled                              |
-| 7   | LangChain, not LangGraph, inside `packages/agent` only. Revisit after the phone check.                                                                       | Settled                              |
-| 8   | Telegram is the only connector in v1. It uses a user-supplied bot token and a pairing code.                                                                  | Settled                              |
-| 9   | Gmail, WhatsApp and Discord are deferred connectors.                                                                                                         | Settled                              |
-| 10  | Conversation history is shared across channels. No automatic long-term memory in v1.                                                                         | Settled                              |
-| 11  | Backend and CLI first. HTML screens are wired afterwards in vertical slices, starting with manual entry. Animation last.                                     | Settled                              |
-| 12  | One ledger per device, moved by export and import file.                                                                                                      | Settled                              |
-| 13  | Personal mode first. Merchant mode later.                                                                                                                    | Settled                              |
-| 14  | The reference engine is read-only. Logic is ported module by module through failing tests.                                                                   | Settled                              |
+| #   | Decision                                                                                                                                                                                                                                                             | Status                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | The app is named Vittaz.                                                                                                                                                                                                                                             | Settled                              |
+| 2   | Repository interfaces in core are asynchronous. This replaces the earlier synchronous `Db` interface idea, because Expo's recommended APIs are asynchronous.                                                                                                         | Settled                              |
+| 3   | SQLite with Drizzle behind a separate `storage` package. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile.                                                                                                                                       | Settled, verify against current docs |
+| 4   | The CLI and CI run on Node 20 or newer in v1. Bun is evaluated later.                                                                                                                                                                                                | Settled                              |
+| 5   | The assistant runs inside the app and CLI. One `AssistantService` serves app, CLI and Telegram.                                                                                                                                                                      | Settled                              |
+| 6   | Native TypeScript tools with `snake_case` names. No MCP in v1.                                                                                                                                                                                                       | Settled                              |
+| 7   | No third-party **agent** framework: the harness, tools, prompts and safety policy are Vittaz-owned. The provider _transport_ for OpenAI-compatible servers is the Vercel AI SDK, on device (LangChain removed 2026-11-11; adopted 2026-11-11 — see the entry below). | Settled                              |
+| 8   | Telegram is the only connector in v1. It uses a user-supplied bot token and a pairing code.                                                                                                                                                                          | Settled                              |
+| 9   | Gmail, WhatsApp and Discord are deferred connectors.                                                                                                                                                                                                                 | Settled                              |
+| 10  | Conversation history is shared across channels. No automatic long-term memory in v1.                                                                                                                                                                                 | Settled                              |
+| 11  | Backend and CLI first. HTML screens are wired afterwards in vertical slices, starting with manual entry. Animation last.                                                                                                                                             | Settled                              |
+| 12  | One ledger per device, moved by export and import file.                                                                                                                                                                                                              | Settled                              |
+| 13  | Personal mode first. Merchant mode later.                                                                                                                                                                                                                            | Settled                              |
+| 14  | The reference engine is read-only. Logic is ported module by module through failing tests.                                                                                                                                                                           | Settled                              |
 
 ## Bootstrap verification — 2026-11-04 (pending user decision)
 
@@ -31,11 +31,261 @@ S0 is the first unchecked step. Inspection at `2fb5f92` found:
 
 No implementation or completion claim is made. Stop at the Phase A boundary until the missing inputs and bootstrap disposition are confirmed. The verified-implementation skill has been read; implementation research and a written Verified Approach must precede non-trivial code changes.
 
+## 2026-11-11 — Vercel AI SDK adopted as the OpenAI-compatible transport (on device)
+
+This supersedes the earlier "AI SDK rejected" wording in row 7 and in
+`docs/ai_sdk_evaluation.md`. The owner directed adoption after reading the
+evaluation, and the port is implemented on branch `feat/provider-contract`.
+
+Scope, stated precisely: the SDK owns **wire plumbing only** (request encoding,
+SSE framing, tool-call fragment assembly, usage extraction). Vittaz still owns
+preflight, endpoint safety, the key pool and its rotation/cooldown policy,
+`BadRequestNoFallback`, the eight failure reasons, cancellation, and the
+diagnostics codebook. Tools are handed to the SDK as definitions **without**
+`execute`, so the harness remains the only thing that runs a tool.
+
+Deleted: `providers/adapters/openai_compatible.ts` and its tests.
+Kept: `providers/adapters/anthropic.ts` — a different protocol that
+`@ai-sdk/openai-compatible` cannot serve.
+
+### Known, accepted differences in wire behaviour
+
+1. `system`/`developer` message text is sent as `instructions`; SDK v7 forbids
+   those roles inside `messages`.
+2. `maxRetries: 0` is pinned per call. The SDK default is 2, which the key pool —
+   the only retry authority — must not inherit.
+3. The transport appends `/v1` to the configured base URL. Configure
+   `https://host/api`, not `https://host/api/v1`.
+4. Header names are lowercase on the wire, and the SDK sends
+   `user-agent: ai/<ver> ai-sdk-provider-utils/<ver> node.js/<ver>`. It is set
+   after caller headers are merged, so it cannot be overridden. No key or user
+   data, but it does fingerprint the client stack to the provider.
+5. Non-streaming requests omit `stream` instead of sending `false`.
+6. The token cap is sent as `max_tokens` instead of `max_completion_tokens`.
+7. The CLI now requires `VITTAZ_AI_MODEL`: the shared provider contract already
+   required a model, and the SDK cannot construct a model handle without one.
+   Previously a model-less request was sent and rejected by the provider.
+8. Exceptions thrown inside the SDK's `onChunk` callback are swallowed by the
+   SDK, so the adapter catches them and re-raises the historical
+   `Provider callback failed` behaviour. Without this, a throwing UI callback
+   would be silently ignored.
+
+### Still unverified
+
+On-device React Native/Hermes behaviour. The SDK imports `TextDecoder` and
+`TransformStream` at module load; Expo 58 / RN 0.88 is expected to provide both,
+but no device or emulator exists in this environment, so the claim is untested.
+Per the owner's rule, a passing Node suite is not device evidence.
+
+## 2026-11-11 — Anthropic transport also moves to the AI SDK
+
+Directly after the OpenAI-compatible swap, the owner asked for the same treatment
+for Anthropic: `@ai-sdk/anthropic` replaces the hand-written
+`AnthropicMessagesClient` (640 lines) and its 1,248-line test suite. Same split
+as before — the SDK owns request encoding, SSE framing and usage extraction;
+Vittaz keeps preflight, credential rules, the failure vocabulary, cancellation
+and the result contract.
+
+Pinned: `@ai-sdk/anthropic@4.0.104` (its `engines` field says Node >= 22; the
+project already runs Node 24).
+
+### Preserved deliberately
+
+- **Endpoint pinned** to `https://api.anthropic.com/v1/messages`. It is never
+  taken from configuration; supplying a `base_url` for an Anthropic config is
+  rejected at construction rather than silently ignored.
+- **`anthropic-version` kept at the project's verified value** via a caller
+  header override (verified to reach the wire). The SDK's own default differs.
+- **Default reply budget stays 1024 tokens.** The SDK defaults to the model
+  maximum (128000). Silently multiplying the worst case of every un-capped
+  request is a cost change, not a migration detail.
+- **In-band SSE error discards the partial answer.** Measured: the SDK resolves
+  with the partial text and `finishReason: "error"`. Returning that would
+  reproduce the historical truncation bug, so it is mapped to `protocol_error`.
+- **Malformed 200 bodies are protocol failures.** Measured: the SDK throws an
+  `AI_APICallError` carrying HTTP status **200**; without special handling that
+  would be reported as a successful HTTP response.
+- **Unpaired `tool` messages are rejected before HTTP**, as the deleted client
+  did. The SDK looks the tool _name_ up by call id, so an unpaired message would
+  otherwise go out with an empty name instead of failing fast.
+- **Reply bounds re-applied post-parse**: ≤16 tool calls, ≤32768 characters,
+  tool name `^[a-z][a-z0-9_]{0,127}$`, tool id `^[a-zA-Z0-9_-]{1,128}$`.
+- **`Provider callback failed`** on a throwing stream callback, as before.
+
+### Accepted differences
+
+1. `system` text is sent as a content-block array; the old client sent a string.
+   The API accepts both.
+2. A `tool_choice: {"type":"auto"}` field and an `anthropic-beta` header are now
+   sent; the SDK adds them. Harmless, but they were not on the wire before.
+3. The 64 KiB request-size cap is now enforced on the pre-mapped wire (shared
+   with the OpenAI-compatible transport) rather than on the final Anthropic body.
+   The mapped body can exceed it by per-block overhead (~50 bytes/block).
+
+### Test coverage moved, not lost
+
+The deleted suite's 25 tests mostly probed SSE framing minutiae (fragmented
+frames, out-of-order frames, unknown events, unterminated final frames,
+`thinking` deltas). That is now the SDK's job and is deliberately not re-tested.
+The replacement, `anthropic_ai_sdk.test.ts` (21 tests), asserts the _contract_
+against a real local HTTP/SSE fake server: request mapping, pinned version,
+reply budget, tool-use mapping, streaming, in-band error, all HTTP status
+classes, preflight and redaction, cancellation, and no key/endpoint leakage.
+
+### Still unverified
+
+On-device React Native/Hermes behaviour for `@ai-sdk/anthropic`, and any live
+Anthropic call. No device, and no API credentials, exist in this environment.
+
+## 2026-11-11 — Opt-in app-attribution headers
+
+Mechanism: some gateways name the calling app from two optional request headers
+— `X-Title` (app name) and `HTTP-Referer` (app URL). OpenRouter uses them for its
+dashboard; without them all usage is filed under "Unknown", which is exactly what
+the first live test showed.
+
+Decision: add `attribution?: { title, referer? }` to `ProviderConfig`. It is
+**opt-in and per configuration**, not inferred from the hostname. Inferring it
+would require a provider-specific branch (`if host is openrouter`), which this
+codebase forbids, and it would silently fingerprint every request to every
+endpoint — including self-hosted Ollama on a laptop.
+
+Constraints enforced by the schema:
+
+- `title` is 1–80 characters and rejects control characters, so a header cannot
+  be split or injected.
+- `referer`, when present, must be `https:` and a URL. It is displayed in a third
+  party's dashboard, so a typo or a user-identifying URL fails loudly instead of
+  being sent.
+- Neither field may identify a person. They carry the app name and the
+  deployment's own public URL, nothing else, and no key or ledger data.
+
+When `attribution` is absent the wire is byte-identical to before; a test asserts
+the headers are absent, present, and title-only.
+
+**Wired:** the mobile app sends `X-Title: Vittaz` and
+`HTTP-Referer: https://github.com/OnlyXianzo/Vittaz` on the OpenAI-compatible
+BYOK path only (`APP_ATTRIBUTION` in `mobile_qa.ts`). The Kilo free gateway and
+the Anthropic path are left byte-identical, because neither reads these headers
+and adding them would be fingerprinting without a benefit.
+
+The CLI does not set it: `attribution` is a configuration field, and the CLI
+builds its config from environment variables only. Adding an env pair for it is
+a separate, small change — not done here, to keep this commit to one thing.
+
+## 2026-11-11 — Provider shape is configuration: API path, auth header, extra headers
+
+Driver: the owner asked for Bedrock, Vertex and "any other API" plus custom
+providers. Investigating first found a real defect rather than a missing SDK:
+the transport hard-coded `/v1`, so **Google Gemini's OpenAI-compatibility
+endpoint (`/v1beta/openai`) could never have worked** — it would have requested
+`/v1beta/openai/v1/chat/completions` and returned 404, which reads to a user as
+"my key is broken".
+
+### Added to `ProviderConfig` (all optional, all validated)
+
+| Field           | Purpose                                                         | Default         |
+| --------------- | --------------------------------------------------------------- | --------------- |
+| `api_suffix`    | API path appended to `base_url`; `""` means the URL is complete | `/v1`           |
+| `auth.header`   | `authorization` / `api-key` / `x-api-key` / `x-goog-api-key`    | `authorization` |
+| `auth.scheme`   | Prefix before the key; `""` sends the bare key                  | `Bearer`        |
+| `extra_headers` | Static headers (API versions etc.), ≤8 entries                  | none            |
+
+Guard rails: `api_suffix` must be empty or start with `/`, with no `..`, `?`,
+`#` or whitespace; `extra_headers` can never contain `authorization`, `api-key`,
+`x-api-key`, `x-goog-api-key`, `host`, `content-length`, `content-type` or
+`user-agent`, so credentials cannot be smuggled through configuration.
+
+This stays a **format** choice, not a provider branch: no code anywhere asks
+which provider is calling.
+
+### Presets are data
+
+`providers/registry/presets.ts` lists known-good endpoint shapes (OpenAI,
+OpenRouter, Groq, DeepSeek, Together, xAI, Mistral, Gemini, Ollama, Anthropic).
+Adding a provider is a row, and a test proves every row passes the real
+validator, so the app cannot offer a provider that throws when selected.
+
+### Bedrock and Vertex: deliberately not added
+
+Both are recorded in `UNSUPPORTED_PROVIDERS` with a reason and an alternative,
+rather than silently left out:
+
+- **Bedrock (SigV4).** `@ai-sdk/amazon-bedrock` signs with SigV4 via `aws4fetch`,
+  which needs WebCrypto SHA-256 **at request time**. This repo has
+  `hermes_crypto_regression.test.ts` asserting the transport still completes
+  with `globalThis.crypto` removed — a fault actually seen on device. Adding
+  SigV4 would reintroduce exactly that. Alternative: a Bedrock API key (bearer
+  token) as an `openai_compatible` entry, or a gateway.
+- **Vertex AI.** Requires a service-account JSON or a short-lived OAuth token. A
+  service-account file on a phone grants broad cloud access and cannot be
+  protected by an app passcode. Alternative: the Gemini preset, same models,
+  plain AI Studio key.
+
+### Wired into the app
+
+The Keys screen now offers these presets plus Custom. A preset only prefills
+fields; it is the same code path as a hand-typed custom endpoint. Advanced fields
+(API path, auth header, auth scheme) open automatically when a preset deviates
+from `/v1` + `Bearer`, so Gemini's `/v1beta/openai` is visible rather than magic.
+
+Model discovery uses the same API path and key header as chat. Previously a
+Gemini-style profile would have listed models from one URL and chatted to
+another.
+
+`extra_headers` is supported by the contract and tested at the transport level,
+but has no form field yet: it needs a key/value editor, and no preset requires it.
+
+### Follow-up: the missing `include_usage` was user-facing
+
+Live testing against Gemini (and then Groq) proved this was not a cosmetic
+token-counter gap. `qa_loop.ts` treats `usage.total_tokens === 0` as a failure
+and returns `stopped("token_budget")`. The mobile app streams. A local fake
+server that streams text _without_ usage reproduces it exactly:
+`{answered: false, stopReason: "token_budget", chunks: 0}`.
+
+So a provider that omits usage from streams would have shown a **token-budget
+failure instead of the answer** on a real phone. Fixed in `1bcab8d` and now
+verified live on two providers.
+
+### How the live checks were permitted, given the synthetic-data rule
+
+`AGENTS.md` requires synthetic data only: no real transactions, names, bank
+messages, keys or spreadsheets anywhere. The live checks above were run against
+throwaway provider accounts created for the purpose, with **owner authorization**
+and **throwaway keys**, and the rule was applied to everything else:
+
+- The prompts sent were a fixed synthetic question. No ledger, transaction,
+  account name or export was involved, and none was available to the checker.
+- Throwaway keys were used only in the shell session that ran the check. They
+  were never written to the repository, a test file, a log, a screenshot or the
+  workspace, and were revoked afterwards.
+- Everything committed to the tree uses synthetic credentials: fake keys such as
+  `sk-ant-synthetic`, and local fake servers (`tests/helpers/fake_*_server.ts`) that
+  speak the real wire protocols.
+- No test asserts against a live provider. The suite runs entirely offline; the
+  live results were recorded here as evidence, not encoded as tests.
+
+So the policy holds: the repository contains synthetic data only, and the live
+key checks were an owner-authorized exception that left no credential behind.
+
+Lesson recorded for future work: the fake server always returns usage, so the
+whole Node suite could not see this. Any transport property that a real provider
+may simply omit needs a fake that omits it.
+
+### Bug found while wiring this
+
+Attribution and the custom auth header were both passed to the SDK as a
+`headers` option. Two spreads with the same key meant the later one won, so
+configuring attribution **silently dropped the credential** — on a phone that
+would have looked like an invalid key. Merged into a single object, with a
+regression test asserting key + attribution + extra headers arrive together.
+
 ## Open
 
 - License. Undecided. Do not add a license file until it is chosen.
 - Backup encryption and key recovery.
-- Whether to keep LangChain after the Android check.
+- Whether to support multiple persisted provider configurations (see the 2026-11-11 entry; needs an owner decision).
 - Which local model and size ships first.
 - How a future Gmail connector handles OAuth without a Vittaz server.
 - Whether the first assistant slice in the UI should be manual entry (current plan) or chat.
@@ -1054,3 +1304,133 @@ not represent future integrations as connected. Existing external connector
 work remains deferred until separately scoped. Detailed implementation and
 verification, including in-flight request isolation and migration failure modes,
 require the verified-implementation research and test-first process.
+
+## Vercel AI SDK evaluation (owner request, 2026-11-11)
+
+Owner asked whether the Vercel AI SDK (`ai` and provider packages) can replace the
+LangChain-based provider implementation and support an OpenCode-style multi-provider
+architecture, with a compatibility spike and migration only if every required check
+passes. Full evidence is in `docs/ai_sdk_evaluation.md`; the spike harness is in
+`spikes/ai-sdk/` and the production tree is unchanged.
+
+Decision: **do not migrate to the AI SDK now.** This is Outcome B from the brief, not a
+judgment that the SDK is unusable.
+
+What the investigation established:
+
+- LangChain is not the provider transport. `OpenAICompatibleClient` and
+  `AnthropicMessagesClient` own `fetch`, SSE parsing, zod wire validation, the key pool
+  and error classification; `LangChainCompletionClient` is a one-shot `BaseChatModel`
+  decorator that calls them and deliberately buffers streaming. LangChain is also the only
+  reason the assistant needs a global `crypto.getRandomValues`, which is the S36
+  `KILO_UNKNOWN` root cause.
+- The AI SDK is functionally capable on the RN 0.88 / Expo 58 surface (`generateText`,
+  `streamText`, tool round-trip, cancellation, structured output, status-code error
+  mapping), compiles with the exact RN 0.88 Hermes compiler, and bundles under Metro.
+  Replacing LangChain with it would shrink the Android Hermes bundle by ~6 %; keeping both
+  would grow it by ~25 %.
+- Two blockers prevent claiming success. First, the mandatory Android runtime gate cannot
+  be met in this environment (no Android SDK, emulator or `adb`), so Hermes streaming and
+  tool calling on a device remain unproven. Second, the SDK does not raise in-band SSE
+  provider errors as exceptions: a 200-then-`{"error":...}` stream ends with empty text and
+  only `finishReason === "error"`. A naive port would reproduce the `KILO_UNKNOWN` symptom
+  the project just eliminated, so the existing normalized error categories would have to be
+  re-established on purpose rather than assumed.
+- The SDK also depends at import time on `TextDecoder` and web streams (available only
+  from RN 0.88 / Expo 58 onward) and uses `crypto.subtle` for its signed tool-approval and
+  MCP fingerprint features, which Hermes does not provide.
+
+Rationale for the ordering that follows: the owner's actual goal — multiple configured
+providers, user-owned keys, per-model capability selection and one assistant interface —
+does not require the AI SDK. It requires a Vittaz-owned provider contract, a registry that
+can hold several endpoints/accounts, and rejecting the assumption that every model has the
+same capabilities. Removing the vestigial LangChain decorator is where the maintenance win
+is, and it is verifiable on a device with today's pipeline, whereas the SDK migration is
+not. Deleting a working provider transport in exchange for an unverifiable one would trade
+away the project's own safety guarantees.
+
+Consequence for this step: no dependency, lockfile, production module or existing test was
+changed. A Hermes regression test was added
+(`packages/agent/src/hermes_crypto_regression.test.ts`) so the historical failure stays
+pinned while any future provider work is evaluated: the transport must keep working with
+no Web Crypto global, and the framework layer's failure must remain a classified
+`provider_call` diagnostic rather than an unclassified crash.
+
+Next step: perform the LangChain removal as its own small step behind a provider contract,
+then revisit the AI SDK only if provider breadth becomes a real requirement and a device
+test plan exists for streaming, tool calling, error mapping and cancellation.
+
+## 2026-11-11 — Remove LangChain, establish a Vittaz-owned provider contract
+
+**Context.** `@langchain/core@1.3.4` arrived in S25 as a `BaseChatModel` decorator
+(`LangChainCompletionClient`) plus a thin `LangChainQaAgent`. It wrapped
+`OpenAICompatibleClient`/`AnthropicMessagesClient` and added nothing the assistant used:
+the completed AI SDK evaluation (`docs/ai_sdk_evaluation.md`) found the decorator
+vestigial, and S38 traced the long-standing `KILO_UNKNOWN` device failure to LangChain
+minting a UUID v7 run id with `crypto.getRandomValues` before any HTTP request.
+
+**Decision.** Remove `@langchain/core` and keep the two transports unchanged, behind a
+small contract written in Vittaz:
+
+- `providers/contracts/` — `ProviderAdapter` (which _extends_ the existing
+  `CompletionClient`, so there are no new request/result types), `ProviderConfig`
+  (stable user-visible id, `kind: "anthropic" | "openai_compatible"`, a credential
+  **reference** rather than a key, optional base URL, default model), normalized errors,
+  and per-model capability metadata where `"unknown"` stays unknown.
+- `providers/adapters/` — wrappers that validate a config and construct the real
+  transport lazily, resolving the credential through a resolver closure.
+- `providers/registry/` — configuration and capability registries. A single config is
+  unambiguous; two or more require an explicit `select()`, and `active()` throws rather
+  than falling back.
+
+**What did not change.** Fetch behaviour, SSE parsing, request/response validation, body
+limits, redaction, tool allowlisting, the key-pool retry policy, HTTP error classification,
+`AllKeysFailedError`'s eight reason codes, `BadRequestNoFallbackError` on HTTP 400,
+`QaStopReason` values and the `KILO_*`/`BYOK_*`/`ANTHROPIC_*` failure codes. The assistant
+still cannot write: it can only create a pending proposal, and approval stays explicit.
+
+**Diagnostics.** `langchain_error`, the three `langchain_invoke_*` codes and the
+`"langchain"` source are gone. The two codebook collisions (`disabled`, `cooldown`) and
+unclassified failures still normalize to `provider_error`, so the user-visible failure
+vocabulary is unchanged.
+
+**Web Crypto.** `apps/mobile/src/assistant/web_crypto.ts` stays. Its original cause is
+gone — `web_crypto.test.ts` now proves the assistant answers end-to-end with no global
+`crypto` — but it is the only place the app records that Hermes has no Web Crypto global
+while `packages/core/src/ledger/ledger.ts` still defaults `makeId` to
+`globalThis.crypto.randomUUID` (mobile overrides it in `ledger_runtime.ts`). It is
+idempotent and never replaces a native implementation. Removing it is an unverified
+Android runtime change and needs device evidence.
+
+**Bundle, measured like-for-like.** The "before" column was produced by exporting a
+clean worktree at `9dfb528` with the same command and the same toolchain:
+
+| Measurement                                            | Before      | After       | Change |
+| ------------------------------------------------------ | ----------- | ----------- | ------ |
+| `expo export --platform android` (Hermes bytecode)     | 5,801,607 B | 3,562,111 B | −38.6% |
+| Same command with `--no-bytecode`, modules             | 1,440       | 1,053       | −387   |
+| Same command with `--no-bytecode`, bytes               | 3,778,690 B | 2,458,436 B | −34.9% |
+| Occurrences of the string `langchain` in the JS bundle | 149         | 0           | −149   |
+
+The historical eval figure (1,438 modules / 5,791,858 B) reproduces within 0.2%, so the
+two measurements agree. This is static bundle evidence only; no device or emulator run
+is implied.
+
+**Correction (2026-11-11, after reviewing `provider_keys.ts`).** An earlier draft of this
+entry claimed multi-account persistence was unimplemented. That was wrong: S38c already
+ships it. `apps/mobile/src/assistant/provider_keys.ts` keeps
+`assistant_key_profiles_v1` = `{active_id, profiles[]}`, where each profile has a stable
+`id`, a label, a provider kind, a base URL and a model, with its secret stored under
+`secret_name(id)`; `KeysScreen.tsx` adds, activates and removes profiles and calls
+`fetch_model_choices` (`GET {base_url}/v1/models`) to populate the model picker. The
+registry projects the active profile into the older single-provider keys in
+`secure_key.ts`, which is what the agent still reads.
+
+So no credential migration is needed and none was performed. What remains is optional
+wiring, not a user-facing capability: the assistant passes only the active profile to the
+agent, so `ProviderRegistry`'s multi-configuration support is unused. Feeding it the whole
+persisted list would let the active selection change without the legacy projection. That
+is a separate, small refactor and is not required for any behaviour the app exposes today.
+
+Also unchanged: the transport implementations, the approval and proposal semantics, the
+Telegram path, and any financial data model.

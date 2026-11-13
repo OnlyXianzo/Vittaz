@@ -1,5 +1,5 @@
+import { ChevronDown, Sparkles } from "lucide-react-native";
 import { Pressable, View } from "react-native";
-import { Feather, Ionicons } from "@expo/vector-icons";
 import { useApp } from "../store";
 import type { Direction, Mode } from "../domain";
 import { colors, fonts } from "../theme";
@@ -146,7 +146,7 @@ export function AddScreen() {
             <M>Mode</M>
             <Row gap={4}>
               <B size={15}>{draft.mode}</B>
-              <Feather name="chevron-down" size={14} color={colors.muted} />
+              <ChevronDown size={14} color={colors.muted} />
             </Row>
           </Row>
         </Pressable>
@@ -170,7 +170,7 @@ export function AddScreen() {
         variant="ghost"
         small
         labelColor={colors.lime}
-        icon={<Ionicons name="sparkles" size={18} color={colors.lime} />}
+        icon={<Sparkles size={18} color={colors.lime} strokeWidth={2.2} />}
         style={{ marginTop: 10, borderColor: "rgba(184,242,60,0.5)" }}
         onPress={() => dispatch({ type: "improve_note" })}
       />

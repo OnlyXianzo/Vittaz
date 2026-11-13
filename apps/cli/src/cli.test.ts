@@ -309,6 +309,7 @@ test("cli_ask_default_provider_requires_explicit_env_and_fails_closed", async ()
         ...f.env,
         VITTAZ_AI_BASE_URL: "https://example.invalid",
         VITTAZ_AI_API_KEY: "synthetic-key",
+        VITTAZ_AI_MODEL: "synthetic-model",
       },
       fetch: fetch_stub as unknown as typeof fetch,
     }),
@@ -320,6 +321,7 @@ test("cli_ask_default_provider_requires_explicit_env_and_fails_closed", async ()
         ...f.env,
         VITTAZ_AI_BASE_URL: "https://example.invalid",
         VITTAZ_AI_API_KEY: "synthetic-key",
+        VITTAZ_AI_MODEL: "synthetic-model",
       },
       fetch: fetch_stub as unknown as typeof fetch,
     }),
@@ -334,6 +336,7 @@ test("cli_ask_default_local_tasks_are_unavailable_without_local_model", async ()
     ...f.env,
     VITTAZ_AI_BASE_URL: "https://example.invalid",
     VITTAZ_AI_API_KEY: "synthetic-key",
+    VITTAZ_AI_MODEL: "synthetic-model",
   };
   expect(
     await f.run(["ask", "improve this note", "--action", "improve_note"], {
@@ -465,6 +468,7 @@ test("cli_default_assistant_seeds_names_and_executes_read_only_tools", async () 
     ...f.env,
     VITTAZ_AI_BASE_URL: "https://example.invalid",
     VITTAZ_AI_API_KEY: "synthetic-key",
+    VITTAZ_AI_MODEL: "synthetic-model",
   };
   const bodies: unknown[] = [];
   const fetch_stub = vi.fn(async (_url: unknown, init?: RequestInit) => {
@@ -556,6 +560,7 @@ test("cli_defaults_use_process_env_stdio_and_filesystem", async () => {
     ).toBe(0);
     vi.stubEnv("VITTAZ_AI_BASE_URL", "https://example.invalid");
     vi.stubEnv("VITTAZ_AI_API_KEY", "synthetic-key");
+    vi.stubEnv("VITTAZ_AI_MODEL", "synthetic-model");
     expect(await runCli(["ask", "hello"])).toBe(0);
     expect(JSON.parse(out.at(-1)!).status).toBe("unavailable");
     expect(fetch_stub).toHaveBeenCalledTimes(1);

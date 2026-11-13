@@ -1,7 +1,7 @@
+import { test_client } from "../../../tests/helpers/test_client.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { openLedgerStore } from "../../storage/src/repositories.js";
 import { KeyPool } from "./key_pool.js";
-import { OpenAICompatibleClient } from "./provider_client.js";
 import { AnalyticsClient, AnalyticsError } from "./analytics.js";
 import { startFakeOpenAIServer } from "../../../tests/helpers/fake_openai_server.js";
 const cleanup: (() => Promise<void>)[] = [];
@@ -32,7 +32,7 @@ test("baseline_4_6_actual_http_analytics_has_metadata_only_and_no_prompt_reply_c
   }));
   cleanup.push(() => server.close());
   const keyPool = new KeyPool(config);
-  const raw = new OpenAICompatibleClient({ baseUrl: server.baseUrl, keyPool });
+  const raw = test_client({ baseUrl: server.baseUrl, keyPool });
   const client = new AnalyticsClient({
     client: raw,
     keyPool,
@@ -140,7 +140,7 @@ test("analytics_rejection_and_sensitive_input_have_zero_rows_or_extra_requests",
   cleanup.push(() => server.close());
   const keyPool = new KeyPool(config);
   const client = new AnalyticsClient({
-    client: new OpenAICompatibleClient({ baseUrl: server.baseUrl, keyPool }),
+    client: test_client({ baseUrl: server.baseUrl, keyPool }),
     keyPool,
     append: (row) => store.appendAnalytics(row),
   });
@@ -321,7 +321,7 @@ test("analytics_records_only_successful_fallback_key_with_exact_integer_rounding
     },
   ]);
   const client = new AnalyticsClient({
-    client: new OpenAICompatibleClient({ baseUrl: server.baseUrl, keyPool }),
+    client: test_client({ baseUrl: server.baseUrl, keyPool }),
     keyPool,
     append: (value) => store.appendAnalytics(value),
     rates: { second: { input_micros_per_1k: 500, output_micros_per_1k: 0 } },

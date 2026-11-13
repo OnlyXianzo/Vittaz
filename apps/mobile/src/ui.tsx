@@ -1,3 +1,15 @@
+import type { ComponentType } from "react";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  House,
+  Inbox,
+  Plus,
+  Settings,
+  Users,
+  X,
+} from "lucide-react-native";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -10,7 +22,6 @@ import {
 } from "react-native";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Polyline } from "react-native-svg";
 import { colors, fonts, gradients, radii, space } from "./theme";
@@ -235,7 +246,7 @@ export function PageHeader({
       <Row start gap={6} style={{ flexShrink: 1 }}>
         {onBack ? (
           <IconBtn label="Back" onPress={onBack}>
-            <Feather name="chevron-left" size={22} color={colors.text} />
+            <ChevronLeft size={22} color={colors.text} />
           </IconBtn>
         ) : null}
         <T
@@ -516,9 +527,7 @@ export function SettingRow({
         </M>
       </View>
       {right}
-      {onPress ? (
-        <Feather name="chevron-right" size={18} color={colors.dim} />
-      ) : null}
+      {onPress ? <ChevronRight size={18} color={colors.dim} /> : null}
     </>
   );
   const style = [styles.settingRow, !first && styles.hairlineTop];
@@ -593,6 +602,7 @@ export function Input({
   secure = false,
   keyboardType,
   onSubmitEditing,
+  autoCapitalize,
 }: {
   label: string;
   value: string;
@@ -604,6 +614,7 @@ export function Input({
   secure?: boolean;
   keyboardType?: "default" | "decimal-pad";
   onSubmitEditing?: () => void;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }) {
   return (
     <TextInput
@@ -615,6 +626,7 @@ export function Input({
       multiline={multiline}
       secureTextEntry={secure}
       keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
       onSubmitEditing={onSubmitEditing}
       blurOnSubmit={!multiline}
       returnKeyType={multiline ? "default" : "send"}
@@ -629,13 +641,13 @@ export function Input({
 const NAV: Array<{
   screen: ScreenId;
   label: string;
-  icon: keyof typeof Feather.glyphMap;
+  icon: ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 }> = [
-  { screen: "home", label: "Home", icon: "home" },
-  { screen: "inbox", label: "Inbox", icon: "inbox" },
-  { screen: "ledger", label: "Ledger", icon: "book-open" },
-  { screen: "people", label: "People", icon: "users" },
-  { screen: "settings", label: "Settings", icon: "settings" },
+  { screen: "home", label: "Home", icon: House },
+  { screen: "inbox", label: "Inbox", icon: Inbox },
+  { screen: "ledger", label: "Ledger", icon: BookOpen },
+  { screen: "people", label: "People", icon: Users },
+  { screen: "settings", label: "Settings", icon: Settings },
 ];
 
 export function BottomNav({
@@ -653,7 +665,7 @@ export function BottomNav({
       accessibilityRole="tablist"
       style={[styles.nav, { bottom: insets.bottom + space.navInset }]}
     >
-      {NAV.map(({ screen, label, icon }) => {
+      {NAV.map(({ screen, label, icon: Icon }) => {
         const on = current === screen;
         return (
           <Pressable
@@ -667,10 +679,10 @@ export function BottomNav({
             }}
             style={styles.navItem}
           >
-            <Feather
-              name={icon}
+            <Icon
               size={18}
               color={on ? colors.lime : colors.muted}
+              strokeWidth={2.2}
             />
             <T size={11} weight="semi" color={on ? colors.lime : colors.muted}>
               {label}
@@ -705,11 +717,11 @@ export function BottomNav({
           justifyContent: "center",
         }}
       >
-        <Feather
-          name={add_open ? "x" : "plus"}
-          size={24}
-          color={colors.limeDark}
-        />
+        {add_open ? (
+          <X size={24} color={colors.limeDark} strokeWidth={2.6} />
+        ) : (
+          <Plus size={24} color={colors.limeDark} strokeWidth={2.6} />
+        )}
       </Pressable>
       {add_open ? (
         <View

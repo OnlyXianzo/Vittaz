@@ -1,5 +1,5 @@
+import { Plus, Search } from "lucide-react-native";
 import { View } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
 import {
   formatPaise,
@@ -48,14 +48,14 @@ export function LedgerScreen() {
               label="Search"
               onPress={() => dispatch({ type: "toggle_search" })}
             >
-              <Feather name="search" size={22} color={colors.text} />
+              <Search size={22} color={colors.text} />
             </IconBtn>
             <IconBtn
               label="Add transaction"
               variant="fab"
               onPress={() => dispatch({ type: "navigate", screen: "add" })}
             >
-              <Feather name="plus" size={22} color={colors.limeDark} />
+              <Plus size={22} color={colors.limeDark} />
             </IconBtn>
           </Row>
         }

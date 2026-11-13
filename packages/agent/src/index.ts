@@ -8,7 +8,6 @@ export type {
   KeyStatusSnapshot,
   KeyFailureRecord,
 } from "./key_pool.js";
-export { OpenAICompatibleClient } from "./provider_client.js";
 export type {
   ChatMessage,
   ToolCallPayload,
@@ -38,10 +37,33 @@ export { AnalyticsClient, AnalyticsError } from "./analytics.js";
 export type { CompletionClient } from "./provider_client.js";
 export type { QuestionAnsweringAgent } from "./qa_loop.js";
 export {
-  LangChainCompletionClient,
-  LangChainQaAgent,
-  LangChainAdapterError,
-} from "./langchain_adapter.js";
+  ProviderRegistry,
+  create_anthropic_provider,
+  create_ai_sdk_provider,
+  create_model_registry,
+  capabilities_for_model,
+  declare_capabilities,
+  is_supported,
+  key_nickname_for,
+  normalize_failure_reason,
+  resolve_model,
+  validate_provider_config,
+  InvalidProviderConfigError,
+  MissingCredentialError,
+  ProviderNotConfiguredError,
+  UNKNOWN_CAPABILITIES,
+} from "./providers/index.js";
+export type {
+  CapabilityState,
+  CredentialResolver,
+  ModelCapabilities,
+  ProviderAdapter,
+  ProviderConfig,
+  ProviderDependencies,
+  ProviderFailureReason,
+  ProviderKind,
+  RegistryOptions,
+} from "./providers/index.js";
 export {
   ValidatedLocalModelTasks,
   LocalModelTaskError,

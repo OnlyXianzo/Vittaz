@@ -9,7 +9,6 @@
     "baseUrl": ".",
     "paths": {
       "@vittaz/core": ["../../packages/core/src/index.ts"],
-      "@langchain/core/*": ["node_modules/@langchain/core/dist/*"],
       "zod": ["node_modules/zod/index.d.cts"]
     }
   },

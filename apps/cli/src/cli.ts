@@ -27,8 +27,7 @@ import {
 } from "@vittaz/storage";
 import type { OperationalStore } from "@vittaz/storage";
 import {
-  KeyPool,
-  OpenAICompatibleClient,
+  create_ai_sdk_provider,
   ReadOnlyQaLoop,
   SharedAssistantService,
   ValidatedLocalModelTasks,
@@ -128,7 +127,11 @@ async function defaultAssistant(
   try {
     const base_url = env.VITTAZ_AI_BASE_URL;
     const api_key = env.VITTAZ_AI_API_KEY;
-    if (!base_url || !api_key) throw new Error();
+    const model = env.VITTAZ_AI_MODEL;
+    // `default_model` is required by the shared provider contract, and the SDK
+    // cannot construct a model handle without one. Fail closed instead of
+    // sending a request the provider would reject anyway.
+    if (!base_url || !api_key || !model) throw new Error();
     const redactor = new PrivacyRedactor();
     const rows = await store.read(async (repos) => ({
       transactions: await repos.transactions.list(),
@@ -137,18 +140,20 @@ async function defaultAssistant(
     for (const row of [...rows.transactions, ...rows.proposals])
       if (row.counterparty_name)
         redactor.registerCounterparty(row.counterparty_name);
-    const client = new OpenAICompatibleClient({
-      baseUrl: base_url,
-      keyPool: new KeyPool([
-        {
-          nickname: env.VITTAZ_AI_KEY_NICKNAME ?? "cli",
-          apiKey: api_key,
-          model: env.VITTAZ_AI_MODEL,
-        },
-      ]),
-      fetch: fetch_fn,
-      redactor,
-    });
+    const client = create_ai_sdk_provider(
+      {
+        id: env.VITTAZ_AI_KEY_NICKNAME ?? "cli",
+        kind: "openai_compatible",
+        credential_ref: "VITTAZ_AI_API_KEY",
+        base_url,
+        default_model: model,
+      },
+      {
+        resolve_credential: async () => api_key,
+        fetch: fetch_fn,
+        redactor,
+      },
+    );
     const qa = new ReadOnlyQaLoop({
       client,
       redactor,

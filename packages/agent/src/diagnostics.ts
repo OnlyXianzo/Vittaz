@@ -30,7 +30,6 @@ export type AgentDiagnosticReason =
   | "tool_rejected"
   | "step_limit"
   | "token_budget"
-  | "langchain_error"
   | "callback_error";
 
 export type AgentDiagnosticCode =
@@ -39,9 +38,6 @@ export type AgentDiagnosticCode =
   | "provider_fetch_failed"
   | "provider_response_parsed"
   | "provider_failure_classified"
-  | "langchain_invoke_started"
-  | "langchain_invoke_succeeded"
-  | "langchain_invoke_failed"
   | "qa_started"
   | "qa_stage_failed"
   | "qa_failed"
@@ -51,7 +47,7 @@ export type AgentDiagnosticCode =
   | "qa_tool_rejected";
 
 export type AgentDiagnosticSource =
-  "provider_http" | "provider_protocol" | "langchain" | "qa_loop" | "tool";
+  "provider_http" | "provider_protocol" | "qa_loop" | "tool";
 
 export interface AgentDiagnosticEvent {
   event_code: AgentDiagnosticCode;

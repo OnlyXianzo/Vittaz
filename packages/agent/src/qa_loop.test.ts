@@ -585,7 +585,7 @@ test("qa_does_not_echo_known_names_or_untrusted_provider_text_or_ids_to_next_req
 test("qa_real_fake_http_roundtrip_uses_only_readonly_projected_tools_and_no_mutations", async () => {
   const { startFakeOpenAIServer } =
     await import("../../../tests/helpers/fake_openai_server.js");
-  const { OpenAICompatibleClient } = await import("./provider_client.js");
+  const { test_client } = await import("../../../tests/helpers/test_client.js");
   const { KeyPool } = await import("./key_pool.js");
   const f = await fixture();
   const before = await f.writer.exportSnapshot();
@@ -595,7 +595,7 @@ test("qa_real_fake_http_roundtrip_uses_only_readonly_projected_tools_and_no_muta
       : { content: "Synthetic balance -1234 paise" },
   );
   cleanup.push(() => server.close());
-  const client = new OpenAICompatibleClient({
+  const client = test_client({
     baseUrl: server.baseUrl,
     keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "synthetic_qa" }]),
   });

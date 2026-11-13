@@ -1,3 +1,4 @@
+import { test_client } from "../../../tests/helpers/test_client.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,8 +18,7 @@ import type { FakeResponder } from "../../../tests/helpers/fake_openai_server.js
 import { SharedAssistantService } from "./assistant.js";
 import { AssistantNotificationWorker } from "./notification_worker.js";
 import { ValidatedLocalModelTasks } from "./local_tasks.js";
-import { LangChainQaAgent } from "./langchain_adapter.js";
-import { OpenAICompatibleClient } from "./provider_client.js";
+import { ReadOnlyQaLoop } from "./qa_loop.js";
 import { KeyPool } from "./key_pool.js";
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -61,8 +61,8 @@ async function fixture(responder?: FakeResponder) {
     rules: store.rules,
     local,
     redactor,
-    qa: new LangChainQaAgent({
-      client: new OpenAICompatibleClient({
+    qa: new ReadOnlyQaLoop({
+      client: test_client({
         baseUrl: server.baseUrl,
         keyPool: new KeyPool([{ nickname: "synthetic", apiKey: "" }]),
       }),

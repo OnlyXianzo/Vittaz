@@ -1,5 +1,5 @@
+import { SlidersHorizontal } from "lucide-react-native";
 import { Pressable, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
 import { formatPaise, selectInbox, selectPending } from "../domain";
 import type { InboxFilter } from "../domain";
@@ -56,7 +56,7 @@ export function InboxScreen() {
               dispatch({ type: "set_inbox_filter", filter: "all" })
             }
           >
-            <Feather name="filter" size={22} color={colors.text} />
+            <SlidersHorizontal size={22} color={colors.text} />
           </IconBtn>
         }
       />

@@ -13,7 +13,7 @@ All test data is synthetic. Never use real transactions, names, bank messages, k
 | 4     | Assistant with a fake provider     | PC or cloud sandbox |
 | 5     | Telegram connector with a fake API | PC or cloud sandbox |
 | 6     | Agent policy and injection         | PC or cloud sandbox |
-| 7     | LangChain check in the app         | Android phone       |
+| 7     | Provider path in the app           | Android phone       |
 | 8     | On-device behavior                 | Android phone       |
 | 9     | Performance                        | Phone and PC        |
 
@@ -62,7 +62,7 @@ The acceptance tests in [Agent policy](AGENT_POLICY.md), including prompt inject
 
 ## Layer 7 and 8: phone
 
-Blank dev build installs. LangChain bundles, makes a tool call and streams. SQLite survives a restart. Keys sit in Android Keystore. Local model downloads, verifies and benchmarks. Telegram foreground service survives screen-off. Notification listener respects the allowlist. Voice and OCR are evaluated on synthetic samples.
+Blank dev build installs. The provider path runs without a Web Crypto global, makes a read-only tool call and streams. SQLite survives a restart. Keys sit in Android Keystore. Local model downloads, verifies and benchmarks. Telegram foreground service survives screen-off. Notification listener respects the allowlist. Voice and OCR are evaluated on synthetic samples.
 
 ## Layer 9: performance
 
@@ -119,3 +119,45 @@ invocation,20s/request and bounded bodies (4MiB catalog/64KiB replies). This
 in-process budget cannot coordinate other clients behind a shared IP; do not
 repeat runs rapidly. Free public services may collect prompts. Do not put real
 names, notes, identifiers, credentials or financial history in this harness.
+
+## Layer 7: Hermes runtime requirements and the Web Crypto regression
+
+Node, Jest (`jest-expo`) and the Expo web export all provide globals that Android Hermes
+does not. That gap is what produced the S36 `KILO_UNKNOWN` failure, so provider work is
+tested against explicit runtime requirements rather than against whichever globals the
+test runner happens to have.
+
+The assistant path needs these globals on device, and only these sources provide them:
+
+| Global                                                        | Source on Expo SDK 58 / RN 0.88.1                                                            |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `crypto.getRandomValues`                                      | **not provided** — installed by `apps/mobile/src/assistant/web_crypto.ts` from `expo-crypto` |
+| `crypto.subtle`                                               | **not provided** — no `SubtleCrypto` polyfill exists in this app                             |
+| `TextDecoder`, `TextEncoder`                                  | Hermes (TextDecoder only from RN 0.88 / Expo 58)                                             |
+| `ReadableStream`, `WritableStream`, `TransformStream`         | Hermes / Expo native web streams                                                             |
+| `structuredClone`, `URL`, `DOMException`, `TextDecoderStream` | Expo winter runtime                                                                          |
+| `AbortController`, `AbortSignal`                              | React Native `setUpXHR`                                                                      |
+| `process` (minimal `{}` + `env`)                              | React Native `setUpGlobals`                                                                  |
+| Streaming response bodies                                     | `expo/fetch`, not the default RN fetch                                                       |
+
+`packages/agent/src/hermes_crypto_regression.test.ts` pins the two properties that any
+provider change must keep:
+
+- the transport the app actually uses (the AI SDK adapter, `providers/adapters/ai_sdk.ts`) completes a request with
+  `globalThis.crypto` removed — so a provider adapter must never reintroduce a Web Crypto
+  dependency into the transport;
+- if the framework layer still loses the global, the failure is a classified
+  `provider_call` diagnostic rather than an unclassified crash, which is what made the
+  device symptom unactionable in the first place.
+
+A passing Node.js test is not Hermes verification. On-device verification of streaming,
+tool calling and cancellation still requires an installed APK and a device run recorded in
+`docs/device_tests.md`.
+
+### The isolated AI SDK spike is not part of the test suite
+
+`spikes/ai-sdk/` holds the throwaway harness used for the Vercel AI SDK evaluation
+(`docs/ai_sdk_evaluation.md`). It is not a workspace member, is not imported by the app and
+is not run by CI. It installs its own dependencies and contacts only a local synthetic
+OpenAI-compatible server. Treat its results as evidence for that one document, never as a
+regression gate.

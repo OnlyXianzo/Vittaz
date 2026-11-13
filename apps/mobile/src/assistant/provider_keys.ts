@@ -2,7 +2,8 @@ import { fetch as expo_fetch } from "expo/fetch";
 import {
   ANTHROPIC_API_VERSION,
   ANTHROPIC_DEFAULT_MODEL,
-} from "../../../../packages/agent/src/anthropic_messages_client";
+  type ProviderPreset,
+} from "../../../../packages/agent/src/providers";
 import { KILO_FREE_MODEL, KILO_GATEWAY_BASE_URL } from "./mobile_qa";
 import {
   DEFAULT_ASSISTANT_PROVIDER_PROFILE,
@@ -20,12 +21,49 @@ import type { AssistantProviderSelection, SecureKeyStore } from "./secure_key";
 export const KEY_PROFILES_NAME = "assistant_key_profiles_v1";
 export type KeyProvider = AssistantProviderSelection;
 
+export type AuthHeader =
+  "authorization" | "api-key" | "x-api-key" | "x-goog-api-key";
+
 export interface KeyProfile {
   id: string;
   provider: KeyProvider;
   label: string;
   base_url: string;
   model: string;
+  /**
+   * API path the transport appends to `base_url`. Absent means the default
+   * `/v1`; `""` means `base_url` is already the complete prefix. Stored because
+   * "OpenAI-compatible" servers disagree — Google's compatibility layer lives
+   * at `/v1beta/openai`, and with a hard-coded `/v1` every request was a 404.
+   */
+  api_suffix?: string;
+  /** Where the key goes on the wire. Absent means `Authorization: Bearer`. */
+  auth_header?: AuthHeader;
+  /** Prefix before the key; `""` sends the bare key. */
+  auth_scheme?: string;
+}
+
+/**
+ * The header a profile's key travels in, and its full value.
+ *
+ * One implementation shared by model discovery and chat, so the two can never
+ * disagree about where the key goes. Defaults match the OpenAI convention;
+ * a custom header sends the bare key unless a scheme was configured.
+ */
+export function auth_header_for(
+  profile: Pick<KeyProfile, "auth_header" | "auth_scheme">,
+  secret: string,
+): { name: string; value: string } {
+  const name = profile.auth_header ?? "authorization";
+  const scheme =
+    profile.auth_scheme ?? (name === "authorization" ? "Bearer" : "");
+  return { name, value: scheme ? `${scheme} ${secret}` : secret };
+}
+
+/** The API path a profile actually uses. */
+export function profile_api_suffix(profile: KeyProfile): string {
+  if (profile.provider === "anthropic") return "";
+  return profile.api_suffix ?? "/v1";
 }
 
 export interface KeyProfileRegistry {
@@ -69,6 +107,49 @@ function normalize_base_url(value: string): string {
   return (url.origin + url.pathname).replace(/\/+$/, "").replace(/\/v1$/i, "");
 }
 
+/**
+ * Bounded, path-only suffix. Rejects traversal, query, fragment and whitespace,
+ * so a profile can never redirect the request somewhere the user cannot see.
+ */
+function normalize_api_suffix(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const suffix = value.trim();
+  if (suffix.length > 64) throw new Error("invalid_api_suffix");
+  if (suffix !== "" && !suffix.startsWith("/"))
+    throw new Error("invalid_api_suffix");
+  if (
+    suffix.includes("..") ||
+    /[?#\s]/.test(suffix) ||
+    has_control_character(suffix)
+  )
+    throw new Error("invalid_api_suffix");
+  return suffix;
+}
+
+const AUTH_HEADERS: readonly AuthHeader[] = [
+  "authorization",
+  "api-key",
+  "x-api-key",
+  "x-goog-api-key",
+];
+
+function normalize_auth_header(
+  value: string | undefined,
+): AuthHeader | undefined {
+  if (value === undefined) return undefined;
+  if (!AUTH_HEADERS.includes(value as AuthHeader))
+    throw new Error("invalid_auth_header");
+  return value as AuthHeader;
+}
+
+function normalize_auth_scheme(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const scheme = value.trim();
+  if (scheme.length > 32 || has_control_character(scheme))
+    throw new Error("invalid_auth_scheme");
+  return scheme;
+}
+
 function validate_profile(
   input: Omit<KeyProfile, "id">,
 ): Omit<KeyProfile, "id"> {
@@ -84,8 +165,17 @@ function validate_profile(
     throw new Error("invalid_profile");
   let base_url = "";
   let model = input.model.trim();
+  let api_suffix = normalize_api_suffix(input.api_suffix);
+  const auth_header = normalize_auth_header(input.auth_header);
+  const auth_scheme = normalize_auth_scheme(input.auth_scheme);
   if (input.provider === "openai_compatible") {
     base_url = normalize_base_url(input.base_url);
+    // A pasted URL that already ends with the configured path is stored
+    // without it, because the transport appends the suffix itself. Otherwise
+    // the user would get `…/v1beta/openai/v1beta/openai`.
+    const effective = api_suffix ?? "/v1";
+    if (effective && base_url.toLowerCase().endsWith(effective.toLowerCase()))
+      base_url = base_url.slice(0, -effective.length).replace(/\/+$/, "");
     if (!/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(model))
       throw new Error("invalid_model");
   } else if (input.provider === "anthropic") {
@@ -95,7 +185,19 @@ function validate_profile(
   } else {
     model = model || KILO_FREE_MODEL;
   }
-  return { provider: input.provider, label, base_url, model };
+  if (input.provider === "anthropic") {
+    // Anthropic has a pinned endpoint; wire-shape overrides do not apply.
+    api_suffix = undefined;
+  }
+  return {
+    provider: input.provider,
+    label,
+    base_url,
+    model,
+    ...(api_suffix !== undefined ? { api_suffix } : {}),
+    ...(auth_header !== undefined ? { auth_header } : {}),
+    ...(auth_scheme !== undefined ? { auth_scheme } : {}),
+  };
 }
 
 let id_counter = 0;
@@ -205,6 +307,26 @@ export async function read_key_secret(
   }
 }
 
+/** The one provider the phone flow lets a user save without a credential. */
+const MOBILE_KEYLESS_PRESET_ID = "kilo";
+
+/**
+ * Whether the phone flow can actually save this preset.
+ *
+ * Two rules decide it, and both come from this app rather than from the
+ * provider: the key flow requires `https` (a phone app has no loopback/LAN
+ * endpoint it can dial on the user's behalf), and a profile without a
+ * credential is only allowed for Kilo. A preset that breaks either rule would
+ * be offered and then refuse to save, so it is not offered at all.
+ */
+export function mobile_supports_preset(
+  preset: Pick<ProviderPreset, "base_url" | "keyless" | "id">,
+): boolean {
+  if (preset.base_url !== undefined && !/^https:\/\//i.test(preset.base_url))
+    return false;
+  return !preset.keyless || preset.id === MOBILE_KEYLESS_PRESET_ID;
+}
+
 export async function add_key_profile(
   store: SecureKeyStore,
   input: Omit<KeyProfile, "id"> & { api_key: string; activate?: boolean },
@@ -308,7 +430,8 @@ function model_url(profile: KeyProfile): string {
   if (profile.provider === "kilo") return `${KILO_GATEWAY_BASE_URL}/v1/models`;
   if (profile.provider === "anthropic")
     return "https://api.anthropic.com/v1/models";
-  return `${normalize_base_url(profile.base_url)}/v1/models`;
+  // Same suffix the transport will use, so discovery and chat cannot disagree.
+  return `${normalize_base_url(profile.base_url)}${profile_api_suffix(profile)}/models`;
 }
 
 /** Fetches model ids from the selected provider; never logs keys or raw bodies. */
@@ -329,7 +452,8 @@ export async function fetch_model_choices(
     headers["x-api-key"] = secret!;
     headers["anthropic-version"] = ANTHROPIC_API_VERSION;
   } else if (secret) {
-    headers.authorization = `Bearer ${secret}`;
+    const { name, value } = auth_header_for(profile, secret);
+    headers[name] = value;
   }
   const response = await fetch_impl(model_url(profile), { headers });
   if (!response.ok) throw new Error("model_fetch_failed");
