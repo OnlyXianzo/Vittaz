@@ -2,22 +2,22 @@
 
 Record every deviation from the plan here, with a date and a reason.
 
-| #   | Decision                                                                                                                                                                                                 | Status                               |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| 1   | The app is named Vittaz.                                                                                                                                                                                 | Settled                              |
-| 2   | Repository interfaces in core are asynchronous. This replaces the earlier synchronous `Db` interface idea, because Expo's recommended APIs are asynchronous.                                             | Settled                              |
-| 3   | SQLite with Drizzle behind a separate `storage` package. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile.                                                                           | Settled, verify against current docs |
-| 4   | The CLI and CI run on Node 20 or newer in v1. Bun is evaluated later.                                                                                                                                    | Settled                              |
-| 5   | The assistant runs inside the app and CLI. One `AssistantService` serves app, CLI and Telegram.                                                                                                          | Settled                              |
-| 6   | Native TypeScript tools with `snake_case` names. No MCP in v1.                                                                                                                                           | Settled                              |
-| 7   | No third-party agent framework. A Vittaz-owned provider contract in `packages/agent/src/providers` wraps the Anthropic and OpenAI-compatible transports (LangChain removed 2026-11-11; AI SDK rejected). | Settled                              |
-| 8   | Telegram is the only connector in v1. It uses a user-supplied bot token and a pairing code.                                                                                                              | Settled                              |
-| 9   | Gmail, WhatsApp and Discord are deferred connectors.                                                                                                                                                     | Settled                              |
-| 10  | Conversation history is shared across channels. No automatic long-term memory in v1.                                                                                                                     | Settled                              |
-| 11  | Backend and CLI first. HTML screens are wired afterwards in vertical slices, starting with manual entry. Animation last.                                                                                 | Settled                              |
-| 12  | One ledger per device, moved by export and import file.                                                                                                                                                  | Settled                              |
-| 13  | Personal mode first. Merchant mode later.                                                                                                                                                                | Settled                              |
-| 14  | The reference engine is read-only. Logic is ported module by module through failing tests.                                                                                                               | Settled                              |
+| #   | Decision                                                                                                                                                                                                                                                             | Status                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | The app is named Vittaz.                                                                                                                                                                                                                                             | Settled                              |
+| 2   | Repository interfaces in core are asynchronous. This replaces the earlier synchronous `Db` interface idea, because Expo's recommended APIs are asynchronous.                                                                                                         | Settled                              |
+| 3   | SQLite with Drizzle behind a separate `storage` package. `better-sqlite3` for Node tests and the CLI, `expo-sqlite` on mobile.                                                                                                                                       | Settled, verify against current docs |
+| 4   | The CLI and CI run on Node 20 or newer in v1. Bun is evaluated later.                                                                                                                                                                                                | Settled                              |
+| 5   | The assistant runs inside the app and CLI. One `AssistantService` serves app, CLI and Telegram.                                                                                                                                                                      | Settled                              |
+| 6   | Native TypeScript tools with `snake_case` names. No MCP in v1.                                                                                                                                                                                                       | Settled                              |
+| 7   | No third-party **agent** framework: the harness, tools, prompts and safety policy are Vittaz-owned. The provider _transport_ for OpenAI-compatible servers is the Vercel AI SDK, on device (LangChain removed 2026-11-11; adopted 2026-11-11 — see the entry below). | Settled                              |
+| 8   | Telegram is the only connector in v1. It uses a user-supplied bot token and a pairing code.                                                                                                                                                                          | Settled                              |
+| 9   | Gmail, WhatsApp and Discord are deferred connectors.                                                                                                                                                                                                                 | Settled                              |
+| 10  | Conversation history is shared across channels. No automatic long-term memory in v1.                                                                                                                                                                                 | Settled                              |
+| 11  | Backend and CLI first. HTML screens are wired afterwards in vertical slices, starting with manual entry. Animation last.                                                                                                                                             | Settled                              |
+| 12  | One ledger per device, moved by export and import file.                                                                                                                                                                                                              | Settled                              |
+| 13  | Personal mode first. Merchant mode later.                                                                                                                                                                                                                            | Settled                              |
+| 14  | The reference engine is read-only. Logic is ported module by module through failing tests.                                                                                                                                                                           | Settled                              |
 
 ## Bootstrap verification — 2026-11-04 (pending user decision)
 
@@ -30,6 +30,52 @@ S0 is the first unchecked step. Inspection at `2fb5f92` found:
 - The user requires a separate branch, PR and review. Work is on `chore/verify-repository-bootstrap`; authenticated push and PR await `GITHUB_TOKEN` in the environment. Never persist the token in a file.
 
 No implementation or completion claim is made. Stop at the Phase A boundary until the missing inputs and bootstrap disposition are confirmed. The verified-implementation skill has been read; implementation research and a written Verified Approach must precede non-trivial code changes.
+
+## 2026-11-11 — Vercel AI SDK adopted as the OpenAI-compatible transport (on device)
+
+This supersedes the earlier "AI SDK rejected" wording in row 7 and in
+`docs/ai_sdk_evaluation.md`. The owner directed adoption after reading the
+evaluation, and the port is implemented on branch `feat/provider-contract`.
+
+Scope, stated precisely: the SDK owns **wire plumbing only** (request encoding,
+SSE framing, tool-call fragment assembly, usage extraction). Vittaz still owns
+preflight, endpoint safety, the key pool and its rotation/cooldown policy,
+`BadRequestNoFallback`, the eight failure reasons, cancellation, and the
+diagnostics codebook. Tools are handed to the SDK as definitions **without**
+`execute`, so the harness remains the only thing that runs a tool.
+
+Deleted: `providers/adapters/openai_compatible.ts` and its tests.
+Kept: `providers/adapters/anthropic.ts` — a different protocol that
+`@ai-sdk/openai-compatible` cannot serve.
+
+### Known, accepted differences in wire behaviour
+
+1. `system`/`developer` message text is sent as `instructions`; SDK v7 forbids
+   those roles inside `messages`.
+2. `maxRetries: 0` is pinned per call. The SDK default is 2, which the key pool —
+   the only retry authority — must not inherit.
+3. The transport appends `/v1` to the configured base URL. Configure
+   `https://host/api`, not `https://host/api/v1`.
+4. Header names are lowercase on the wire, and the SDK sends
+   `user-agent: ai/<ver> ai-sdk-provider-utils/<ver> node.js/<ver>`. It is set
+   after caller headers are merged, so it cannot be overridden. No key or user
+   data, but it does fingerprint the client stack to the provider.
+5. Non-streaming requests omit `stream` instead of sending `false`.
+6. The token cap is sent as `max_tokens` instead of `max_completion_tokens`.
+7. The CLI now requires `VITTAZ_AI_MODEL`: the shared provider contract already
+   required a model, and the SDK cannot construct a model handle without one.
+   Previously a model-less request was sent and rejected by the provider.
+8. Exceptions thrown inside the SDK's `onChunk` callback are swallowed by the
+   SDK, so the adapter catches them and re-raises the historical
+   `Provider callback failed` behaviour. Without this, a throwing UI callback
+   would be silently ignored.
+
+### Still unverified
+
+On-device React Native/Hermes behaviour. The SDK imports `TextDecoder` and
+`TransformStream` at module load; Expo 58 / RN 0.88 is expected to provide both,
+but no device or emulator exists in this environment, so the claim is untested.
+Per the owner's rule, a passing Node suite is not device evidence.
 
 ## Open
 

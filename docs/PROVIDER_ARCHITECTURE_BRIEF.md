@@ -262,83 +262,108 @@ all green.
 
 ---
 
-## 5. Why we are _not_ using the Vercel AI SDK (yet)
+## 5. What happened with the Vercel AI SDK (this section replaces the old advice)
 
-You asked this directly, and again after hearing both conditions. The short
-answer: **it fails the one gate that matters, and it saves you almost nothing
-for the providers you actually want.**
+**This section used to argue against the SDK. You decided otherwise, and the
+decision was implemented.** It is rewritten so the file no longer contradicts
+the code. If you want the reasoning that led to the old recommendation, it is in
+the commit history, not here.
 
-Reasons, in the order they actually decide it:
+### 5.1 What you asked for, in plain words
 
-**1. The deciding gate cannot be met here.** Your own standard is that Node
-tests don't prove Android behaviour. There is no device, emulator or Android SDK
-in this environment, so "streaming and tool calling verified on Hermes" is
-unprovable. Adopting on that basis means claiming something undemonstrated —
-the exact mistake that produced LangChain.
+> "Any OpenAI-compatible key works, we fetch its models, and we are not stuck
+> maintaining each provider."
 
-**2. Its requirements are the shape of your worst bug.** Measured: the SDK has a
-hard **import-time** dependency on `TextDecoder` and `TransformStream`. Both exist
-on your Expo 58 / RN 0.88. Remove either and the app dies at module evaluation,
-_before any HTTP request_ — indistinguishable from `KILO_UNKNOWN`.
+That is the goal. The SDK is a means to it, not the goal itself.
 
-**3. Its error model doesn't match yours, and would have to be rebuilt on top.**
+### 5.2 What was actually built
 
-| Case                                             | AI SDK                                                         | Vittaz needs                                |
-| ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------- |
-| In-band SSE error (HTTP 200 + `{"error"}` frame) | stream ends silently, `text: ""`, only `finishReason: "error"` | a classified failure, never an empty answer |
-| `abort()`                                        | delta stream ends silently                                     | `aborted`/`timeout` stop reason             |
+`@ai-sdk/openai-compatible` is now the **only** OpenAI-compatible transport, and
+it runs **on the device** (inside the app), not on a server.
 
-A naive port turns a provider failure into an empty answer. Preserving your eight
-failure reasons, 400-no-fallback and stop reasons means rebuilding all of it.
+| Layer                                                                                                                         | Owner                                                            | Where                                              |
+| ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| HTTP request shape, SSE framing, tool-call fragment assembly, usage extraction                                                | Vercel AI SDK (`ai@7.0.169`, `@ai-sdk/openai-compatible@3.0.90`) | `providers/adapters/ai_sdk.ts`                     |
+| Preflight (strict schema, sensitive-input rejection, outbound redaction, 64 KiB cap)                                          | Vittaz                                                           | `provider_client.ts` → `validateCompletionRequest` |
+| Endpoint safety, key pool, rotation, cooldown, 400-no-fallback, the eight failure reasons, cancellation, diagnostics codebook | Vittaz                                                           | `ai_sdk.ts` + `key_pool.ts`                        |
+| Behaviour, system prompts, tools, allowlists, execution loop                                                                  | Vittaz (untouched)                                               | `qa_loop.ts`, `tools.ts`, `assistant.ts`           |
 
-**4. It buys almost nothing for your goal.** "OpenAI-compatible" is _one
-protocol_, not one company. `@ai-sdk/openai-compatible` covers the same servers
-your existing transport already covers. An SDK's real value is a bag of
-_different_ protocols — you speak two, and Anthropic is stable.
+The deleted file is `providers/adapters/openai_compatible.ts` — roughly 500 lines
+of hand-written request/stream code that now has a library owner. The
+`anthropic.ts` adapter is **kept deliberately**: it speaks a different protocol
+that `@ai-sdk/openai-compatible` cannot serve.
 
-**5. The real maintenance win was LangChain, and it was separable.** Done, and
-it removed the cause of a device bug. That is a measurable win; the SDK
-migration is not.
+Tools are passed to the SDK as **definitions only, with no `execute`**. So the
+SDK stops with `finishReason: "tool-calls"` and hands the calls back; the Vittaz
+harness is still the only thing that runs a tool, enforces the read-only
+allowlist, and creates a pending proposal. Policy did not move into a library.
 
-**The honest counterpoint, in your favour:** OpenCode does use the AI SDK for
-providers while keeping its own agent loop — you were right about that. It
-supports 10+ protocols and runs on desktop Node with no Hermes constraint. That
-is a genuinely different problem from yours. Your instinct isn't wrong; it is
-being applied to a smaller provider set than OpenCode's.
+### 5.3 The four earlier objections, and what actually happened to each
 
-### What would change this recommendation
+| Old objection                                                                                                 | Reality after implementing it                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "It needs `TextDecoder`/`TransformStream` at import time, which is exactly your `KILO_UNKNOWN` failure shape" | Real, and **not yet disproven on a phone.** The SDK and its dependency tree do import them. Expo 58 / RN 0.88 is supposed to provide both. A Node test proves nothing about Hermes (see §5.5).                                                                                                                                                                                          |
+| "Its error model doesn't match yours"                                                                         | True, and it was **not** papered over. Every mismatch is mapped back onto the existing vocabulary: in-band SSE error → `protocol_error` (never an empty answer), 400 → `BadRequestNoFallbackError`, 401/403/429/5xx → the same eight reasons, abort → a static `AbortError`. The SDK's own 2 retries are pinned off (`maxRetries: 0`) so it cannot silently retry against the same key. |
+| "It saves nothing, because `openai-compatible` is one protocol"                                               | Correct on breadth: it buys **zero new protocols**. It buys the maintenance win you asked for — OpenAI-compatible wire changes are now the library's problem.                                                                                                                                                                                                                           |
+| "The real win was LangChain"                                                                                  | Still true. That removal is committed and independent of this one.                                                                                                                                                                                                                                                                                                                      |
 
-Both together, not one:
+### 5.4 Deliberate, user-visible differences from the old transport
 
-1. You want **3+ non-OpenAI-compatible protocols** (Gemini, Bedrock, Cohere), and
-2. you have **run** the device tests — not just planned them.
+These were accepted, not hidden:
 
-Then the move is small: install only `@ai-sdk/<provider>`, wrap it in
-`adapters/` (~60 lines each), change nothing in the loop, tools or safety checks.
-The contract exists precisely so that stays cheap.
+1. **System/developer text travels as `instructions`.** SDK v7 forbids the
+   `system` and `developer` roles inside `messages`. Same content, different wire
+   field. Everything downstream is unchanged.
+2. **`maxRetries: 0` is pinned.** The SDK otherwise adds two retries the old
+   transport never had; the key pool stays the only retry authority.
+3. **The base URL gets `/v1` appended** by the transport (`normalize_base_url`),
+   because the SDK owns the rest of the path. Configure `https://host/api`, not
+   `https://host/api/v1`.
+4. **Header names on the wire are lowercase**, and a `user-agent` of
+   `ai/7.0.169 ai-sdk-provider-utils/5.0.79 node.js/24` is sent. It cannot be
+   overridden — the SDK sets it after merging caller headers. It contains no key
+   or user data, but it does fingerprint the client stack to the provider.
+5. **Non-streaming requests omit `stream`** rather than sending `stream: false`.
+6. **The token cap goes out as `max_tokens`**, not `max_completion_tokens`.
+   Providers accept either.
+7. **The CLI now requires `VITTAZ_AI_MODEL`.** The shared provider contract
+   already required a model, and the SDK cannot build a model handle without
+   one; previously a model-less request went out and the provider rejected it.
 
-**Also worth saying plainly:** testing your phone **proves the current stack
-works**. It is not a step toward the SDK. If all six tests pass, the honest
-conclusion is "what we have is verified," not "now migrate."
+### 5.5 What is proven, and what is not
+
+**Proven:** the full root suite (60 files / 397 tests) and the mobile suite
+(16 suites / 105 tests) pass, typecheck, lint, build and formatting are clean,
+and the transport was exercised against a real local HTTP/SSE server, not only
+mocks.
+
+**Not proven:** anything on an actual phone. There is no Android SDK, emulator or
+device in this environment, so "streaming and tool calling work on Hermes" is
+**unverified** — and per your own rule, a passing Node run does not count as
+device evidence. The six device tests in
+`docs/provider_device_test_plan.md` are what would settle it.
+
+**If those tests fail on the phone**, the revert is clean: the previous transport
+and its tests are one commit back, and `adapters/openai_compatible.ts` is
+recoverable from git. That revertability is why the deletion was staged last.
 
 ---
 
-## 6. The only open question I need you to answer
+## 6. The open question that still needs your answer
 
 > **Which third provider protocol do you actually want — Gemini, Bedrock,
 > Cohere, or simply "more OpenAI-compatible services"?**
 
-Why it decides the next step:
+The SDK changed the _cost_ of that answer, not the need for it:
 
-| Your answer                          | Right move                                                                              |
-| ------------------------------------ | --------------------------------------------------------------------------------------- |
-| More OpenAI-compatible services      | **Nothing to build.** Already works; just add a profile in the app                      |
-| Gemini only                          | Add a `gemini` adapter (~60 lines). No new dependency, your tested error handling stays |
-| Gemini **and** Bedrock/Cohere        | Now the SDK case is real — but only after the device tests run                          |
-| "Stop, just make what we have solid" | Run the device plan in §3.4 (§7.1 is the only small cleanup left)                       |
+| Your answer                          | Right move now                                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| More OpenAI-compatible services      | **Nothing to build.** Already works; add a profile in the app                                                     |
+| Gemini, Bedrock or Cohere            | Install `@ai-sdk/<provider>` and wrap it in `adapters/` — small, because the contract and the loop stay untouched |
+| "Stop, just make what we have solid" | Run the device plan (§7.2). That is the only thing standing between "passing tests" and "verified"                |
 
-Adding 1st-party Gemini isn't obviously worth a dependency; the SDK starts
-winning when the _second and third_ non-compatible protocol arrive.
+The point of the refactor is that this is now a **cheap** decision to make later,
+whichever way you answer it.
 
 ---
 

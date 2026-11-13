@@ -50,13 +50,13 @@ Contains provider-specific code, prompt construction, tool schemas, model routin
 
 Inside it, `src/providers/` is the provider boundary:
 
-| Path                        | Role                                                                                                                                                      |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contracts/provider.ts`     | `ProviderConfig` (stable id, kind, credential _reference_, base URL, default model) and `ProviderAdapter`, which extends the existing `CompletionClient`. |
-| `contracts/capabilities.ts` | Per-model capability metadata. Unknown stays `"unknown"`; it is never promoted to `true` by a successful call.                                            |
-| `contracts/errors.ts`       | Normalized errors and the failure-reason mapping shared by both transports. Holds no request, response or credential payload.                             |
-| `adapters/`                 | Thin wrappers that construct `OpenAICompatibleClient` / `AnthropicMessagesClient` from a validated config and a credential resolver.                      |
-| `registry/`                 | Configuration registry (a single config is unambiguous; several require an explicit selection) and the model-capability registry.                         |
+| Path                        | Role                                                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `contracts/provider.ts`     | `ProviderConfig` (stable id, kind, credential _reference_, base URL, default model) and `ProviderAdapter`, which extends the existing `CompletionClient`.          |
+| `contracts/capabilities.ts` | Per-model capability metadata. Unknown stays `"unknown"`; it is never promoted to `true` by a successful call.                                                     |
+| `contracts/errors.ts`       | Normalized errors and the failure-reason mapping shared by both transports. Holds no request, response or credential payload.                                      |
+| `adapters/`                 | Thin wrappers that construct the AI SDK transport (`ai_sdk.ts`, OpenAI-compatible) or `AnthropicMessagesClient` from a validated config and a credential resolver. |
+| `registry/`                 | Configuration registry (a single config is unambiguous; several require an explicit selection) and the model-capability registry.                                  |
 
 Transports keep every rule they already owned: fetch behaviour, SSE parsing, request/response validation, retry and key-pool policy, HTTP error classification, cancellation, body limits and redaction. The adapters add no retries, no provider switching and no key switching beyond that policy, and they resolve credentials lazily so a key never enters a config object.
 
@@ -142,9 +142,9 @@ For AI-assisted input, parsing produces a validated proposal. The proposal is sh
 
 ## AI framework boundary
 
-The core must remain independent of the AI provider layer. `packages/agent/src/providers` owns the boundary: a small Vittaz-authored contract (`ProviderAdapter`, `ProviderConfig`, normalized errors and capability metadata) over the two transports that actually talk to networks, `OpenAICompatibleClient` and `AnthropicMessagesClient`.
+The core must remain independent of the AI provider layer. `packages/agent/src/providers` owns the boundary: a small Vittaz-authored contract (`ProviderAdapter`, `ProviderConfig`, normalized errors and capability metadata) over the two transports that actually talk to networks: `ai_sdk.ts` (the Vercel AI SDK, for OpenAI-compatible servers) and `AnthropicMessagesClient`.
 
-There is no third-party agent framework in the dependency tree. LangChain was removed on 2026-11-11 (`DECISIONS.md`) and the Vercel AI SDK was evaluated and rejected (`docs/ai_sdk_evaluation.md`). Both decisions rest on the same test: a candidate must be proven on React Native/Hermes before adoption, and neither removes work that Vittaz would otherwise write once the provider contract exists.
+There is no third-party agent framework in the dependency tree. LangChain was removed on 2026-11-11 (`DECISIONS.md`). The Vercel AI SDK was adopted the same day as the OpenAI-compatible _transport only_, running on device; the harness, tools, prompts and safety policy stay Vittaz-owned. `docs/ai_sdk_evaluation.md` is the pre-decision evaluation and its conclusion is superseded — see the 2026-11-11 entry in `DECISIONS.md`. Both decisions rest on the same test: a candidate must be proven on React Native/Hermes before adoption, and neither removes work that Vittaz would otherwise write once the provider contract exists.
 
 Do not add an orchestration framework merely because it is popular. The transports are the only code that may speak a provider protocol; the contract is the only shape the assistant, the QA loop and the tests may depend on.
 

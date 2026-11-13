@@ -143,7 +143,7 @@ The assistant path needs these globals on device, and only these sources provide
 `packages/agent/src/hermes_crypto_regression.test.ts` pins the two properties that any
 provider change must keep:
 
-- the transport the app actually uses (`OpenAICompatibleClient`) completes a request with
+- the transport the app actually uses (the AI SDK adapter, `providers/adapters/ai_sdk.ts`) completes a request with
   `globalThis.crypto` removed — so a provider adapter must never reintroduce a Web Crypto
   dependency into the transport;
 - if the framework layer still loses the global, the failure is a classified

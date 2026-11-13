@@ -1,3 +1,10 @@
+> **Superseded 2026-11-11.** This evaluation recommended _against_ adopting the
+> Vercel AI SDK. The owner decided otherwise and the SDK is now the
+> OpenAI-compatible transport, on device. The reasoning below is kept as the
+> record of what was weighed; for what was actually built and which differences
+> were accepted, read `DECISIONS.md` (2026-11-11 entry) and §5 of
+> `docs/PROVIDER_ARCHITECTURE_BRIEF.md`.
+
 # Vercel AI SDK evaluation for Vittaz providers
 
 Status: **evaluated, not adopted.** The existing LangChain-based provider layer and
