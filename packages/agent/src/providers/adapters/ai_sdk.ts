@@ -39,6 +39,7 @@ import {
   to_sdk_tools,
   to_tool_calls,
 } from "./sdk_prompt.js";
+import { bounded_fetch } from "./bounded_fetch.js";
 
 /**
  * OpenAI-compatible transport backed by the Vercel AI SDK.
@@ -158,8 +159,12 @@ function credential_headers(
 ): Record<string, string> | undefined {
   const headers: Record<string, string> = { ...(extra ?? {}) };
   const header = auth?.header ?? "authorization";
-  if (api_key && header !== "authorization") {
-    const scheme = auth?.scheme ?? "";
+  const scheme = auth?.scheme;
+  // The SDK only knows how to send `Authorization: Bearer`. Any other header,
+  // and any other scheme on `Authorization` itself (`Basic`, or a bare key with
+  // no scheme at all), has to be built here — otherwise the SDK would quietly
+  // send a `Bearer` the configuration never asked for.
+  if (api_key && (header !== "authorization" || scheme !== undefined)) {
     headers[header] = scheme ? `${scheme} ${api_key}` : api_key;
   }
   return Object.keys(headers).length ? headers : undefined;
@@ -274,9 +279,11 @@ export function create_ai_sdk_provider(
         let callback_failed = false;
 
         try {
-          const custom_auth = validated.auth?.header
-            ? validated.auth.header !== "authorization"
-            : false;
+          // The credential goes into a header we build whenever the
+          // configuration deviates from the SDK's `Authorization: Bearer`.
+          const custom_auth =
+            validated.auth?.scheme !== undefined ||
+            (validated.auth?.header ?? "authorization") !== "authorization";
           const headers = credential_headers(
             entry.apiKey,
             validated.auth,
@@ -294,7 +301,7 @@ export function create_ai_sdk_provider(
             // Keyless configurations (Kilo Auto Free) must send no header at
             // all. A custom auth header means the key is sent below instead.
             ...(entry.apiKey && !custom_auth ? { apiKey: entry.apiKey } : {}),
-            ...(deps.fetch ? { fetch: deps.fetch } : {}),
+            fetch: bounded_fetch(deps.fetch),
             // ONE `headers` object. Two separate spreads both named `headers`
             // silently overwrite each other, which dropped the credential
             // whenever attribution was configured. Merged deliberately.
@@ -334,6 +341,8 @@ export function create_ai_sdk_provider(
           let prompt_tokens = 0;
           let completion_tokens = 0;
           let finish_reason: string;
+          // Set only by the SDK's stream error callback, before `text` rejects.
+          let stream_error: unknown;
 
           if (wire.stream) {
             // A separate controller so a callback failure can stop the stream
@@ -341,8 +350,16 @@ export function create_ai_sdk_provider(
             const callback_abort = new AbortController();
             const streamed = streamText({
               ...common,
-              // Do not let the SDK's own retries or our abort mask the reason.
-              abortSignal: callback_abort.signal,
+              // Both signals matter: a callback failure must stop the stream,
+              // and a caller cancellation or deadline must still reach the
+              // request. Overwriting one with the other strands the request.
+              abortSignal: AbortSignal.any([signal, callback_abort.signal]),
+              // Without an `onError` the SDK reports through `console.error`,
+              // and its errors carry request values and raw response bodies —
+              // which may contain the key. Capture, never log.
+              onError: ({ error }) => {
+                stream_error = error;
+              },
               onChunk: ({ chunk }) => {
                 if (chunk.type !== "text-delta" || !params.onStreamDelta)
                   return;
@@ -354,7 +371,16 @@ export function create_ai_sdk_provider(
                 }
               },
             });
-            text = await streamed.text;
+            try {
+              text = await streamed.text;
+            } catch (error) {
+              // An HTTP failure before the first completed step rejects `text`
+              // with `NoOutputGeneratedError`, which carries no status: a
+              // streamed 400 would look like a connection fault and rotate the
+              // key instead of failing closed. The captured error is the real
+              // one.
+              throw stream_error ?? error;
+            }
             tool_calls = to_tool_calls(await streamed.toolCalls);
             const usage = await streamed.usage;
             prompt_tokens = usage.inputTokens ?? 0;

@@ -14,6 +14,7 @@ import {
   type ToolCallPayload,
 } from "../../provider_client.js";
 import type { ModelCapabilities } from "../contracts/capabilities.js";
+import { bounded_fetch } from "./bounded_fetch.js";
 import {
   InvalidProviderConfigError,
   MissingCredentialError,
@@ -221,7 +222,7 @@ export function create_anthropic_provider(
         apiKey: valid_key(api_key),
         // Pinned; the SDK appends `/messages`.
         baseURL: ANTHROPIC_MESSAGES_URL.replace(/\/messages$/, ""),
-        ...(deps.fetch ? { fetch: deps.fetch } : {}),
+        fetch: bounded_fetch(deps.fetch),
         // Preserve the documented version this project verifies against. The
         // SDK defaults to its own (`2023-06-01`) and adds a beta header; the
         // override is verified to reach the wire.
@@ -250,13 +251,23 @@ export function create_anthropic_provider(
       let completion_tokens: number;
       let finish_reason: string;
       let callback_failed = false;
+      // Set only by the SDK's stream error callback, before `text` rejects.
+      let stream_error: unknown;
 
       try {
         if (wire.stream) {
           const callback_abort = new AbortController();
           const streamed = streamText({
             ...common,
-            abortSignal: callback_abort.signal,
+            // The caller's cancellation and the deadline must still reach the
+            // request while streaming; only replacing the signal would strand a
+            // stalled stream until the caller gives up.
+            abortSignal: AbortSignal.any([signal, callback_abort.signal]),
+            // Without `onError` the SDK writes the error — request values and
+            // raw response body included — to the console. Capture, never log.
+            onError: ({ error }) => {
+              stream_error = error;
+            },
             onChunk: ({ chunk }) => {
               if (chunk.type !== "text-delta" || !params.onStreamDelta) return;
               try {
@@ -267,7 +278,14 @@ export function create_anthropic_provider(
               }
             },
           });
-          text = await streamed.text;
+          try {
+            text = await streamed.text;
+          } catch (error) {
+            // `NoOutputGeneratedError` carries no HTTP status, so a streamed
+            // 400 would be classified as a connection fault and rotate the key
+            // instead of failing closed. Rethrow what the SDK actually saw.
+            throw stream_error ?? error;
+          }
           tool_calls = to_tool_calls(await streamed.toolCalls);
           const usage = await streamed.usage;
           prompt_tokens = token_count(usage.inputTokens);
@@ -316,7 +334,9 @@ export function create_anthropic_provider(
       }
 
       if (signal.aborted) {
-        if (wire.stream) params.onStreamReset?.();
+        // Only a non-streamed call can arrive here with the signal aborted: a
+        // streamed one is cancelled inside the request, where the stream is
+        // reset, because the abort reaches the socket.
         throw cancelled();
       }
 

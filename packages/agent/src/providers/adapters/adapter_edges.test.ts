@@ -1,7 +1,8 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { PrivacyRedactor } from "@vittaz/core";
 import {
   AllKeysFailedError,
+  BadRequestNoFallbackError,
   InvalidProviderConfigError,
   MissingCredentialError,
 } from "../../index.js";
@@ -12,6 +13,7 @@ import { ProtocolError, readText } from "../../http_body.js";
 import { create_ai_sdk_provider } from "./ai_sdk.js";
 import { require_base_url } from "../contracts/provider.js";
 import type { KeyPool } from "../../key_pool.js";
+import { bounded_fetch } from "./bounded_fetch.js";
 import { create_anthropic_provider, token_count } from "./anthropic.js";
 import { safe_parse, to_sdk_messages } from "./sdk_prompt.js";
 
@@ -757,19 +759,173 @@ test("anthropic_resets_the_stream_when_the_abort_lands_after_the_answer", async 
     content: [{ type: "text", text: "Synthetic" }],
   }));
   const controller = new AbortController();
+  // The abort fires as the body ends, so the stream itself completes and the
+  // cancellation is only visible once the answer is in hand.
+  const late_abort_fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+    fetch_impl(input, init).then((response) => {
+      const body = response.body?.pipeThrough(
+        new TransformStream<Uint8Array, Uint8Array>({
+          transform(chunk, controller_) {
+            controller_.enqueue(chunk);
+          },
+          flush() {
+            controller.abort();
+          },
+        }),
+      );
+      return new Response(body ?? null, {
+        status: response.status,
+        headers: response.headers,
+      });
+    })) as typeof fetch;
   let reset = false;
   await expect(
-    anthropic_provider(fetch_impl).chatCompletion({
+    anthropic_provider(late_abort_fetch).chatCompletion({
       ...ask,
       stream: true,
       signal: controller.signal,
       onStreamReset: () => {
         reset = true;
       },
+    }),
+  ).rejects.toThrow(/cancelled/i);
+  expect(reset).toBe(true);
+});
+
+/* ------------------------------------------------------- bounded responses */
+
+const one_mebibyte = 1048576;
+
+function oversized(): typeof fetch {
+  return (async () =>
+    new Response("x".repeat(one_mebibyte + 1), {
+      headers: { "content-type": "application/json" },
+    })) as unknown as typeof fetch;
+}
+
+test("bounded_fetch_fails_a_body_that_passes_one_mebibyte", async () => {
+  // The SDK's own reader accepts up to 2 GiB, so this ceiling is the only thing
+  // standing between a broken endpoint and a phone's memory.
+  const response = await bounded_fetch(oversized())(
+    new URL("https://x.invalid"),
+  );
+  await expect(async () => {
+    for await (const piece of readText(response)) void piece;
+  }).rejects.toBeInstanceOf(ProtocolError);
+});
+
+test("bounded_fetch_passes_a_normal_response_through_untouched", async () => {
+  const inner = (async () =>
+    new Response('{"ok":true}', {
+      status: 201,
+      statusText: "Created",
+      headers: { "content-type": "application/json", "x-synthetic": "1" },
+    })) as unknown as typeof fetch;
+  const response = await bounded_fetch(inner)(new URL("https://x.invalid"));
+  expect(response.status).toBe(201);
+  expect(response.statusText).toBe("Created");
+  expect(response.headers.get("x-synthetic")).toBe("1");
+  expect(await response.text()).toBe('{"ok":true}');
+});
+
+test("bounded_fetch_leaves_a_bodyless_response_alone", async () => {
+  const inner = (async () =>
+    new Response(null, { status: 204 })) as unknown as typeof fetch;
+  const response = await bounded_fetch(inner)(new URL("https://x.invalid"));
+  expect(response.status).toBe(204);
+  expect(response.body).toBeNull();
+});
+
+/* ------------------------------------------ auth, abort and streamed errors */
+
+test("openai_compatible_honours_a_configured_scheme_on_authorization", async () => {
+  // The SDK can only send `Bearer`. A configuration that asks for anything else
+  // on `Authorization` must not be quietly downgraded to the SDK's default.
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = openai_provider(server.baseUrl, {
+    auth: { header: "authorization", scheme: "Basic" },
+  });
+  await provider.chatCompletion(ask);
+  expect(server.recordedRequests[0]?.headers.authorization).toBe(
+    "Basic synthetic_key",
+  );
+});
+
+test("openai_compatible_fails_closed_on_a_streamed_400", async () => {
+  // `streamed.text` rejects with a status-less error, so without capturing the
+  // SDK's own error this looks like a connection fault and rotates the key.
+  const server = await startFakeOpenAIServer(() => ({ status: 400 }));
+  servers.push(server);
+  await expect(
+    openai_provider(server.baseUrl).chatCompletion({ ...ask, stream: true }),
+  ).rejects.toThrow(BadRequestNoFallbackError);
+});
+
+test("openai_compatible_keeps_the_key_on_a_streamed_401", async () => {
+  // A streamed 401 must still mark the key unauthorized, which only happens if
+  // the real status survives the SDK's stream wrapper.
+  const pool = {
+    getCandidateEntries: (tried: Set<string>) =>
+      tried.has("only") ? [] : [{ nickname: "only", apiKey: "synthetic_key" }],
+    getStatusSnapshot: () => [{ nickname: "only", state: "healthy" }],
+    markUnauthorized: () => {
+      unauthorized = true;
+    },
+    markRateLimited: () => undefined,
+  } as unknown as KeyPool;
+  let unauthorized = false;
+  const server = await startFakeOpenAIServer(() => ({ status: 401 }));
+  servers.push(server);
+  await expect(
+    openai_provider(server.baseUrl, {}, { key_pool: pool }).chatCompletion({
+      ...ask,
+      stream: true,
+    }),
+  ).rejects.toThrow(AllKeysFailedError);
+  expect(unauthorized).toBe(true);
+});
+
+test("openai_compatible_does_not_write_a_stream_error_to_the_console", async () => {
+  // SDK errors carry request values and the raw response body; the default
+  // handler prints them. Nothing reaches the console.
+  const errors: unknown[] = [];
+  const spy = vi.spyOn(console, "error").mockImplementation((...args) => {
+    errors.push(args);
+  });
+  try {
+    const server = await startFakeOpenAIServer(() => ({ status: 500 }));
+    servers.push(server);
+    await expect(
+      openai_provider(server.baseUrl).chatCompletion({ ...ask, stream: true }),
+    ).rejects.toThrow(AllKeysFailedError);
+    expect(errors).toEqual([]);
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test("openai_compatible_cancels_the_request_when_the_caller_aborts_mid_stream", async () => {
+  // The callback controller must not replace the caller's signal, or an abort
+  // during streaming would never reach the socket.
+  const server = await startFakeOpenAIServer(() => ({
+    wireChunks: [
+      `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: "A" }, finish_reason: null }] })}\n\n`,
+      `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: "B" }, finish_reason: null }] })}\n\n`,
+      `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`,
+      "data: [DONE]\n\n",
+    ],
+  }));
+  servers.push(server);
+  const controller = new AbortController();
+  await expect(
+    openai_provider(server.baseUrl).chatCompletion({
+      ...ask,
+      stream: true,
+      signal: controller.signal,
       onStreamDelta: () => {
         controller.abort();
       },
     }),
   ).rejects.toThrow(/cancelled/i);
-  expect(reset).toBe(true);
 });
