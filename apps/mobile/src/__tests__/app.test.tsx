@@ -76,6 +76,15 @@ jest.mock("../storage/open_ledger_store", () =>
   jest.requireActual("./mock_mobile_storage"),
 );
 
+/**
+ * Chat navigation moved into the assistant drawer (the full-width buttons that
+ * used to sit above the transcript are gone), so reaching chat history now
+ * starts by opening the menu. The assertions below are unchanged.
+ */
+async function open_assistant_menu() {
+  await fireEvent.press(screen.getByRole("button", { name: "Assistant menu" }));
+}
+
 async function open() {
   return render(<App />);
 }
@@ -113,6 +122,39 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
+it("keeps chat navigation in a drawer instead of above the transcript", async () => {
+  await open();
+  await tab("Home");
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Add or ask by message" }),
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("header", { name: "Assistant" })).toBeTruthy(),
+  );
+
+  // The transcript area must not be crowded by navigation buttons.
+  expect(screen.queryByRole("button", { name: "Chat history" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Custom instructions" })).toBeNull();
+
+  // The menu button is the single entry point and the drawer holds the items.
+  await open_assistant_menu();
+  for (const name of [
+    "New chat",
+    "Chat history",
+    "Custom instructions",
+    "Connectors",
+  ]) {
+    expect(screen.getByRole("button", { name })).toBeTruthy();
+  }
+  await fireEvent.press(screen.getByRole("button", { name: "Close menu" }));
+  expect(screen.queryByRole("button", { name: "Chat history" })).toBeNull();
+
+  // The disclosure still has to be readable without opening any menu.
+  expect(
+    screen.getByText(/Kilo Auto Free may route prompts to providers that log them/),
+  ).toBeTruthy();
+});
+
 it("opens separate saved conversations and creates a new one", async () => {
   await create_conversation("chat_first");
   await save_conversation_messages("chat_first", [
@@ -126,6 +168,7 @@ it("opens separate saved conversations and creates a new one", async () => {
   await waitFor(() =>
     expect(screen.getByText("Second synthetic question")).toBeTruthy(),
   );
+  await open_assistant_menu();
   await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
   await fireEvent.press(
     screen.getByRole("button", {
@@ -136,6 +179,7 @@ it("opens separate saved conversations and creates a new one", async () => {
     expect(screen.getByText("First synthetic question")).toBeTruthy(),
   );
   expect(screen.queryByText("Second synthetic question")).toBeNull();
+  await open_assistant_menu();
   await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
   await fireEvent.press(
     screen.getByRole("button", { name: "New conversation" }),
@@ -191,6 +235,7 @@ it("prevents switching while a reply is in flight and keeps context isolated", a
   expect(history).toEqual([
     { role: "user", content: "Second synthetic context" },
   ]);
+  await open_assistant_menu();
   await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
   expect(
     screen.getByRole("button", {

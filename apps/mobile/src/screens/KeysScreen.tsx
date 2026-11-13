@@ -147,7 +147,7 @@ export function KeysScreen() {
     set_auth_header(preset.auth?.header ?? "authorization");
     set_auth_scheme(preset.auth?.scheme ?? "Bearer");
     if (preset.default_model) set_model(preset.default_model);
-    if (!label) setLabel(preset.label);
+    if (!label) set_label(preset.label);
     setShowAdvancedForPreset(preset.id);
   };
 

@@ -593,6 +593,7 @@ export function Input({
   secure = false,
   keyboardType,
   onSubmitEditing,
+  autoCapitalize,
 }: {
   label: string;
   value: string;
@@ -604,6 +605,7 @@ export function Input({
   secure?: boolean;
   keyboardType?: "default" | "decimal-pad";
   onSubmitEditing?: () => void;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }) {
   return (
     <TextInput
@@ -615,6 +617,7 @@ export function Input({
       multiline={multiline}
       secureTextEntry={secure}
       keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
       onSubmitEditing={onSubmitEditing}
       blurOnSubmit={!multiline}
       returnKeyType={multiline ? "default" : "send"}

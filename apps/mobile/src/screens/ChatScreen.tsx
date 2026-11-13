@@ -7,8 +7,10 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
@@ -22,7 +24,7 @@ import {
   B,
   Button,
   Card,
-  EmptyState,
+  IconBtn,
   Input,
   M,
   PageHeader,
@@ -39,6 +41,21 @@ const MODEL_LABEL: Record<AppState["model"], string> = {
   claude: "Claude API-key BYOK",
   gemini: "Auto, Gemini",
   free: "Free tier",
+};
+
+/**
+ * Short form shown inside the header pill. The full route stays as the
+ * accessible name, so nothing is lost for screen readers — the long label just
+ * no longer eats half the header.
+ */
+const MODEL_SHORT: Record<AppState["model"], string> = {
+  auto: "Auto",
+  "openai-compatible": "BYOK",
+  "qwen-1.5b": "Qwen 1.5B",
+  "qwen-3b": "Qwen 3B",
+  claude: "Claude",
+  gemini: "Gemini",
+  free: "Free",
 };
 
 const SUGGESTIONS = [
@@ -151,399 +168,535 @@ export function ChatScreen() {
     );
   }
 
+  const privacy_note =
+    state.model === "openai-compatible"
+      ? "Questions and read-only ledger context are sent to your configured service. Check its data policy; use synthetic data only."
+      : state.model === "claude"
+        ? "Questions and read-only ledger context are sent directly to Anthropic's Messages API using your API key. Check Anthropic's data policy; use synthetic data only."
+        : "Kilo Auto Free may route prompts to providers that log them. Do not enter personal or confidential data; use synthetic data only.";
+
   return (
-    <Screen variant="fixed" contentStyle={{ paddingHorizontal: 0 }}>
-      <View style={{ paddingHorizontal: 20 }}>
-        <PageHeader
-          title="Assistant"
-          onBack={() => dispatch({ type: "back" })}
-          right={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={MODEL_LABEL[state.model]}
-              onPress={() => dispatch({ type: "navigate", screen: "models" })}
-              style={({ pressed }) => [
-                {
-                  minHeight: 44,
-                  paddingHorizontal: 12,
-                  borderRadius: 999,
-                  backgroundColor: colors.limeBg,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                },
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <T size={12} weight="bold" color={colors.lime}>
-                {MODEL_LABEL[state.model]}
-              </T>
-              <Feather name="chevron-down" size={14} color={colors.lime} />
-            </Pressable>
-          }
-        />
-      </View>
+    <View style={styles.flex}>
+      <Screen variant="fixed" contentStyle={{ paddingHorizontal: 0 }}>
+        <View style={{ paddingHorizontal: 12 }}>
+          <PageHeader
+            title="Assistant"
+            onBack={() => dispatch({ type: "back" })}
+            right={
+              <Row start gap={2}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={MODEL_LABEL[state.model]}
+                  onPress={() => dispatch({ type: "navigate", screen: "models" })}
+                  style={({ pressed }) => [
+                    styles.modelPill,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <T size={12} weight="bold" color={colors.lime}>
+                    {MODEL_SHORT[state.model]}
+                  </T>
+                  <Feather name="chevron-down" size={14} color={colors.lime} />
+                </Pressable>
+                <IconBtn
+                  label="Assistant menu"
+                  onPress={() => set_show_menu(true)}
+                >
+                  <Feather name="menu" size={20} color={colors.text} />
+                </IconBtn>
+              </Row>
+            }
+          />
+        </View>
 
-      <View style={{ paddingHorizontal: 20 }}>
-        <Button
-          label="Assistant menu"
-          variant="ghost"
-          small
-          onPress={() => set_show_menu((value) => !value)}
-        />
-        {show_menu ? (
-          <View style={{ gap: 6, paddingVertical: 6 }}>
-            <Button
-              label="Custom instructions"
-              variant="ghost"
-              small
-              onPress={() => {
-                set_show_menu(false);
-                set_subscreen("instructions");
-              }}
-            />
-            <Button
-              label="Connectors"
-              variant="ghost"
-              small
-              onPress={() => {
-                set_show_menu(false);
-                set_subscreen("connectors");
-              }}
-            />
-          </View>
-        ) : null}
-        <Button
-          label="Chat history"
-          variant="ghost"
-          small
-          onPress={() => set_show_history(true)}
-        />
-      </View>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          ref={scrollRef}
-          style={{ flex: 1 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() =>
-            scrollRef.current?.scrollToEnd({ animated: false })
-          }
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: 12,
-            paddingBottom: 12,
-            gap: 14,
-          }}
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          {state.chatMessages.length === 0 ? (
-            <EmptyState
-              title="Ask or add by message"
-              copy="Ask read-only questions about your ledger. The assistant cannot add or approve entries."
-            />
-          ) : null}
+          <ScrollView
+            ref={scrollRef}
+            style={styles.flex}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() =>
+              scrollRef.current?.scrollToEnd({ animated: false })
+            }
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingTop: 8,
+              paddingBottom: 8,
+              gap: 18,
+            }}
+          >
+            {state.chatMessages.length === 0 ? (
+              <View style={{ paddingTop: 20, gap: 10 }}>
+                <View style={styles.emptyGlyph}>
+                  <Feather name="message-circle" size={22} color={colors.lime} />
+                </View>
+                <T size={24} weight="heavy" style={{ lineHeight: 30 }}>
+                  How can I help?
+                </T>
+                <M size={13} style={{ lineHeight: 19 }}>
+                  Ask read-only questions about your ledger. The assistant cannot
+                  add or approve entries.
+                </M>
+              </View>
+            ) : null}
 
-          <M size={12} style={{ lineHeight: 17 }}>
-            {state.model === "openai-compatible"
-              ? "Questions and read-only ledger context are sent to your configured service. Check its data policy; use synthetic data only."
-              : state.model === "claude"
-                ? "Questions and read-only ledger context are sent directly to Anthropic's Messages API using your API key. Check Anthropic's data policy; use synthetic data only."
-                : "Kilo Auto Free may route prompts to providers that log them. Do not enter personal or confidential data; use synthetic data only."}
-          </M>
+            {state.chatMessages.map((m) =>
+              m.role === "user" ? (
+                <LinearGradient
+                  key={m.id}
+                  colors={gradients.bubble}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    alignSelf: "flex-end",
+                    maxWidth: "80%",
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                    borderBottomLeftRadius: 20,
+                    borderBottomRightRadius: 6,
+                    paddingVertical: 12,
+                    paddingHorizontal: 14,
+                  }}
+                >
+                  <T size={15} weight="semi" color={colors.limeDark}>
+                    {m.text}
+                  </T>
+                </LinearGradient>
+              ) : (
+                <View key={m.id} style={{ maxWidth: "92%", gap: 4 }}>
+                  <Markdown text={m.text} />
+                  {m.tokens !== undefined ? (
+                    <T size={11} color={colors.dim} style={{ marginLeft: 2 }}>
+                      {`${format_tokens(m.tokens)} tokens`}
+                    </T>
+                  ) : null}
+                </View>
+              ),
+            )}
 
-          {state.chatMessages.map((m) =>
-            m.role === "user" ? (
+            {state.chatSteps.length > 0 ? (
               <LinearGradient
-                key={m.id}
-                colors={gradients.bubble}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                colors={gradients.hero}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
                 style={{
-                  alignSelf: "flex-end",
-                  maxWidth: "80%",
-                  borderTopLeftRadius: 20,
-                  borderTopRightRadius: 20,
-                  borderBottomLeftRadius: 20,
-                  borderBottomRightRadius: 6,
-                  paddingVertical: 12,
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: "rgba(190,255,120,0.28)",
+                  paddingVertical: 4,
                   paddingHorizontal: 14,
                 }}
               >
-                <T size={15} weight="semi" color={colors.limeDark}>
-                  {m.text}
-                </T>
-              </LinearGradient>
-            ) : (
-              <View key={m.id} style={{ maxWidth: "90%" }}>
-                <Markdown text={m.text} />
-                {m.tokens !== undefined ? (
-                  <T
-                    size={11}
-                    color={colors.muted}
-                    style={{ marginTop: 4, marginLeft: 2 }}
+                {state.chatSteps.map((step, index) => (
+                  <Row
+                    key={step.tool}
+                    start
+                    gap={10}
+                    style={[
+                      { paddingVertical: 10, alignItems: "flex-start" },
+                      index > 0 && {
+                        borderTopWidth: 1,
+                        borderTopColor: colors.hairline,
+                      },
+                    ]}
                   >
-                    {`${format_tokens(m.tokens)} tokens`}
-                  </T>
-                ) : null}
-              </View>
-            ),
-          )}
-
-          {state.chatSteps.length > 0 ? (
-            <LinearGradient
-              colors={gradients.hero}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={{
-                borderRadius: 18,
-                borderWidth: 1,
-                borderColor: "rgba(190,255,120,0.28)",
-                paddingVertical: 4,
-                paddingHorizontal: 14,
-              }}
-            >
-              {state.chatSteps.map((step, index) => (
-                <Row
-                  key={step.tool}
-                  start
-                  gap={10}
-                  style={[
-                    { paddingVertical: 10, alignItems: "flex-start" },
-                    index > 0 && {
-                      borderTopWidth: 1,
-                      borderTopColor: colors.hairline,
-                    },
-                  ]}
-                >
-                  {step.state === "done" ? (
-                    <View
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 9,
-                        backgroundColor: colors.lime,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginTop: 1,
-                      }}
-                    >
-                      <Feather name="check" size={11} color={colors.limeDark} />
-                    </View>
-                  ) : step.state === "running" ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={colors.lime}
-                      style={{ width: 18, height: 18, marginTop: 1 }}
-                    />
-                  ) : (
-                    <View
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 9,
-                        borderWidth: 2,
-                        borderColor: "#f5a524",
-                        marginTop: 1,
-                      }}
-                    />
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <B size={14}>{step.label}</B>
-                    <Row
-                      start
-                      gap={6}
-                      style={{ marginTop: 4, flexWrap: "wrap" }}
-                    >
-                      <View
-                        style={{
-                          backgroundColor: "rgba(184,242,60,0.12)",
-                          borderRadius: 8,
-                          paddingHorizontal: 7,
-                          paddingVertical: 2,
-                        }}
-                      >
-                        <T size={12} weight="bold" color={colors.lime}>
-                          {step.tool}
-                        </T>
+                    {step.state === "done" ? (
+                      <View style={styles.stepDone}>
+                        <Feather name="check" size={11} color={colors.limeDark} />
                       </View>
-                      <M size={12}>{step.detail}</M>
-                    </Row>
-                  </View>
+                    ) : step.state === "running" ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.lime}
+                        style={styles.stepSpinner}
+                      />
+                    ) : (
+                      <View style={styles.stepPending} />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <B size={14}>{step.label}</B>
+                      <Row
+                        start
+                        gap={6}
+                        style={{ marginTop: 4, flexWrap: "wrap" }}
+                      >
+                        <View style={styles.toolTag}>
+                          <T size={12} weight="bold" color={colors.lime}>
+                            {step.tool}
+                          </T>
+                        </View>
+                        <M size={12}>{step.detail}</M>
+                      </Row>
+                    </View>
+                  </Row>
+                ))}
+              </LinearGradient>
+            ) : null}
+
+            {state.chatMode === "thinking" ? (
+              <Row start gap={8} style={{ alignItems: "center" }}>
+                <ActivityIndicator size="small" color={colors.lime} />
+                <M size={12}>
+                  {state.model === "openai-compatible"
+                    ? "Asking your selected provider…"
+                    : state.model === "claude"
+                      ? "Asking Anthropic Claude…"
+                      : "Asking Kilo Auto Free…"}
+                </M>
+              </Row>
+            ) : null}
+
+            {proposal && state.chatMode === "approval" ? (
+              <Card tone="soft">
+                <Row>
+                  <B>{proposal.title}</B>
+                  <B>{formatPaise(proposal.amountPaise)}</B>
                 </Row>
-              ))}
-            </LinearGradient>
-          ) : null}
+                <M>Paid by you, today</M>
+                <Row
+                  style={{
+                    marginTop: 12,
+                    paddingTop: 12,
+                    borderTopWidth: 1,
+                    borderTopColor: "rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <M>{proposal.category}</M>
+                  <B color={colors.lime}>{formatPaise(proposal.amountPaise)}</B>
+                </Row>
+                <Row gap={8} style={{ marginTop: 14 }}>
+                  <Button
+                    label="Approve"
+                    small
+                    style={{ flex: 1.4 }}
+                    onPress={() => dispatch({ type: "approve", id: proposal.id })}
+                  />
+                  <Button
+                    label="Edit"
+                    variant="ghost"
+                    small
+                    style={{ flex: 1 }}
+                    onPress={() =>
+                      dispatch({ type: "open_review", id: proposal.id })
+                    }
+                  />
+                  <Button
+                    label="Reject"
+                    variant="ghost"
+                    small
+                    style={{ flex: 1 }}
+                    onPress={() => dispatch({ type: "reject", id: proposal.id })}
+                  />
+                </Row>
+              </Card>
+            ) : null}
 
-          {state.chatMode === "thinking" ? (
-            <Row start gap={8} style={{ alignItems: "center" }}>
-              <ActivityIndicator size="small" color={colors.lime} />
-              <M size={12}>
-                {state.model === "openai-compatible"
-                  ? "Asking your selected provider…"
-                  : state.model === "claude"
-                    ? "Asking Anthropic Claude…"
-                    : "Asking Kilo Auto Free…"}
-              </M>
-            </Row>
-          ) : null}
+            {/*
+              Data-handling disclosure. Kept at the end of the transcript rather
+              than above it so the conversation starts clean, but still always
+              present: it must be readable without opening any menu.
+            */}
+            <M size={11} style={styles.disclosure}>
+              {privacy_note}
+            </M>
+          </ScrollView>
 
-          {proposal && state.chatMode === "approval" ? (
-            <Card tone="soft">
-              <Row>
-                <B>{proposal.title}</B>
-                <B>{formatPaise(proposal.amountPaise)}</B>
-              </Row>
-              <M>Paid by you, today</M>
-              <Row
-                style={{
-                  marginTop: 12,
-                  paddingTop: 12,
-                  borderTopWidth: 1,
-                  borderTopColor: "rgba(255,255,255,0.1)",
-                }}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flexGrow: 0, marginBottom: 8 }}
+            contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}
+          >
+            {SUGGESTIONS.map((chip) => (
+              <Pressable
+                key={chip.label}
+                accessibilityRole="button"
+                accessibilityLabel={chip.label}
+                disabled={state.chatMode === "thinking"}
+                onPress={() =>
+                  dispatch({ type: "send_chat_text", text: chip.text })
+                }
+                style={({ pressed }) => [
+                  styles.suggestion,
+                  pressed && { opacity: 0.7 },
+                ]}
               >
-                <M>{proposal.category}</M>
-                <B color={colors.lime}>{formatPaise(proposal.amountPaise)}</B>
-              </Row>
-              <Row gap={8} style={{ marginTop: 14 }}>
-                <Button
-                  label="Approve"
-                  small
-                  style={{ flex: 1.4 }}
-                  onPress={() => dispatch({ type: "approve", id: proposal.id })}
-                />
-                <Button
-                  label="Edit"
-                  variant="ghost"
-                  small
-                  style={{ flex: 1 }}
-                  onPress={() =>
-                    dispatch({ type: "open_review", id: proposal.id })
-                  }
-                />
-                <Button
-                  label="Reject"
-                  variant="ghost"
-                  small
-                  style={{ flex: 1 }}
-                  onPress={() => dispatch({ type: "reject", id: proposal.id })}
-                />
-              </Row>
-            </Card>
-          ) : null}
-        </ScrollView>
+                <T size={14} weight="semi">
+                  {chip.label}
+                </T>
+              </Pressable>
+            ))}
+          </ScrollView>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ flexGrow: 0, marginBottom: 8 }}
-          contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}
-        >
-          {SUGGESTIONS.map((chip) => (
+          <Row
+            gap={4}
+            style={{
+              marginHorizontal: 12,
+              marginBottom: 14,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: colors.panel,
+              borderWidth: 1,
+              borderColor: colors.panelBorder,
+              paddingLeft: 18,
+              paddingRight: 8,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Input
+                label="Message"
+                placeholder="Message"
+                textStyle={{
+                  flex: 1,
+                  minHeight: 44,
+                  textAlignVertical: "center",
+                }}
+                value={state.chatInput}
+                onChangeText={(value) =>
+                  dispatch({ type: "set_chat_input", value })
+                }
+                onSubmitEditing={() => dispatch({ type: "send_chat" })}
+              />
+            </View>
             <Pressable
-              key={chip.label}
               accessibilityRole="button"
-              accessibilityLabel={chip.label}
-              disabled={state.chatMode === "thinking"}
+              accessibilityLabel="Voice input"
               onPress={() =>
-                dispatch({ type: "send_chat_text", text: chip.text })
+                dispatch({
+                  type: "show_toast",
+                  message: "Voice input is not connected in this UI preview.",
+                })
               }
-              style={({ pressed }) => [
-                {
-                  height: 44,
-                  paddingHorizontal: 16,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: "rgba(190,255,120,0.25)",
-                  backgroundColor: "rgba(9,22,11,0.9)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                },
-                pressed && { opacity: 0.7 },
-              ]}
+              style={styles.round}
             >
-              <T size={14} weight="semi">
-                {chip.label}
-              </T>
+              <Feather name="mic" size={22} color={colors.muted} />
             </Pressable>
-          ))}
-        </ScrollView>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              accessibilityState={{ disabled: state.chatMode === "thinking" }}
+              disabled={state.chatMode === "thinking"}
+              onPress={() => dispatch({ type: "send_chat" })}
+              style={[styles.round, { backgroundColor: colors.lime }]}
+            >
+              <Feather name="arrow-up" size={20} color={colors.limeDark} />
+            </Pressable>
+          </Row>
+          {(state.chatTokens ?? 0) > 0 ? (
+            // Session usage built only from counts the provider reported. No
+            // prompt, reply or key text can reach this label.
+            <T size={11} color={colors.dim} style={styles.sessionTokens}>
+              {`${format_tokens(state.chatTokens ?? 0)} tokens this session`}
+            </T>
+          ) : null}
+        </KeyboardAvoidingView>
+      </Screen>
 
-        <Row
-          gap={4}
-          style={{
-            marginHorizontal: 12,
-            marginBottom: 14,
-            height: 60,
-            borderRadius: 30,
-            backgroundColor: colors.panel,
-            borderWidth: 1,
-            borderColor: colors.panelBorder,
-            paddingLeft: 18,
-            paddingRight: 8,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Input
-              label="Message"
-              placeholder="Message"
-              textStyle={{
-                flex: 1,
-                minHeight: 44,
-                textAlignVertical: "center",
-              }}
-              value={state.chatInput}
-              onChangeText={(value) =>
-                dispatch({ type: "set_chat_input", value })
-              }
-              onSubmitEditing={() => dispatch({ type: "send_chat" })}
-            />
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Voice input"
-            onPress={() =>
-              dispatch({
-                type: "show_toast",
-                message: "Voice input is not connected in this UI preview.",
-              })
-            }
-            style={styles.round}
-          >
-            <Feather name="mic" size={22} color={colors.muted} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Send"
-            accessibilityState={{ disabled: state.chatMode === "thinking" }}
-            disabled={state.chatMode === "thinking"}
-            onPress={() => dispatch({ type: "send_chat" })}
-            style={[styles.round, { backgroundColor: colors.lime }]}
-          >
-            <Feather name="arrow-up" size={20} color={colors.limeDark} />
-          </Pressable>
-        </Row>
-        {(state.chatTokens ?? 0) > 0 ? (
-          // Session usage built only from counts the provider reported. No
-          // prompt, reply or key text can reach this label.
-          <T size={11} color={colors.dim}>
-            {`${format_tokens(state.chatTokens ?? 0)} tokens this session`}
-          </T>
-        ) : null}
-      </KeyboardAvoidingView>
-    </Screen>
+      {show_menu ? (
+        <AssistantMenu
+          onClose={() => set_show_menu(false)}
+          items={[
+            {
+              icon: "edit",
+              label: "New chat",
+              disabled: state.chatMode === "thinking",
+              onPress: () => {
+                set_show_menu(false);
+                void changeConversation(null);
+              },
+            },
+            {
+              icon: "clock",
+              label: "Chat history",
+              onPress: () => {
+                set_show_menu(false);
+                set_show_history(true);
+              },
+            },
+            {
+              icon: "sliders",
+              label: "Custom instructions",
+              onPress: () => {
+                set_show_menu(false);
+                set_subscreen("instructions");
+              },
+            },
+            {
+              icon: "link-2",
+              label: "Connectors",
+              onPress: () => {
+                set_show_menu(false);
+                set_subscreen("connectors");
+              },
+            },
+          ]}
+        />
+      ) : null}
+    </View>
   );
 }
 
-const styles = {
+/**
+ * Slide-over menu. Mirrors the shape both first-party assistant apps use — a
+ * left drawer holding navigation, rather than full-width buttons stacked above
+ * the transcript — while keeping Vittaz's own panel, type and accent tokens.
+ */
+function AssistantMenu({
+  items,
+  onClose,
+}: {
+  items: {
+    icon: "edit" | "clock" | "sliders" | "link-2";
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+  }[];
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={styles.overlay}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss menu"
+        onPress={onClose}
+        style={styles.backdrop}
+      />
+      <View style={[styles.drawer, { paddingTop: insets.top + 16 }]}>
+        <Row style={{ paddingHorizontal: 8, marginBottom: 12 }}>
+          <B size={16}>Assistant</B>
+          <IconBtn label="Close menu" onPress={onClose}>
+            <Feather name="x" size={20} color={colors.muted} />
+          </IconBtn>
+        </Row>
+        {items.map((item) => (
+          <Pressable
+            key={item.label}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            accessibilityState={{ disabled: item.disabled === true }}
+            disabled={item.disabled}
+            onPress={item.onPress}
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && { backgroundColor: colors.ghost },
+              item.disabled && { opacity: 0.5 },
+            ]}
+          >
+            <Feather name={item.icon} size={18} color={colors.lime} />
+            <T size={15} weight="semi">
+              {item.label}
+            </T>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
   round: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
+    alignItems: "center",
+    justifyContent: "center",
   },
-};
+  modelPill: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: colors.limeBg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  emptyGlyph: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.limeBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
+  stepDone: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.lime,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  stepSpinner: { width: 18, height: 18, marginTop: 1 },
+  stepPending: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: "#f5a524",
+    marginTop: 1,
+  },
+  toolTag: {
+    backgroundColor: "rgba(184,242,60,0.12)",
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  disclosure: {
+    lineHeight: 16,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.hairline,
+  },
+  suggestion: {
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(190,255,120,0.25)",
+    backgroundColor: "rgba(9,22,11,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sessionTokens: { textAlign: "center", marginBottom: 6 },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: "row",
+  },
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(3,8,4,0.72)",
+  },
+  drawer: {
+    width: 288,
+    maxWidth: "82%",
+    height: "100%",
+    backgroundColor: "#0a1a0d",
+    borderRightWidth: 1,
+    borderRightColor: colors.panelBorder,
+    paddingHorizontal: 10,
+    paddingBottom: 16,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
+});

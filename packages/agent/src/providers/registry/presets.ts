@@ -96,7 +96,12 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
     base_url: "https://generativelanguage.googleapis.com",
     api_suffix: "/v1beta/openai",
     key_hint: "AIza… (Google AI Studio key)",
-    default_model: "gemini-2.5-flash",
+    // Live-verified 2026-11-11 against a real key: `gemini-2.5-flash` and
+    // `gemini-2.5-pro` are retired (404 "no longer available to new users"),
+    // and the replacement Google names, `gemini-3.8-flash`, answered 503
+    // (high demand) throughout testing. `gemini-3-flash-preview` answered in
+    // ~0.9 s with correct usage and tool calls, so it is the shipped default.
+    default_model: "gemini-3-flash-preview",
   },
   {
     id: "ollama",

@@ -76,3 +76,24 @@ it("manages multiple keys with show/hide, copy/paste and fetched models", async 
   );
   await waitFor(() => expect(screen.queryByText("Personal")).toBeNull());
 });
+
+/**
+ * Regression: picking a preset called a setter that does not exist, so choosing
+ * a preset on the untouched form threw a ReferenceError in the running app. The
+ * label field is empty at that moment, which is exactly the path that crashed.
+ */
+it("applies a preset on a blank form without crashing", async () => {
+  await render(<KeysScreen />);
+  await fireEvent.press(screen.getByRole("button", { name: "Preset Gemini" }));
+  // The label is prefilled from the preset ...
+  await waitFor(() =>
+    expect(screen.getByDisplayValue("Google Gemini")).toBeTruthy(),
+  );
+  // ... and the key is still required before it can be saved.
+  await fireEvent.changeText(
+    screen.getByLabelText("API key"),
+    "synthetic-preset-key",
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
+  await waitFor(() => expect(screen.getByText("Google Gemini")).toBeTruthy());
+});
