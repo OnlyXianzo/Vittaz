@@ -173,6 +173,62 @@ The CLI does not set it: `attribution` is a configuration field, and the CLI
 builds its config from environment variables only. Adding an env pair for it is
 a separate, small change — not done here, to keep this commit to one thing.
 
+## 2026-11-11 — Provider shape is configuration: API path, auth header, extra headers
+
+Driver: the owner asked for Bedrock, Vertex and "any other API" plus custom
+providers. Investigating first found a real defect rather than a missing SDK:
+the transport hard-coded `/v1`, so **Google Gemini's OpenAI-compatibility
+endpoint (`/v1beta/openai`) could never have worked** — it would have requested
+`/v1beta/openai/v1/chat/completions` and returned 404, which reads to a user as
+"my key is broken".
+
+### Added to `ProviderConfig` (all optional, all validated)
+
+| Field           | Purpose                                                         | Default         |
+| --------------- | --------------------------------------------------------------- | --------------- |
+| `api_suffix`    | API path appended to `base_url`; `""` means the URL is complete | `/v1`           |
+| `auth.header`   | `authorization` / `api-key` / `x-api-key` / `x-goog-api-key`    | `authorization` |
+| `auth.scheme`   | Prefix before the key; `""` sends the bare key                  | `Bearer`        |
+| `extra_headers` | Static headers (API versions etc.), ≤8 entries                  | none            |
+
+Guard rails: `api_suffix` must be empty or start with `/`, with no `..`, `?`,
+`#` or whitespace; `extra_headers` can never contain `authorization`, `api-key`,
+`x-api-key`, `x-goog-api-key`, `host`, `content-length`, `content-type` or
+`user-agent`, so credentials cannot be smuggled through configuration.
+
+This stays a **format** choice, not a provider branch: no code anywhere asks
+which provider is calling.
+
+### Presets are data
+
+`providers/registry/presets.ts` lists known-good endpoint shapes (OpenAI,
+OpenRouter, Groq, DeepSeek, Together, xAI, Mistral, Gemini, Ollama, Anthropic).
+Adding a provider is a row, and a test proves every row passes the real
+validator, so the app cannot offer a provider that throws when selected.
+
+### Bedrock and Vertex: deliberately not added
+
+Both are recorded in `UNSUPPORTED_PROVIDERS` with a reason and an alternative,
+rather than silently left out:
+
+- **Bedrock (SigV4).** `@ai-sdk/amazon-bedrock` signs with SigV4 via `aws4fetch`,
+  which needs WebCrypto SHA-256 **at request time**. This repo has
+  `hermes_crypto_regression.test.ts` asserting the transport still completes
+  with `globalThis.crypto` removed — a fault actually seen on device. Adding
+  SigV4 would reintroduce exactly that. Alternative: a Bedrock API key (bearer
+  token) as an `openai_compatible` entry, or a gateway.
+- **Vertex AI.** Requires a service-account JSON or a short-lived OAuth token. A
+  service-account file on a phone grants broad cloud access and cannot be
+  protected by an app passcode. Alternative: the Gemini preset, same models,
+  plain AI Studio key.
+
+### Not done in this commit
+
+The mobile Keys screen still only exposes base URL / key / model. The new fields
+exist in the contract and are tested at the transport level, but the form fields
+(API path, auth header, extra headers) are the next small UI step. Until then the
+Gemini preset works via the agent layer but is not yet selectable in the app.
+
 ## Open
 
 - License. Undecided. Do not add a license file until it is chosen.

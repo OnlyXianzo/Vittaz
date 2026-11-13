@@ -27,6 +27,7 @@ import {
   resolve_model,
   validate_provider_config,
   type ProviderAdapter,
+  type ProviderAuth,
   type ProviderConfig,
   type ProviderDependencies,
 } from "../contracts/provider.js";
@@ -64,7 +65,7 @@ import {
  */
 
 /** Only https, or http on loopback, with no embedded credentials or params. */
-function validate_endpoint(base_url: string): string {
+function validate_endpoint(base_url: string, api_suffix = "/v1"): string {
   let url: URL;
   try {
     url = new URL(base_url);
@@ -80,10 +81,11 @@ function validate_endpoint(base_url: string): string {
     url.hash
   )
     throw new InvalidProviderConfigError();
-  // Configurations carry the host prefix only (e.g. `https://host/api`); the
-  // `/v1` segment is the transport's to add, matching what the previous
-  // `OpenAICompatibleClient` did. The SDK then appends `/chat/completions`.
-  return url.href.replace(/\/+$/, "") + "/v1";
+  // Configurations carry the host prefix (e.g. `https://host/api`); the API
+  // path segment is the transport's to add, and the SDK appends
+  // `/chat/completions`. The suffix defaults to `/v1` but is configurable:
+  // some servers put the compatible API under `/v1beta/openai`, or at the root.
+  return url.href.replace(/\/+$/, "") + api_suffix;
 }
 
 /**
@@ -140,6 +142,28 @@ function status_of(error: unknown): number | undefined {
     : undefined;
 }
 
+/**
+ * Where the key goes on the wire, and any static extra headers.
+ *
+ * The key is placed here rather than passed as `apiKey` whenever the
+ * configuration asks for a non-default header, because the SDK only knows how
+ * to send `Authorization: Bearer`. Which header is used is configuration, so
+ * no provider name appears in this function.
+ */
+function credential_headers(
+  api_key: string | undefined,
+  auth: ProviderAuth | undefined,
+  extra: Readonly<Record<string, string>> | undefined,
+): Record<string, string> | undefined {
+  const headers: Record<string, string> = { ...(extra ?? {}) };
+  const header = auth?.header ?? "authorization";
+  if (api_key && header !== "authorization") {
+    const scheme = auth?.scheme ?? "";
+    headers[header] = scheme ? `${scheme} ${api_key}` : api_key;
+  }
+  return Object.keys(headers).length ? headers : undefined;
+}
+
 export function create_ai_sdk_provider(
   config: ProviderConfig,
   deps: ProviderDependencies,
@@ -148,7 +172,10 @@ export function create_ai_sdk_provider(
   const validated = validate_provider_config(config);
   if (validated.kind !== "openai_compatible")
     throw new InvalidProviderConfigError();
-  const base_url = validate_endpoint(validated.base_url ?? "");
+  const base_url = validate_endpoint(
+    validated.base_url ?? "",
+    validated.api_suffix,
+  );
   const model_id = resolve_model(validated, options.model);
   const attribution = attribution_headers(validated.attribution);
   const timeout_ms = deps.timeout_ms ?? 30000;
@@ -246,11 +273,21 @@ export function create_ai_sdk_provider(
         let callback_failed = false;
 
         try {
+          const custom_auth = validated.auth?.header
+            ? validated.auth.header !== "authorization"
+            : false;
+          const headers = credential_headers(
+            entry.apiKey,
+            validated.auth,
+            validated.extra_headers,
+          );
           const provider = createOpenAICompatible({
             name: "vittaz-byok",
             baseURL: base_url,
-            // Keyless configurations (Kilo Auto Free) must send no header at all.
-            ...(entry.apiKey ? { apiKey: entry.apiKey } : {}),
+            // Keyless configurations (Kilo Auto Free) must send no header at
+            // all. A custom auth header means the key is sent below instead.
+            ...(entry.apiKey && !custom_auth ? { apiKey: entry.apiKey } : {}),
+            ...(headers ? { headers } : {}),
             ...(deps.fetch ? { fetch: deps.fetch } : {}),
             // Opt-in only; absent means the wire is unchanged.
             ...(attribution ? { headers: attribution } : {}),

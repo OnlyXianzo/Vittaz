@@ -62,3 +62,8 @@ export type {
   CapabilityTable,
   ModelRegistry,
 } from "./registry/model_registry.js";
+export {
+  PROVIDER_PRESETS,
+  UNSUPPORTED_PROVIDERS,
+  type ProviderPreset,
+} from "./registry/presets.js";

@@ -331,3 +331,134 @@ test("attribution_rejects_unsafe_values", async () => {
       provider.create_ai_sdk_provider({ ...base, attribution }, deps),
     ).toThrow(/Invalid provider configuration/i);
 });
+
+// "OpenAI-compatible" servers disagree about the API path. These three tests
+// pin that the path is configuration, not a hard-coded `/v1`.
+test("transport_defaults_to_the_v1_api_path", async () => {
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  await provider
+    .create_ai_sdk_provider(
+      {
+        id: "p",
+        kind: "openai_compatible",
+        credential_ref: "K",
+        base_url: server.baseUrl,
+        default_model: "synthetic/model",
+      },
+      { resolve_credential: async () => "synthetic_key" },
+    )
+    .chatCompletion(ask());
+  expect(server.recordedRequests[0]!.path).toBe("/v1/chat/completions");
+});
+
+test("transport_honours_a_configured_api_path", async () => {
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  const deps = { resolve_credential: async () => "synthetic_key" };
+  const base = {
+    id: "p",
+    kind: "openai_compatible" as const,
+    credential_ref: "K",
+    base_url: server.baseUrl,
+    default_model: "synthetic/model",
+  };
+  // Gemini's compatibility layer, and a server with no version segment.
+  await provider
+    .create_ai_sdk_provider({ ...base, api_suffix: "/v1beta/openai" }, deps)
+    .chatCompletion(ask());
+  expect(server.recordedRequests[0]!.path).toBe(
+    "/v1beta/openai/chat/completions",
+  );
+  await provider
+    .create_ai_sdk_provider({ ...base, api_suffix: "" }, deps)
+    .chatCompletion(ask());
+  expect(server.recordedRequests[1]!.path).toBe("/chat/completions");
+});
+
+test("transport_places_the_key_in_the_configured_auth_header", async () => {
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  const base = {
+    id: "p",
+    kind: "openai_compatible" as const,
+    credential_ref: "K",
+    base_url: server.baseUrl,
+    default_model: "synthetic/model",
+  };
+  const deps = { resolve_credential: async () => "synthetic_key" };
+  // Bare key in a provider-specific header, and a scheme-prefixed variant.
+  await provider
+    .create_ai_sdk_provider(
+      { ...base, auth: { header: "x-goog-api-key" } },
+      deps,
+    )
+    .chatCompletion(ask());
+  expect(server.recordedRequests[0]!.headers["x-goog-api-key"]).toBe(
+    "synthetic_key",
+  );
+  expect(server.recordedRequests[0]!.headers["authorization"]).toBeUndefined();
+  await provider
+    .create_ai_sdk_provider(
+      { ...base, auth: { header: "api-key", scheme: "" } },
+      deps,
+    )
+    .chatCompletion(ask());
+  expect(server.recordedRequests[1]!.headers["api-key"]).toBe("synthetic_key");
+  expect(server.recordedRequests[1]!.headers["authorization"]).toBeUndefined();
+});
+
+test("transport_sends_configured_extra_headers_only", async () => {
+  const server = await startFakeOpenAIServer(() => ({ content: "Synthetic" }));
+  servers.push(server);
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  const base = {
+    id: "p",
+    kind: "openai_compatible" as const,
+    credential_ref: "K",
+    base_url: server.baseUrl,
+    default_model: "synthetic/model",
+  };
+  const deps = { resolve_credential: async () => "synthetic_key" };
+  await provider
+    .create_ai_sdk_provider(
+      { ...base, extra_headers: { "anthropic-version": "2026-10-21" } },
+      deps,
+    )
+    .chatCompletion(ask());
+  expect(server.recordedRequests[0]!.headers["anthropic-version"]).toBe(
+    "2026-10-21",
+  );
+  // Credentials can never be smuggled through `extra_headers`.
+  expect(() =>
+    provider.create_ai_sdk_provider(
+      { ...base, extra_headers: { authorization: "Bearer stolen" } },
+      deps,
+    ),
+  ).toThrow(/Invalid provider configuration/i);
+});
+
+test("transport_rejects_unsafe_api_paths_and_auth_overrides", async () => {
+  const provider = await import("./providers/adapters/ai_sdk.js");
+  const base = {
+    id: "p",
+    kind: "openai_compatible" as const,
+    credential_ref: "K",
+    base_url: "https://example.invalid",
+    default_model: "synthetic/model",
+  };
+  const deps = { resolve_credential: async () => "synthetic_key" };
+  for (const api_suffix of ["v1", "/../admin", "/v1?x=1", "/v1#f", "/a b"])
+    expect(() =>
+      provider.create_ai_sdk_provider({ ...base, api_suffix }, deps),
+    ).toThrow(/Invalid provider configuration/i);
+  expect(() =>
+    provider.create_ai_sdk_provider(
+      { ...base, auth: { header: "cookie" as never } },
+      deps,
+    ),
+  ).toThrow(/Invalid provider configuration/i);
+});

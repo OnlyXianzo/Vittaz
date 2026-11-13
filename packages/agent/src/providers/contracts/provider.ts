@@ -49,6 +49,19 @@ export interface ProviderConfig {
    * sent at all; see `attribution_schema` for why this is never inferred.
    */
   readonly attribution?: ProviderAttribution;
+  /** API path appended to `base_url`; defaults to `/v1`. */
+  readonly api_suffix?: string;
+  /** How the key is presented on the wire; defaults to `Authorization: Bearer`. */
+  readonly auth?: ProviderAuth;
+  /** Static extra request headers (API versions etc.). Never credentials. */
+  readonly extra_headers?: Readonly<Record<string, string>>;
+}
+
+/** Wire format for the credential. Carries no provider identity. */
+export interface ProviderAuth {
+  readonly header?:
+    "authorization" | "api-key" | "x-api-key" | "x-goog-api-key";
+  readonly scheme?: string;
 }
 
 /** App name and optional app URL for gateway dashboards. Never user data. */
@@ -130,6 +143,76 @@ const attribution_schema = z.strictObject({
     .optional(),
 });
 
+/**
+ * The API path the transport appends to `base_url`.
+ *
+ * Default `/v1` matches OpenAI and most gateways. It is configurable because
+ * "OpenAI-compatible" servers genuinely disagree here: Gemini's compatibility
+ * layer lives under `/v1beta/openai`, Azure has no `/v1` at all, and some
+ * self-hosted servers expose `/chat/completions` at the root. Hard-coding `/v1`
+ * silently produced 404s for those, which looked like a broken key.
+ */
+const api_suffix_schema = z
+  .string()
+  .max(64)
+  .refine(
+    (value) =>
+      (value === "" || value.startsWith("/")) &&
+      !value.includes("..") &&
+      !/[?#\s]/.test(value) &&
+      !has_forbidden_characters(value),
+  );
+
+/**
+ * How the key is presented on the wire.
+ *
+ * Most servers want `Authorization: Bearer <key>`. Some want the key in a bare
+ * header instead (`api-key` for Azure, `x-goog-api-key` for Google's native
+ * API). This is a *format* choice, not a provider branch: nothing here knows
+ * the provider's name.
+ */
+const auth_schema = z.strictObject({
+  header: z
+    .enum(["authorization", "api-key", "x-api-key", "x-goog-api-key"])
+    .optional(),
+  /** Empty string means the bare key with no scheme. */
+  scheme: z
+    .string()
+    .max(32)
+    .refine((value) => !has_forbidden_characters(value))
+    .optional(),
+});
+
+/** Static extra headers, e.g. a required API version. Never credentials. */
+const extra_headers_schema = z
+  .record(
+    z.string().min(1).max(64),
+    z
+      .string()
+      .max(512)
+      .refine((value) => !has_forbidden_characters(value)),
+  )
+  .refine((value) => Object.keys(value).length <= 8)
+  .refine((value) =>
+    Object.keys(value).every((key) => {
+      const name = key.toLowerCase();
+      return (
+        !has_forbidden_characters(key) &&
+        // Credentials and transport framing can never come from configuration.
+        ![
+          "authorization",
+          "api-key",
+          "x-api-key",
+          "x-goog-api-key",
+          "host",
+          "content-length",
+          "content-type",
+          "user-agent",
+        ].includes(name)
+      );
+    }),
+  );
+
 const provider_config_schema = z.strictObject({
   id: provider_id_schema,
   kind: z.enum(["anthropic", "openai_compatible"]),
@@ -138,6 +221,10 @@ const provider_config_schema = z.strictObject({
   default_model: model_id_schema,
   key_nickname: provider_id_schema.optional(),
   attribution: attribution_schema.optional(),
+  /** Defaults to `/v1`. `""` means the base URL is already complete. */
+  api_suffix: api_suffix_schema.optional(),
+  auth: auth_schema.optional(),
+  extra_headers: extra_headers_schema.optional(),
 });
 
 /**

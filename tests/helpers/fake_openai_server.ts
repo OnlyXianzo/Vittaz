@@ -2,6 +2,8 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 export interface RecordedOpenAIRequest {
   index: number;
+  /** Request path, so tests can assert the configured API suffix. */
+  path: string;
   apiKey: string | null;
   /** Every request header, lowercased by the platform. */
   headers: Record<string, string>;
@@ -51,7 +53,12 @@ export async function startFakeOpenAIServer(responder?: FakeResponder) {
           });
           res.end(JSON.stringify(value));
         };
-        if (req.method !== "POST" || req.url !== "/v1/chat/completions") {
+        // Any API suffix is accepted (see `api_suffix` in the provider config);
+        // the path is recorded so tests can assert exactly what was requested.
+        if (
+          req.method !== "POST" ||
+          !(req.url ?? "").endsWith("/chat/completions")
+        ) {
           json(404, { error: { message: "synthetic_not_found" } });
           return;
         }
@@ -74,6 +81,7 @@ export async function startFakeOpenAIServer(responder?: FakeResponder) {
         }
         const record: RecordedOpenAIRequest = {
           index: recordedRequests.length,
+          path: req.url ?? "",
           apiKey:
             /^Bearer\s+(.+)$/i.exec(req.headers.authorization ?? "")?.[1] ??
             null,
