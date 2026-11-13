@@ -14,7 +14,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useApp } from "../store";
 import { Markdown } from "../Markdown";
-import { MessageActions, ReasoningBlock, ThinkingDots } from "../chat_elements";
+import {
+  MessageActions,
+  MicGlyph,
+  ReasoningBlock,
+  ThinkingDots,
+} from "../chat_elements";
 import { format_tokens } from "../assistant/tokens";
 import { InstructionsScreen } from "./InstructionsScreen";
 import { formatPaise } from "../domain";
@@ -74,7 +79,6 @@ export function ChatScreen() {
     changeConversation,
     deleteConversation,
   } = useApp();
-  const [show_history, set_show_history] = useState(false);
   const [show_menu, set_show_menu] = useState(false);
   const [subscreen, set_subscreen] = useState<
     "instructions" | "connectors" | null
@@ -105,68 +109,6 @@ export function ChatScreen() {
         />
       </Screen>
     );
-
-  if (show_history) {
-    return (
-      <Screen>
-        <PageHeader
-          title="Chat history"
-          onBack={() => set_show_history(false)}
-        />
-        <M style={{ marginVertical: 12 }}>
-          Saved on this device. Sensitive or invalid messages are not saved.
-        </M>
-        <Button
-          label="New conversation"
-          disabled={state.chatMode === "thinking"}
-          onPress={() => {
-            void changeConversation(null).then(() => set_show_history(false));
-          }}
-        />
-        {conversations.map((chat) => (
-          <Card key={chat.id} style={{ marginTop: 12, gap: 8 }}>
-            <B>{chat.title}</B>
-            {chat.id === activeConversationId ? (
-              <M>Current conversation</M>
-            ) : null}
-            <Button
-              label="Open"
-              accessibilityLabel={`Open conversation: ${chat.title}`}
-              variant="ghost"
-              disabled={state.chatMode === "thinking"}
-              onPress={() => {
-                void changeConversation(chat.id).then(() =>
-                  set_show_history(false),
-                );
-              }}
-            />
-            <Button
-              label="Delete"
-              accessibilityLabel={`Delete conversation: ${chat.title}`}
-              variant="ghost"
-              disabled={state.chatMode === "thinking"}
-              onPress={() =>
-                Alert.alert(
-                  "Delete conversation?",
-                  "This removes its saved messages from this device.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: () => {
-                        void deleteConversation(chat.id);
-                      },
-                    },
-                  ],
-                )
-              }
-            />
-          </Card>
-        ))}
-      </Screen>
-    );
-  }
 
   const privacy_note =
     state.model === "openai-compatible"
@@ -420,7 +362,7 @@ export function ChatScreen() {
               }
               style={styles.round}
             >
-              <Feather name="mic" size={22} color={colors.muted} />
+              <MicGlyph size={21} color={colors.muted} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -444,67 +386,96 @@ export function ChatScreen() {
       </Screen>
 
       {show_menu ? (
-        <AssistantMenu
+        <AssistantDrawer
+          conversations={conversations}
+          active_id={activeConversationId}
+          busy={state.chatMode === "thinking"}
           onClose={() => set_show_menu(false)}
-          items={[
-            {
-              icon: "edit",
-              label: "New chat",
-              disabled: state.chatMode === "thinking",
-              onPress: () => {
-                set_show_menu(false);
-                void changeConversation(null);
-              },
-            },
-            {
-              icon: "clock",
-              label: "Chat history",
-              onPress: () => {
-                set_show_menu(false);
-                set_show_history(true);
-              },
-            },
-            {
-              icon: "sliders",
-              label: "Custom instructions",
-              onPress: () => {
-                set_show_menu(false);
-                set_subscreen("instructions");
-              },
-            },
-            {
-              icon: "link-2",
-              label: "Connectors",
-              onPress: () => {
-                set_show_menu(false);
-                set_subscreen("connectors");
-              },
-            },
-          ]}
+          onNew={() => {
+            set_show_menu(false);
+            void changeConversation(null);
+          }}
+          onOpen={(id) => {
+            set_show_menu(false);
+            void changeConversation(id);
+          }}
+          onDelete={(id) =>
+            Alert.alert(
+              "Delete conversation?",
+              "This removes its saved messages from this device.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => {
+                    void deleteConversation(id);
+                  },
+                },
+              ],
+            )
+          }
+          onInstructions={() => {
+            set_show_menu(false);
+            set_subscreen("instructions");
+          }}
+          onConnectors={() => {
+            set_show_menu(false);
+            set_subscreen("connectors");
+          }}
+          onSettings={() => {
+            set_show_menu(false);
+            dispatch({ type: "navigate", screen: "settings" });
+          }}
         />
       ) : null}
     </View>
   );
 }
 
+type DrawerChat = { id: string; title: string };
+
 /**
- * Slide-over menu. Mirrors the shape both first-party assistant apps use — a
- * left drawer holding navigation, rather than full-width buttons stacked above
- * the transcript — while keeping Vittaz's own panel, type and accent tokens.
+ * Slide-over drawer. Mirrors the shape ChatGPT, Claude and Grok converged on —
+ * destinations at the top, every saved conversation listed directly beneath
+ * them, and the two controls that are places-you-go-to (search, settings) pinned
+ * to the footer — while keeping Vittaz's own panel, type and accent tokens.
+ *
+ * History lives here rather than on its own screen on purpose: opening a past
+ * conversation should cost one tap from the chat, not a navigation round trip
+ * through a screen whose only job was to re-list what the drawer can show.
  */
-function AssistantMenu({
-  items,
+function AssistantDrawer({
+  conversations,
+  active_id,
+  busy,
   onClose,
+  onNew,
+  onOpen,
+  onDelete,
+  onInstructions,
+  onConnectors,
+  onSettings,
 }: {
-  items: {
-    icon: "edit" | "clock" | "sliders" | "link-2";
-    label: string;
-    onPress: () => void;
-    disabled?: boolean;
-  }[];
+  conversations: readonly DrawerChat[];
+  active_id: string | null;
+  busy: boolean;
   onClose: () => void;
+  onNew: () => void;
+  onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
+  onInstructions: () => void;
+  onConnectors: () => void;
+  onSettings: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const [search_open, set_search_open] = useState(false);
+  const [query, set_query] = useState("");
+  const needle = query.trim().toLowerCase();
+  const shown = needle
+    ? conversations.filter((chat) => chat.title.toLowerCase().includes(needle))
+    : conversations;
+
   return (
     <View style={styles.overlay}>
       <Pressable
@@ -513,35 +484,185 @@ function AssistantMenu({
         onPress={onClose}
         style={styles.backdrop}
       />
-      <View style={[styles.drawer, { paddingTop: insets.top + 16 }]}>
-        <Row style={{ paddingHorizontal: 8, marginBottom: 12 }}>
+      <View
+        style={[
+          styles.drawer,
+          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 12 },
+        ]}
+      >
+        <Row style={{ paddingHorizontal: 8, marginBottom: 10 }}>
           <B size={16}>Assistant</B>
           <IconBtn label="Close menu" onPress={onClose}>
             <Feather name="x" size={20} color={colors.muted} />
           </IconBtn>
         </Row>
-        {items.map((item) => (
-          <Pressable
-            key={item.label}
-            accessibilityRole="button"
-            accessibilityLabel={item.label}
-            accessibilityState={{ disabled: item.disabled === true }}
-            disabled={item.disabled}
-            onPress={item.onPress}
-            style={({ pressed }) => [
-              styles.menuItem,
-              pressed && { backgroundColor: colors.ghost },
-              item.disabled && { opacity: 0.5 },
-            ]}
+
+        {search_open ? (
+          <Row
+            gap={4}
+            style={{
+              marginBottom: 6,
+              paddingLeft: 12,
+              borderRadius: 999,
+              backgroundColor: colors.panel,
+              borderWidth: 1,
+              borderColor: colors.panelBorder,
+              minHeight: 44,
+            }}
           >
-            <Feather name={item.icon} size={18} color={colors.lime} />
-            <T size={15} weight="semi">
-              {item.label}
-            </T>
-          </Pressable>
-        ))}
+            <View style={{ flex: 1 }}>
+              <Input
+                label="Search saved chats"
+                placeholder="Search chats"
+                value={query}
+                onChangeText={set_query}
+                autoCapitalize="none"
+                textStyle={{ minHeight: 42, textAlignVertical: "center" }}
+              />
+            </View>
+            <IconBtn
+              label="Close search"
+              onPress={() => {
+                set_search_open(false);
+                set_query("");
+              }}
+            >
+              <Feather name="x" size={18} color={colors.muted} />
+            </IconBtn>
+          </Row>
+        ) : null}
+
+        <DrawerRow
+          icon="edit"
+          label="New chat"
+          disabled={busy}
+          onPress={onNew}
+        />
+        <DrawerRow
+          icon="sliders"
+          label="Custom instructions"
+          onPress={onInstructions}
+        />
+        <DrawerRow icon="link-2" label="Connectors" onPress={onConnectors} />
+
+        <View style={styles.drawerRule} />
+        <T
+          size={11}
+          weight="bold"
+          color={colors.dim}
+          style={{ letterSpacing: 0.8, marginBottom: 4, marginLeft: 12 }}
+        >
+          {needle ? "RESULTS" : "RECENTS"}
+        </T>
+
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 8 }}
+        >
+          {shown.length === 0 ? (
+            <M size={12} style={{ paddingHorizontal: 12, paddingVertical: 10 }}>
+              {needle
+                ? "No saved chats match that search."
+                : "No saved chats yet. Your conversations appear here."}
+            </M>
+          ) : (
+            shown.map((chat) => (
+              <View
+                key={chat.id}
+                style={[
+                  styles.chatRow,
+                  chat.id === active_id && styles.chatRowActive,
+                ]}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open conversation: ${chat.title}`}
+                  accessibilityState={{ disabled: busy }}
+                  disabled={busy}
+                  onPress={() => onOpen(chat.id)}
+                  style={({ pressed }) => [
+                    styles.chatOpen,
+                    pressed && { opacity: 0.7 },
+                    busy && { opacity: 0.5 },
+                  ]}
+                >
+                  {chat.id === active_id ? (
+                    <View style={styles.liveDot} />
+                  ) : null}
+                  <T size={13} weight="semi" numberOfLines={2} style={{ flex: 1 }}>
+                    {chat.title}
+                  </T>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete conversation: ${chat.title}`}
+                  accessibilityState={{ disabled: busy }}
+                  disabled={busy}
+                  onPress={() => onDelete(chat.id)}
+                  style={({ pressed }) => [
+                    styles.chatDelete,
+                    pressed && { opacity: 0.6 },
+                    busy && { opacity: 0.4 },
+                  ]}
+                >
+                  <Feather name="trash-2" size={14} color={colors.dim} />
+                </Pressable>
+              </View>
+            ))
+          )}
+        </ScrollView>
+
+        <View style={styles.drawerRule} />
+        <Row start gap={6} style={{ paddingTop: 4 }}>
+          <IconBtn
+            label="Search chats"
+            onPress={() => set_search_open((open) => !open)}
+          >
+            <Feather
+              name="search"
+              size={19}
+              color={search_open ? colors.lime : colors.muted}
+            />
+          </IconBtn>
+          <IconBtn label="Settings" onPress={onSettings}>
+            <Feather name="settings" size={19} color={colors.muted} />
+          </IconBtn>
+        </Row>
       </View>
     </View>
+  );
+}
+
+function DrawerRow({
+  icon,
+  label,
+  onPress,
+  disabled = false,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.menuItem,
+        pressed && { backgroundColor: colors.ghost },
+        disabled && { opacity: 0.5 },
+      ]}
+    >
+      <Feather name={icon} size={18} color={colors.lime} />
+      <T size={15} weight="semi">
+        {label}
+      </T>
+    </Pressable>
   );
 }
 
@@ -614,6 +735,40 @@ const styles = StyleSheet.create({
     borderRightColor: colors.panelBorder,
     paddingHorizontal: 10,
     paddingBottom: 16,
+  },
+  drawerRule: {
+    height: 1,
+    backgroundColor: colors.hairline,
+    marginVertical: 10,
+    marginHorizontal: 8,
+  },
+  chatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    paddingRight: 2,
+  },
+  chatRowActive: { backgroundColor: colors.ghost },
+  chatOpen: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 44,
+    paddingLeft: 12,
+    paddingRight: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.lime,
+  },
+  chatDelete: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   menuItem: {
     flexDirection: "row",

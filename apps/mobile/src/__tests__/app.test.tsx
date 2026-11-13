@@ -133,26 +133,84 @@ it("keeps chat navigation in a drawer instead of above the transcript", async ()
   );
 
   // The transcript area must not be crowded by navigation buttons.
-  expect(screen.queryByRole("button", { name: "Chat history" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Custom instructions" })).toBeNull();
 
   // The menu button is the single entry point and the drawer holds the items.
   await open_assistant_menu();
-  for (const name of [
-    "New chat",
-    "Chat history",
-    "Custom instructions",
-    "Connectors",
-  ]) {
+  for (const name of ["New chat", "Custom instructions", "Connectors"]) {
     expect(screen.getByRole("button", { name })).toBeTruthy();
   }
-  await fireEvent.press(screen.getByRole("button", { name: "Close menu" }));
+  // History is a section of this drawer, not a separate screen reached from it.
+  expect(screen.getByText("RECENTS")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Chat history" })).toBeNull();
+  // Search and settings are pinned to the footer.
+  expect(screen.getByRole("button", { name: "Search chats" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+
+  await fireEvent.press(screen.getByRole("button", { name: "Close menu" }));
+  expect(screen.queryByText("RECENTS")).toBeNull();
 
   // The disclosure still has to be readable without opening any menu.
   expect(
     screen.getByText(/Kilo Auto Free may route prompts to providers that log them/),
   ).toBeTruthy();
+});
+
+it("lists saved chats in the drawer and searches them in place", async () => {
+  await create_conversation("chat_food");
+  await save_conversation_messages("chat_food", [
+    { id: "f1", role: "user", text: "Food spend this month" },
+  ]);
+  await create_conversation("chat_owed");
+  await save_conversation_messages("chat_owed", [
+    { id: "o1", role: "user", text: "Synthetic owed totals" },
+  ]);
+  await open();
+  await waitFor(() =>
+    expect(screen.getByText("Synthetic owed totals")).toBeTruthy(),
+  );
+
+  await open_assistant_menu();
+  // Both conversations are listed as rows, with no intermediate screen.
+  expect(
+    screen.getByRole("button", { name: "Open conversation: Food spend this month" }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Open conversation: Synthetic owed totals" }),
+  ).toBeTruthy();
+
+  // Search filters the same list rather than navigating anywhere.
+  await fireEvent.press(screen.getByRole("button", { name: "Search chats" }));
+  await fireEvent.changeText(screen.getByLabelText("Search saved chats"), "food");
+  expect(
+    screen.getByRole("button", { name: "Open conversation: Food spend this month" }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Open conversation: Synthetic owed totals" }),
+  ).toBeNull();
+
+  await fireEvent.changeText(screen.getByLabelText("Search saved chats"), "zzz");
+  expect(screen.getByText("No saved chats match that search.")).toBeTruthy();
+
+  // Closing search restores the full list and clears the query.
+  await fireEvent.press(screen.getByRole("button", { name: "Close search" }));
+  expect(
+    screen.getByRole("button", { name: "Open conversation: Synthetic owed totals" }),
+  ).toBeTruthy();
+  expect(screen.queryByLabelText("Search saved chats")).toBeNull();
+});
+
+it("reaches settings from the drawer footer", async () => {
+  await open();
+  await tab("Home");
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Add or ask by message" }),
+  );
+  await open_assistant_menu();
+  await fireEvent.press(screen.getByRole("button", { name: "Settings" }));
+  await waitFor(() =>
+    expect(screen.getByRole("header", { name: "Settings" })).toBeTruthy(),
+  );
 });
 
 it("opens separate saved conversations and creates a new one", async () => {
@@ -169,7 +227,6 @@ it("opens separate saved conversations and creates a new one", async () => {
     expect(screen.getByText("Second synthetic question")).toBeTruthy(),
   );
   await open_assistant_menu();
-  await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
   await fireEvent.press(
     screen.getByRole("button", {
       name: "Open conversation: First synthetic question",
@@ -180,10 +237,7 @@ it("opens separate saved conversations and creates a new one", async () => {
   );
   expect(screen.queryByText("Second synthetic question")).toBeNull();
   await open_assistant_menu();
-  await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
-  await fireEvent.press(
-    screen.getByRole("button", { name: "New conversation" }),
-  );
+  await fireEvent.press(screen.getByRole("button", { name: "New chat" }));
   await waitFor(() =>
     expect(screen.queryByText("First synthetic question")).toBeNull(),
   );
@@ -236,7 +290,7 @@ it("prevents switching while a reply is in flight and keeps context isolated", a
     { role: "user", content: "Second synthetic context" },
   ]);
   await open_assistant_menu();
-  await fireEvent.press(screen.getByRole("button", { name: "Chat history" }));
+  await open_assistant_menu();
   expect(
     screen.getByRole("button", {
       name: "Open conversation: First synthetic context",

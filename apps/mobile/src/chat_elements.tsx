@@ -22,7 +22,7 @@ import {
   View,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { colors } from "./theme";
 import type { ChatStep } from "./domain";
@@ -301,5 +301,38 @@ export function MessageActions({ text }: { text: string }) {
         </T>
       </Pressable>
     </Row>
+  );
+}
+
+/**
+ * Composer microphone, drawn to Vittaz's own line weight instead of borrowing
+ * the platform glyph set. Same 1.7 stroke and 24-unit grid as the other marks,
+ * so it reads as part of the app rather than a stock icon.
+ */
+export function MicGlyph({ size = 20, color }: { size?: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x={9}
+        y={2.5}
+        width={6}
+        height={11}
+        rx={3}
+        stroke={color}
+        strokeWidth={1.7}
+      />
+      <Path
+        d="M5.5 11.5a6.5 6.5 0 0 0 13 0"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M12 18v3.4"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+    </Svg>
   );
 }
