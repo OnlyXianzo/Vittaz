@@ -1480,5 +1480,7 @@ Design and implementation notes stay local at the owner's request.
 ## Diagnostic log export folder and SAF user selection (owner feedback, 2026-11-14)
 
 Owner feedback on Gate G4 verification highlighted two issues with diagnostic log export:
+
 1. Export folder naming: the dedicated folder is renamed from `Vittaz-Diagnostics` to `Vittaz` (saving to `Downloads/Vittaz/vittaz-diagnostics-<timestamp>.json`).
 2. Folder selection: previously, `save_diagnostic_log` strictly enforced that the selected SAF URI must match `download` or `download/vittaz-diagnostics`, throwing `export_permission_denied` if the user chose any other folder. Removed this artificial restriction: any user-granted directory is respected, and the file is written to the chosen destination.
+3. Direct MediaStore export module: added native Kotlin module `vittaz-mediastore` (`VittazMediaStoreModule.kt`) utilizing `MediaStore.Downloads.EXTERNAL_CONTENT_URI` with `RELATIVE_PATH = "Download/Vittaz"`. On Android 10+ (API 29+), this writes diagnostics directly to `Download/Vittaz/` with zero runtime prompts, matching Grablytic's MediaStore capability, while falling back gracefully to SAF if unavailable or on other environments.

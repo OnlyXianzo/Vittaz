@@ -756,12 +756,18 @@ unverified in this environment (no Android SDK or device attached).
 ## Diagnostic log export folder and SAF user selection (2026-11-14)
 
 Addressed owner feedback on log export behavior under Android Scoped Storage:
+
 - **Folder renaming**: Renamed the diagnostic export destination from `Vittaz-Diagnostics` to `Vittaz`
   across `diagnostic_export.ts`, `expo_diagnostic_storage.ts`, `DiagnosticsPanel.tsx`, workflow tests,
   and documentation (`Downloads/Vittaz/vittaz-diagnostics-<timestamp>.json`).
 - **User-selected folder acceptance**: Eliminated the artificial check that rejected any SAF directory
   other than `download` or `download/vittaz-diagnostics`. User-selected directories are now respected
   directly without throwing `export_permission_denied`.
+- **Direct MediaStore export (`vittaz-mediastore`)**: Added native Android Kotlin module
+  `VittazMediaStoreModule` targeting Android 10+ `MediaStore.Downloads.EXTERNAL_CONTENT_URI`
+  with `RELATIVE_PATH = "Download/Vittaz"`. Enables zero-prompt, zero-permission silent export
+  matching Grablytic's capabilities, with seamless fallback to SAF if the native module is
+  unavailable.
 - **Verification**: Updated unit test suites `diagnostic_export.test.ts`, `expo_diagnostic_storage.test.ts`,
   `DiagnosticsPanel.test.tsx`, and workflow integration tests `mobile_diagnostics_workflow.test.ts`. Full
   mobile and root test suites pass green. Typecheck, ESLint, Prettier, and privacy gates all clean.

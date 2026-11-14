@@ -14,7 +14,11 @@ jest.mock("expo-file-system/legacy", () => ({
 
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
-import { expo_diagnostic_download_storage as storage } from "./expo_diagnostic_storage";
+import * as directModule from "../../modules/vittaz-mediastore";
+import {
+  expo_diagnostic_download_storage as storage,
+  export_mobile_diagnostic_log,
+} from "./expo_diagnostic_storage";
 
 const saf = FileSystem.StorageAccessFramework;
 
@@ -115,4 +119,53 @@ test("refuses non-Android targets and non-allowlisted folder or filenames", asyn
       "vittaz-diagnostics-../../secret",
     ),
   ).toThrow("Invalid diagnostic filename");
+});
+
+test("export_mobile_diagnostic_log uses direct MediaStore when available", async () => {
+  const spy = jest
+    .spyOn(directModule, "saveJsonToDownloadsDirectly")
+    .mockResolvedValue("Downloads/Vittaz/vittaz-diagnostics-direct.json");
+
+  const result = await export_mobile_diagnostic_log();
+
+  expect(spy).toHaveBeenCalledWith(
+    "Vittaz",
+    expect.stringMatching(/^vittaz-diagnostics-/),
+    expect.any(String),
+  );
+  expect(result.relative_path).toBe(
+    "Downloads/Vittaz/vittaz-diagnostics-direct.json",
+  );
+  expect(saf.requestDirectoryPermissionsAsync).not.toHaveBeenCalled();
+
+  spy.mockRestore();
+});
+
+test("export_mobile_diagnostic_log falls back to SAF when direct MediaStore is unavailable", async () => {
+  const spy = jest
+    .spyOn(directModule, "saveJsonToDownloadsDirectly")
+    .mockResolvedValue(null);
+
+  const root_uri = "content://downloads/tree/primary%3ADownload";
+  jest.mocked(saf.getUriForDirectoryInRoot).mockReturnValue(root_uri);
+  jest.mocked(saf.requestDirectoryPermissionsAsync).mockResolvedValue({
+    granted: true,
+    directoryUri: root_uri,
+  });
+  jest.mocked(saf.readDirectoryAsync).mockResolvedValue([]);
+  jest
+    .mocked(saf.makeDirectoryAsync)
+    .mockResolvedValue("content://downloads/tree/vittaz");
+  jest
+    .mocked(saf.createFileAsync)
+    .mockResolvedValue("content://downloads/tree/vittaz/log.json");
+  jest.mocked(saf.writeAsStringAsync).mockResolvedValue(undefined);
+
+  const result = await export_mobile_diagnostic_log();
+
+  expect(spy).toHaveBeenCalled();
+  expect(saf.requestDirectoryPermissionsAsync).toHaveBeenCalled();
+  expect(result.relative_path).toContain("Downloads/Vittaz/");
+
+  spy.mockRestore();
 });
