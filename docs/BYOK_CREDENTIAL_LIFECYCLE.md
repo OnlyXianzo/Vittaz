@@ -105,8 +105,8 @@ lock-screen credential changes. Reads can start failing for keys that were
 written fine, with no user action. That is exactly why this must be a
 first-class state rather than an exception.
 
-**Implemented:** points 1 and 3. Point 2 (a non-secret manifest) needs the
-decision below and is not built.
+**Implemented:** all three. The manifest is the owner's decision of 2026-11-11
+and is recorded in `DECISIONS.md`.
 
 The three changes are:
 
@@ -117,10 +117,18 @@ The three changes are:
 3. Map `unreadable` to its own user-facing message and its own stop reason,
    separate from `provider_error`.
 
-Point 2 is a privacy trade-off and needs a decision: it makes provider choice
-and label readable at rest. If that is unacceptable, the alternative is to
-keep metadata in SecureStore and accept that invalidation loses the list —
-but then the empty state must say _why_.
+Point 2 is a privacy trade-off and was the owner's call: it makes provider
+choice, label, endpoint and model readable at rest. It was accepted, because
+the alternative is losing the list entirely. What is written is an explicit
+allowlist of named fields — no spread, so a future credential field cannot ride
+along — and a test asserts that an `api_key` on the input never reaches the
+stored blob. The keys screen discloses the plain-storage copy.
+
+The recovery is deliberately read-only: `read_key_registry` rebuilds the rows
+from the manifest when the keystore refuses, writes nothing, and marks the
+registry `source: "manifest"`. A keystore that comes back after a restart
+therefore finds its contents untouched. Writing only happens when the user acts
+on a row — re-entering a key is what repairs storage.
 
 ---
 
@@ -218,11 +226,11 @@ failures cheaper to recover from:
 
 ## Decisions only the owner can make
 
-- **Q2, point 2 (still open):** is a non-secret manifest (provider kind +
-  label) acceptable at rest outside the keystore, or should metadata stay
-  encrypted and accept losing the list? Until this is answered, an invalidated
-  keystore still loses the _list_ even though it no longer loses it silently,
-  and connection checks and health records do not survive a relaunch.
+- **Q2, point 2 (decided 2026-11-11): yes.** Non-secret metadata lives outside
+  the keystore, and connection checks now survive a relaunch because they are
+  stored with it. See `DECISIONS.md`. Provider _health_ (the rate-limit
+  cooldown from question 4) is still process-only: it describes this run, not
+  the key.
 - **Q1 (chosen):** the check runs automatically after a save. Chosen over a
   button because a key that has never been tried is the common case, and the
   call is the same one the screen already makes. Easy to reverse.

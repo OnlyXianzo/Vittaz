@@ -1434,3 +1434,36 @@ is a separate, small refactor and is not required for any behaviour the app expo
 
 Also unchanged: the transport implementations, the approval and proposal semantics, the
 Telegram path, and any financial data model.
+
+## Provider metadata outside the keystore (2026-11-11)
+
+**Decision (owner): yes.** Non-secret provider metadata may be stored unencrypted on the
+device.
+
+**Why.** On Android, SecureStore entries are invalidated when the lock-screen credential
+changes. The key profile list lived in the same store as the secrets, so the list vanished
+along with the keys and the screen looked like a fresh install — the user's setup appeared
+to have been forgotten, with no explanation and no way back. A woken-up keystore would
+then have found nothing.
+
+**What is written.** `vittaz.assistant.key_manifest.v1`, holding profile id, provider
+kind, label, endpoint URL, model, API-path/auth-header/auth-scheme overrides, the active
+id and the last connection check. No credential, ever.
+
+**What it costs.** Anyone who can read the app's private data can see which providers the
+user configured, their labels and their endpoints. Given the alternative is losing the
+list, that is the better trade, and everything in the file is already rendered on the keys
+screen.
+
+**How it is kept honest.** `to_manifest_profile` in `profile_manifest.ts` copies named
+fields one at a time; it does not spread the input. A test passes a profile carrying an
+`api_key` and asserts the stored JSON contains neither the value nor the field name. The
+manifest is written only as a mirror after the authoritative secure-storage write, and a
+failed mirror never fails a key save.
+
+**Reversal.** Delete `profile_manifest.ts` and the recovery branch in
+`read_key_registry`; the previous behaviour (typed unreadable state, list lost) returns.
+The keys screen copy discloses the plain-storage copy while it exists.
+
+**Not verified:** the invalidation scenario itself. It is simulated in tests by a store
+whose reads throw; no Android device was used.
