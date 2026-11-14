@@ -118,7 +118,7 @@ jobs:
           grep -R -a -q 'TEST BUILD ONLY' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
           grep -R -a -q 'SYNTHETIC DATA ONLY' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
           grep -R -a -q 'Save test log to Downloads' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
-          grep -R -a -q 'Vittaz-Diagnostics' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
+          grep -R -a -q 'Downloads/Vittaz' "$RUNNER_TEMP/vittaz-diagnostics-bundle-check"
 
       - name: Build standalone diagnostics test APK
         env:

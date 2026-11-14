@@ -1,5 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
-import { Pressable } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import {
+  Check,
+  ChevronRight,
+  KeyRound,
+  MoreHorizontal,
+  Plus,
+  Search,
+  X,
+} from "lucide-react-native";
+import { ProviderField } from "./ProviderField";
+import { colors } from "../theme";
 import * as SecureStore from "expo-secure-store";
 import * as Clipboard from "expo-clipboard";
 import { useApp } from "../store";
@@ -31,6 +50,8 @@ import {
   Button,
   Card,
   Input,
+  IconBtn,
+  T,
   M,
   PageHeader,
   Pill,
@@ -125,10 +146,20 @@ const PROVIDER_LABEL: Record<KeyProvider, string> = {
 
 export function KeysScreen() {
   const { dispatch } = useApp();
+  const [view, set_view] = useState<"list" | "choose" | "edit">("list");
+  const [action_id, set_action_id] = useState<string | null>(null);
+  const [errors, set_errors] = useState<Record<string, string>>({});
+  const [model_query, set_model_query] = useState("");
+  const operation = useRef(false);
   const [profiles, set_profiles] = useState<KeyProfile[]>([]);
   const [active_id, set_active_id] = useState<string | null>(null);
   const [hints, set_hints] = useState<Record<string, string>>({});
   const [revealed, set_revealed] = useState<Record<string, string | null>>({});
+  const reveal_version = useRef(0);
+  const clear_revealed = () => {
+    reveal_version.current += 1;
+    set_revealed({});
+  };
   const [provider, set_provider] = useState<KeyProvider>("openai_compatible");
   const [label, set_label] = useState("");
   const [api_key, set_api_key] = useState("");
@@ -142,7 +173,6 @@ export function KeysScreen() {
   const [auth_header, set_auth_header] = useState<AuthHeader>("authorization");
   const [auth_scheme, set_auth_scheme] = useState("Bearer");
   const [show_advanced, set_show_advanced] = useState(false);
-  const [preset_id, set_preset_id] = useState<string>("custom");
   /**
    * The stored profile list exists but cannot be read. Distinct from "no
    * profiles", which is what an empty array means everywhere else.
@@ -215,7 +245,12 @@ export function KeysScreen() {
     });
   }, [refresh, dispatch]);
 
-  const reset_form = () => {
+  const reset_form = useCallback(() => {
+    set_errors({});
+    set_model_query("");
+    set_view("list");
+    set_provider("openai_compatible");
+    set_base_url("https://api.openai.com/v1");
     set_editing_id(null);
     set_label("");
     set_api_key("");
@@ -226,8 +261,7 @@ export function KeysScreen() {
     set_auth_header("authorization");
     set_auth_scheme("Bearer");
     set_show_advanced(false);
-    set_preset_id("custom");
-  };
+  }, []);
 
   /**
    * Applies a preset: a base URL plus how that server wants its key. This is
@@ -236,8 +270,16 @@ export function KeysScreen() {
    */
   const apply_preset = (id: string) => {
     const preset = PROVIDER_PRESETS.find((entry) => entry.id === id);
-    set_preset_id(id);
-    if (!preset) return;
+    set_models([]);
+    set_model_query("");
+    set_errors({});
+    set_show_advanced(false);
+    set_model(preset?.default_model ?? "");
+    if (!preset) {
+      set_provider("openai_compatible");
+      set_view("edit");
+      return;
+    }
     set_provider(
       preset.kind === "anthropic" ? "anthropic" : "openai_compatible",
     );
@@ -248,9 +290,52 @@ export function KeysScreen() {
     if (preset.default_model) set_model(preset.default_model);
     if (!label) set_label(preset.label);
     setShowAdvancedForPreset(preset.id);
+    set_view("edit");
   };
 
   const save = async () => {
+    if (operation.current) return;
+    const next_errors: Record<string, string> = {};
+    if (
+      !label.trim() ||
+      label.trim().length > 64 ||
+      Array.from(label).some(
+        (character) =>
+          character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+      )
+    )
+      next_errors.label = "Enter a profile name.";
+    if (!editing_id && provider !== "kilo" && !api_key.trim())
+      next_errors.key = "Enter an API key.";
+    if (
+      api_key.trim() &&
+      (api_key.trim().length > 4096 || /\s/.test(api_key.trim()))
+    )
+      next_errors.key = "Enter a key without spaces.";
+    if (
+      (provider === "openai_compatible" || model.trim()) &&
+      !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(model.trim())
+    )
+      next_errors.model = "Enter a valid model name.";
+    if (provider === "openai_compatible") {
+      try {
+        const url = new URL(base_url.trim());
+        if (
+          url.protocol !== "https:" ||
+          url.username ||
+          url.password ||
+          url.search ||
+          url.hash
+        )
+          throw new Error();
+      } catch {
+        next_errors.url =
+          "Enter an HTTPS URL without credentials, query or fragment.";
+      }
+    }
+    set_errors(next_errors);
+    if (Object.keys(next_errors).length) return;
+    operation.current = true;
     set_busy(true);
     try {
       let saved_id = editing_id;
@@ -289,12 +374,11 @@ export function KeysScreen() {
         void check_saved_profile(saved_id, { auto: true });
       }
     } catch {
-      dispatch({
-        type: "show_toast",
-        message:
-          "Could not save that key. Check the label, HTTPS endpoint, model and key.",
+      set_errors({
+        form: "Could not save this provider. Your changes are still here; try again.",
       });
     } finally {
+      operation.current = false;
       set_busy(false);
     }
   };
@@ -343,6 +427,8 @@ export function KeysScreen() {
   };
 
   const fetch_models = async () => {
+    if (operation.current) return;
+    operation.current = true;
     set_busy(true);
     try {
       const draft: KeyProfile = {
@@ -362,6 +448,7 @@ export function KeysScreen() {
         api_key.trim() || undefined,
       );
       set_models(choices);
+      set_model_query("");
       if (choices.length === 0)
         dispatch({ type: "show_toast", message: "No models were returned." });
     } catch {
@@ -370,13 +457,26 @@ export function KeysScreen() {
         message: "Could not fetch models. Check the endpoint and key.",
       });
     } finally {
+      operation.current = false;
       set_busy(false);
     }
   };
 
   const paste_key = async () => {
-    const text = await Clipboard.getStringAsync();
-    if (text) set_api_key(text);
+    if (operation.current) return;
+    operation.current = true;
+    set_busy(true);
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (text) set_api_key(text);
+    } catch {
+      set_errors({
+        key: "Could not read the clipboard. Paste or type the key manually.",
+      });
+    } finally {
+      operation.current = false;
+      set_busy(false);
+    }
   };
 
   const copy_key = async (profile: KeyProfile) => {
@@ -399,11 +499,13 @@ export function KeysScreen() {
   };
 
   const toggle_reveal = async (profile: KeyProfile) => {
+    const request_version = ++reveal_version.current;
     if (revealed[profile.id]) {
       set_revealed((current) => ({ ...current, [profile.id]: null }));
       return;
     }
     const read = await read_key_secret_state(SecureStore, profile.id);
+    if (request_version !== reveal_version.current) return;
     set_revealed((current) => ({
       ...current,
       [profile.id]: read.state === "ok" ? read.value : null,
@@ -416,6 +518,12 @@ export function KeysScreen() {
   };
 
   const edit = (profile: KeyProfile) => {
+    set_errors({});
+    set_model_query("");
+    set_show_form_key(false);
+    clear_revealed();
+    set_action_id(null);
+    set_view("edit");
     set_editing_id(profile.id);
     set_provider(profile.provider);
     set_label(profile.label);
@@ -426,7 +534,6 @@ export function KeysScreen() {
     set_api_suffix(profile.api_suffix ?? "/v1");
     set_auth_header(profile.auth_header ?? "authorization");
     set_auth_scheme(profile.auth_scheme ?? "Bearer");
-    set_preset_id("custom");
     set_show_advanced(
       (profile.api_suffix !== undefined && profile.api_suffix !== "/v1") ||
         (profile.auth_header !== undefined &&
@@ -457,298 +564,463 @@ export function KeysScreen() {
     }
   };
 
-  return (
-    <Screen>
-      <PageHeader
-        title="Keys and models"
-        onBack={() => dispatch({ type: "back" })}
-      />
-      <M size={12} style={{ marginBottom: 12 }}>
-        Keys stay in this device's secure store. Choose one active profile; the
-        assistant never falls back to another key silently.
-      </M>
+  const close_editor = () => {
+    if (!operation.current) reset_form();
+  };
+  useEffect(() => {
+    if (view === "list") return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (!operation.current) reset_form();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [view, reset_form]);
+  const shown_models = models.filter((choice) =>
+    choice.label.toLowerCase().includes(model_query.trim().toLowerCase()),
+  );
 
-      <Card tone="soft">
-        <SectionLabel>
-          {editing_id ? "Edit key profile" : "Add key profile"}
-        </SectionLabel>
-        <Row gap={8} style={{ flexWrap: "wrap", marginBottom: 10 }}>
-          {(Object.keys(PROVIDER_LABEL) as KeyProvider[]).map((kind) => (
-            <Pressable
-              key={kind}
-              accessibilityRole="button"
-              accessibilityLabel={PROVIDER_LABEL[kind]}
-              onPress={() => set_provider(kind)}
-              style={{ opacity: provider === kind ? 1 : 0.55 }}
-            >
-              <Pill tone={provider === kind ? "lime" : "amber"}>
-                {PROVIDER_LABEL[kind]}
-              </Pill>
-            </Pressable>
-          ))}
-        </Row>
-        <M size={11} style={{ marginBottom: 6 }}>
-          Start from a preset, or pick Custom and type any HTTPS endpoint.
+  if (view === "choose")
+    return (
+      <Screen>
+        <PageHeader title="Add provider" onBack={close_editor} />
+        <M style={styles.intro}>
+          Choose a service. Its connection settings will be filled in for you.
         </M>
-        <Row gap={8} style={{ flexWrap: "wrap", marginBottom: 10 }}>
-          {PRESET_CHOICES.map((choice) => (
+        <View style={styles.stack}>
+          {[
+            ...PRESET_CHOICES,
+            { id: "kilo", label: "Kilo Gateway" },
+            { id: "custom", label: "Custom" },
+          ].map((choice) => (
             <Pressable
               key={choice.id}
               accessibilityRole="button"
               accessibilityLabel={`Preset ${choice.label}`}
-              onPress={() => apply_preset(choice.id)}
-              style={{ opacity: preset_id === choice.id ? 1 : 0.55 }}
+              onPress={() => {
+                if (choice.id === "kilo") {
+                  set_provider("kilo");
+                  set_label("Kilo Gateway");
+                  set_view("edit");
+                } else apply_preset(choice.id);
+              }}
+              style={({ pressed }) => [
+                styles.choice,
+                pressed && { opacity: 0.75 },
+              ]}
             >
-              <Pill tone={preset_id === choice.id ? "lime" : "amber"}>
-                {choice.label}
-              </Pill>
+              <View style={styles.glyph}>
+                <KeyRound size={20} color={colors.lime} />
+              </View>
+              <View style={styles.grow}>
+                <B>{choice.label}</B>
+                {choice.id === "custom" ? (
+                  <M size={12}>Any supported HTTPS endpoint</M>
+                ) : null}
+              </View>
+              <ChevronRight size={18} color={colors.dim} />
             </Pressable>
           ))}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Preset Custom"
-            onPress={() => {
-              set_preset_id("custom");
-              set_provider("openai_compatible");
-            }}
-            style={{ opacity: preset_id === "custom" ? 1 : 0.55 }}
-          >
-            <Pill tone={preset_id === "custom" ? "lime" : "amber"}>Custom</Pill>
-          </Pressable>
-        </Row>
-        <Input label="Label" value={label} onChangeText={set_label} />
-        <Input
-          label="API key"
-          value={api_key}
-          onChangeText={set_api_key}
-          secure={!show_form_key}
-        />
-        <Row gap={8} style={{ marginTop: 8, flexWrap: "wrap" }}>
-          <Button
-            label={show_form_key ? "Hide key" : "Show key"}
-            variant="ghost"
-            small
-            onPress={() => set_show_form_key((value) => !value)}
+        </View>
+      </Screen>
+    );
+
+  if (view === "edit")
+    return (
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <Screen>
+          <PageHeader
+            title={editing_id ? "Edit provider" : "Add provider"}
+            onBack={close_editor}
           />
-          <Button label="Paste key" variant="ghost" small onPress={paste_key} />
-        </Row>
-        {provider === "openai_compatible" ? (
-          <Input
-            label="Base URL"
-            value={base_url}
-            onChangeText={set_base_url}
-          />
-        ) : null}
-        <Input label="Model" value={model} onChangeText={set_model} />
-        {provider === "openai_compatible" ? (
-          <>
-            <Row gap={8} style={{ marginTop: 6, flexWrap: "wrap" }}>
-              <Button
-                label={show_advanced ? "Hide advanced" : "Advanced"}
-                variant="ghost"
-                small
-                onPress={() => set_show_advanced((value) => !value)}
+          <View style={styles.editorIntro}>
+            <Pill>{PROVIDER_LABEL[provider]}</Pill>
+            <M size={12}>Your key stays in this device's secure store.</M>
+          </View>
+          <View style={styles.stack} pointerEvents={busy ? "none" : "auto"}>
+            <ProviderField
+              editable={!busy}
+              label="Label"
+              title="Profile name"
+              placeholder="e.g. My provider"
+              value={label}
+              onChangeText={set_label}
+              error={errors.label}
+            />
+            <ProviderField
+              editable={!busy}
+              label="API key"
+              placeholder={
+                editing_id
+                  ? "Saved key unchanged"
+                  : provider === "kilo"
+                    ? "Optional"
+                    : "Paste your API key"
+              }
+              value={api_key}
+              onChangeText={set_api_key}
+              secure={!show_form_key}
+              error={errors.key}
+              hint={
+                editing_id
+                  ? "Leave blank to keep the saved key."
+                  : provider === "kilo"
+                    ? "No key is required for Kilo Auto Free."
+                    : undefined
+              }
+              actions={
+                <>
+                  <IconBtn
+                    label="Paste key"
+                    onPress={() => {
+                      if (!busy) void paste_key();
+                    }}
+                  >
+                    <T size={12}>Paste</T>
+                  </IconBtn>
+                  <IconBtn
+                    label={show_form_key ? "Hide key" : "Show key"}
+                    onPress={() => set_show_form_key((value) => !value)}
+                  >
+                    <T size={12}>{show_form_key ? "Hide" : "Show"}</T>
+                  </IconBtn>
+                </>
+              }
+            />
+            {provider === "openai_compatible" ? (
+              <ProviderField
+                editable={!busy}
+                label="Base URL"
+                value={base_url}
+                onChangeText={(value) => {
+                  set_base_url(value);
+                  set_models([]);
+                }}
+                error={errors.url}
+                hint="Use the endpoint supplied by your provider."
               />
-            </Row>
-            {show_advanced ? (
-              <>
-                <M size={11}>
-                  API path is appended to the base URL. Gemini needs
-                  /v1beta/openai; servers with no version segment need an empty
-                  path.
-                </M>
-                <Input
-                  label="API path (default /v1)"
-                  value={api_suffix}
-                  onChangeText={set_api_suffix}
-                  autoCapitalize="none"
-                />
-                <M size={11} style={{ marginTop: 6 }}>
-                  Where the key is sent. Bearer is the OpenAI convention.
-                </M>
-                <Row gap={8} style={{ flexWrap: "wrap" }}>
-                  {AUTH_CHOICES.map((choice) => (
+            ) : null}
+            <ProviderField
+              editable={!busy}
+              label="Model"
+              placeholder={
+                provider === "openai_compatible"
+                  ? "Choose or enter a model ID"
+                  : "Provider default"
+              }
+              value={model}
+              onChangeText={set_model}
+              error={errors.model}
+            />
+            <Button
+              label={busy ? "Working…" : "Fetch models"}
+              variant="ghost"
+              disabled={busy}
+              onPress={() => void fetch_models()}
+            />
+            {models.length > 0 ? (
+              <Card style={styles.stack}>
+                <Row start gap={8}>
+                  <Search size={18} color={colors.muted} />
+                  <Input
+                    label="Search models"
+                    placeholder="Search models"
+                    value={model_query}
+                    onChangeText={set_model_query}
+                    textStyle={{ flex: 1, minHeight: 48 }}
+                  />
+                </Row>
+                {shown_models.length === 0 ? (
+                  <M>No models match your search.</M>
+                ) : (
+                  shown_models.map((choice) => (
                     <Pressable
                       key={choice.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`Auth header ${choice.label}`}
-                      onPress={() => {
-                        set_auth_header(choice.id);
-                        set_auth_scheme(
-                          choice.id === "authorization" ? "Bearer" : "",
-                        );
-                      }}
-                      style={{ opacity: auth_header === choice.id ? 1 : 0.55 }}
+                      accessibilityLabel={choice.label}
+                      accessibilityState={{ selected: model === choice.id }}
+                      onPress={() => set_model(choice.id)}
+                      style={styles.modelChoice}
                     >
-                      <Pill tone={auth_header === choice.id ? "lime" : "amber"}>
-                        {choice.label}
-                      </Pill>
+                      <T style={styles.grow}>{choice.label}</T>
+                      {model === choice.id ? (
+                        <Check size={18} color={colors.lime} />
+                      ) : null}
                     </Pressable>
-                  ))}
-                </Row>
-                <Input
-                  label="Auth scheme (empty sends the bare key)"
-                  value={auth_scheme}
-                  onChangeText={set_auth_scheme}
-                  autoCapitalize="none"
+                  ))
+                )}
+              </Card>
+            ) : null}
+            {provider === "openai_compatible" ? (
+              <>
+                <Button
+                  label={
+                    show_advanced
+                      ? "Hide advanced"
+                      : "Advanced connection settings"
+                  }
+                  variant="ghost"
+                  disabled={busy}
+                  onPress={() => set_show_advanced((value) => !value)}
                 />
+                {show_advanced ? (
+                  <Card style={styles.stack}>
+                    <ProviderField
+                      editable={!busy}
+                      label="API path (default /v1)"
+                      value={api_suffix}
+                      onChangeText={set_api_suffix}
+                      hint="Appended to the base URL. Leave empty if your endpoint already includes the full path."
+                    />
+                    <B size={13}>Authentication header</B>
+                    <View style={styles.wrap}>
+                      {AUTH_CHOICES.map((choice) => (
+                        <Button
+                          key={choice.id}
+                          label={choice.label}
+                          accessibilityLabel={`Auth header ${choice.label}`}
+                          variant={auth_header === choice.id ? "lime" : "ghost"}
+                          small
+                          onPress={() => {
+                            set_auth_header(choice.id);
+                            set_auth_scheme(
+                              choice.id === "authorization" ? "Bearer" : "",
+                            );
+                          }}
+                        />
+                      ))}
+                    </View>
+                    <ProviderField
+                      editable={!busy}
+                      label="Auth scheme (empty sends the bare key)"
+                      value={auth_scheme}
+                      onChangeText={set_auth_scheme}
+                    />
+                  </Card>
+                ) : null}
               </>
             ) : null}
-          </>
-        ) : null}
-        <Row gap={8} style={{ marginTop: 8, flexWrap: "wrap" }}>
-          <Button
-            label="Fetch models"
-            variant="ghost"
-            small
-            disabled={busy}
-            onPress={fetch_models}
-          />
-          <Button
-            label={editing_id ? "Save changes" : "Save and use"}
-            small
-            disabled={busy}
-            onPress={save}
-          />
-          {editing_id ? (
-            <Button label="Cancel" variant="ghost" small onPress={reset_form} />
-          ) : null}
-        </Row>
-        {models.length > 0 ? (
-          <Row gap={8} style={{ marginTop: 10, flexWrap: "wrap" }}>
-            {models.map((choice) => (
-              <Pressable
-                key={choice.id}
-                accessibilityRole="button"
-                accessibilityLabel={choice.label}
-                onPress={() => set_model(choice.id)}
-                style={{ opacity: model === choice.id ? 1 : 0.55 }}
-              >
-                <Pill tone={model === choice.id ? "lime" : "amber"}>
-                  {choice.label}
-                </Pill>
-              </Pressable>
-            ))}
-          </Row>
-        ) : null}
-      </Card>
+            {errors.form ? (
+              <M style={{ color: colors.amber }}>{errors.form}</M>
+            ) : null}
+            <View style={styles.actions}>
+              <Button
+                label={
+                  busy
+                    ? "Working…"
+                    : editing_id
+                      ? "Save changes"
+                      : "Save and use"
+                }
+                disabled={busy}
+                onPress={() => void save()}
+              />
+              <Button
+                label="Cancel"
+                variant="ghost"
+                disabled={busy}
+                onPress={close_editor}
+              />
+            </View>
+          </View>
+        </Screen>
+      </KeyboardAvoidingView>
+    );
 
-      <SectionLabel>Saved keys</SectionLabel>
+  return (
+    <Screen>
+      <PageHeader title="Providers" onBack={() => dispatch({ type: "back" })} />
+      <M style={styles.intro}>
+        Choose who answers your questions. Only the provider you select is used.
+      </M>
+      <Button
+        label="Add provider"
+        icon={<Plus size={20} color={colors.limeDark} />}
+        onPress={() => {
+          reset_form();
+          set_action_id(null);
+          clear_revealed();
+          set_view("choose");
+        }}
+      />
+      <SectionLabel>Saved providers</SectionLabel>
       {registry_from_manifest ||
       Object.values(hints).some((hint) => hint.includes("unreadable")) ? (
-        <Card tone="soft">
+        <Card style={styles.notice} tone="soft">
           <B>Your keys cannot be opened on this device</B>
-          <M size={12} style={{ marginTop: 4 }}>
+          <M size={12}>
             The profiles below survived because their label, provider, endpoint
-            and model are stored on this device outside the keystore. The keys
-            themselves are not, and this device will not release them. Re-enter
-            a key on any profile to use it again. Nothing was sent anywhere.
+            and model are stored on this device outside the keystore. Re-enter a
+            key to use it again. Nothing was sent anywhere.
           </M>
         </Card>
       ) : null}
       {registry_unreadable ? (
-        <Card tone="soft">
+        <Card style={styles.notice} tone="soft">
           <B>Saved keys could not be read</B>
-          <M size={12} style={{ marginTop: 4 }}>
+          <M>
             This device will not release the stored key data, and there is no
-            profile list to fall back on. That can happen after a lock-screen
-            change or a restore. Nothing was sent anywhere.
+            profile list to fall back on. Nothing was sent anywhere.
           </M>
-          <Row gap={8} style={{ marginTop: 10 }}>
-            <Button
-              label="Start over"
-              onPress={() => {
-                // The only path that discards profiles, and only on request.
-                set_busy(true);
-                void reset_key_registry(SecureStore)
-                  .then(refresh)
-                  .catch(() =>
-                    dispatch({
-                      type: "show_toast",
-                      message: "Could not reset saved keys.",
-                    }),
-                  )
-                  .finally(() => set_busy(false));
-              }}
-            />
-          </Row>
+          <Button
+            label="Start over"
+            variant="ghost"
+            onPress={() =>
+              Alert.alert(
+                "Reset saved providers?",
+                "This discards the unreadable provider list on this device.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Reset",
+                    style: "destructive",
+                    onPress: () => {
+                      void reset_key_registry(SecureStore)
+                        .then(refresh)
+                        .catch(() =>
+                          dispatch({
+                            type: "show_toast",
+                            message: "Could not reset saved keys.",
+                          }),
+                        );
+                    },
+                  },
+                ],
+              )
+            }
+          />
         </Card>
       ) : profiles.length === 0 ? (
-        <M>No key profiles saved yet.</M>
+        <Card style={styles.empty}>
+          <View style={styles.glyph}>
+            <KeyRound size={22} color={colors.lime} />
+          </View>
+          <B>No providers yet</B>
+          <M>
+            Add a provider with your own key, or use Kilo Auto Free from the
+            model picker.
+          </M>
+        </Card>
       ) : (
-        profiles.map((profile) => (
-          <Card key={profile.id} tone="soft">
-            <Row>
-              <B>{profile.label}</B>
-              {active_id === profile.id ? <Pill>Active</Pill> : null}
-            </Row>
-            <M size={12}>
-              {PROVIDER_LABEL[profile.provider]} · {profile.model || "default"}
-              {profile.base_url ? ` · ${profile.base_url}` : ""}
-              {profile.api_suffix !== undefined && profile.api_suffix !== "/v1"
-                ? ` · path ${profile.api_suffix || "(none)"}`
-                : ""}
-              {profile.auth_header !== undefined &&
-              profile.auth_header !== "authorization"
-                ? ` · ${profile.auth_header}`
-                : ""}
-            </M>
-            <M size={12} style={{ marginTop: 4 }}>
-              {check_label(checks[profile.id])}
-            </M>
-            <M size={12} style={{ marginTop: 4 }}>
-              {revealed[profile.id] ?? hints[profile.id] ?? "No key"}
-            </M>
-            <Row gap={8} style={{ marginTop: 10, flexWrap: "wrap" }}>
-              <Button
-                label="Use"
-                small
-                disabled={active_id === profile.id}
-                onPress={() => void use_profile(profile)}
-              />
-              <Button
-                label="Test connection"
-                variant="ghost"
-                small
-                accessibilityLabel={`Test connection for ${profile.label}`}
-                onPress={() => void check_saved_profile(profile.id)}
-              />
-              <Button
-                label={revealed[profile.id] ? "Hide" : "Show"}
-                variant="ghost"
-                small
-                accessibilityLabel={`${revealed[profile.id] ? "Hide" : "Show"} key for ${profile.label}`}
-                onPress={() => void toggle_reveal(profile)}
-              />
-              <Button
-                label="Copy"
-                variant="ghost"
-                small
-                accessibilityLabel={`Copy key for ${profile.label}`}
-                onPress={() => void copy_key(profile)}
-              />
-              <Button
-                label="Edit"
-                variant="ghost"
-                small
-                accessibilityLabel={`Edit key for ${profile.label}`}
-                onPress={() => edit(profile)}
-              />
-              <Button
-                label="Remove"
-                variant="ghost"
-                small
-                accessibilityLabel={`Remove key for ${profile.label}`}
-                onPress={() => void remove(profile)}
-              />
-            </Row>
-          </Card>
-        ))
+        <View style={styles.stack}>
+          {profiles.map((profile) => (
+            <Card key={profile.id} style={styles.profile}>
+              <Row start gap={12}>
+                <View style={styles.grow}>
+                  <B>{profile.label}</B>
+                  <M size={12}>{PROVIDER_LABEL[profile.provider]}</M>
+                </View>
+                {active_id === profile.id ? <Pill>Active</Pill> : null}
+                <IconBtn
+                  label={`Actions for ${profile.label}`}
+                  onPress={() => {
+                    clear_revealed();
+                    set_action_id(action_id === profile.id ? null : profile.id);
+                  }}
+                >
+                  <MoreHorizontal size={22} color={colors.text} />
+                </IconBtn>
+              </Row>
+              <T size={13} style={{ flexShrink: 1 }}>
+                {profile.model || "Provider default"}
+              </T>
+              {profile.base_url ? <M size={12}>{profile.base_url}</M> : null}
+              <M size={12}>{check_label(checks[profile.id])}</M>
+              <M size={12}>
+                {(action_id === profile.id ? revealed[profile.id] : null) ??
+                  hints[profile.id] ??
+                  "No key"}
+              </M>
+              <View style={styles.wrap}>
+                <Button
+                  label={active_id === profile.id ? "In use" : "Use provider"}
+                  small
+                  disabled={active_id === profile.id || busy}
+                  onPress={() => void use_profile(profile)}
+                />
+                <Button
+                  label="Edit"
+                  variant="ghost"
+                  small
+                  accessibilityLabel={`Edit key for ${profile.label}`}
+                  disabled={busy}
+                  onPress={() => edit(profile)}
+                />
+              </View>
+              {action_id === profile.id ? (
+                <View style={styles.profileMenu}>
+                  <Row>
+                    <B size={13}>Provider actions</B>
+                    <IconBtn
+                      label="Close provider actions"
+                      onPress={() => {
+                        set_action_id(null);
+                        clear_revealed();
+                      }}
+                    >
+                      <X size={18} color={colors.muted} />
+                    </IconBtn>
+                  </Row>
+                  <Button
+                    label="Test connection"
+                    variant="ghost"
+                    accessibilityLabel={`Test connection for ${profile.label}`}
+                    onPress={() => void check_saved_profile(profile.id)}
+                  />
+                  <View style={styles.wrap}>
+                    <Button
+                      label={revealed[profile.id] ? "Hide" : "Show"}
+                      variant="ghost"
+                      small
+                      accessibilityLabel={`${revealed[profile.id] ? "Hide" : "Show"} key for ${profile.label}`}
+                      onPress={() => void toggle_reveal(profile)}
+                    />
+                    <Button
+                      label="Copy"
+                      variant="ghost"
+                      small
+                      accessibilityLabel={`Copy key for ${profile.label}`}
+                      onPress={() => void copy_key(profile)}
+                    />
+                  </View>
+                  <Button
+                    label="Remove provider"
+                    variant="ghost"
+                    labelColor={colors.amber}
+                    accessibilityLabel={`Remove key for ${profile.label}`}
+                    onPress={() =>
+                      Alert.alert(
+                        `Remove ${profile.label}?`,
+                        "This removes its saved key from this device. Your ledger and conversations stay here. No other provider will be selected automatically.",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Remove",
+                            style: "destructive",
+                            onPress: () => {
+                              set_action_id(null);
+                              clear_revealed();
+                              void remove(profile);
+                            },
+                          },
+                        ],
+                      )
+                    }
+                  />
+                </View>
+              ) : null}
+            </Card>
+          ))}
+        </View>
       )}
-
       {profiles.length > 0 ? (
-        <M size={11} style={{ marginTop: 8 }}>
-          Keys are stored in this device&apos;s secure storage. Profile labels,
+        <M size={11} style={styles.intro}>
+          Keys are stored in this device's secure storage. Profile labels,
           provider, endpoint, model and the last connection result are stored
           unencrypted on this device so the list survives a lock-screen change.
         </M>
@@ -756,3 +1028,47 @@ export function KeysScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  intro: { marginTop: 8, marginBottom: 24, lineHeight: 19 },
+  stack: { gap: 16 },
+  grow: { flex: 1, minWidth: 0, gap: 4 },
+  choice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    padding: 16,
+    minHeight: 72,
+    borderRadius: 18,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  glyph: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.limeBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editorIntro: { gap: 8, marginTop: 8, marginBottom: 24 },
+  wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  actions: { gap: 8, marginTop: 8 },
+  notice: { gap: 8, marginBottom: 16 },
+  empty: { gap: 12, padding: 24 },
+  profile: { gap: 12 },
+  profileMenu: {
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.hairline,
+    paddingTop: 8,
+  },
+  modelChoice: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+  },
+});

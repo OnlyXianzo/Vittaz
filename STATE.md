@@ -726,3 +726,53 @@ test exercising Retry-After propagation; coverage thresholds are unchanged.
 Not yet pushed or merged. CI rerun and Android device verification remain pending.
 Real invalidated-alias replacement is not proved and is not handled by blindly deleting
 an existing credential before every write.
+
+## Provider and chat UI redesign (2026-11-14)
+
+Redesigned the provider setup and chat drawer interfaces to address layout inconsistencies,
+clipping, and multi-tap workflows:
+
+- **Provider list and focused editor (`KeysScreen.tsx`, `ProviderField.tsx`)**: Replaced the long
+  inline form with a clean saved-profile card list and a dedicated, focused add/edit editor.
+  Inputs now include visible labels and inline error messages via `ProviderField`. Preserved existing
+  `provider_keys` storage APIs and recovery options; blank secret input preserves existing keys;
+  added explicit confirmation alert prior to profile removal; wired hardware BackHandler for safe
+  Android back dismissal.
+- **Persistent chat search (`ChatScreen.tsx`)**: Replaced the toggle search icon with a single
+  persistent search bar directly above conversation history, with instant clear action.
+- **Touch targets & layout responsiveness (`theme.ts`, `ui.tsx`, `AddScreen.tsx`)**: Enforced
+  accessible 48 dp minimum touch targets across buttons, chips, headers, and icon buttons; allowed
+  header titles to shrink and wrap; removed rigid fixed heights that clipped enlarged text; allowed
+  amount and payment mode fields in `AddScreen.tsx` to wrap and shrink cleanly.
+- **Model selector delegation (`ModelsScreen.tsx`)**: Delegated credential management to the focused
+  provider editor while retaining legacy provider editing and active profile selection.
+
+Verification: Root suite 470 tests / 64 files at 100% statements, branches, functions, and lines;
+mobile suite 187 tests / 20 suites passing; root & mobile TypeScript (`tsc`), ESLint, Prettier,
+privacy checks (`scripts/privacy_check.ts`), and secret scan (`deep_git_scan.py`) all passing cleanly.
+Metro web export validated. Android device run, APK build, and Hermes bytecode execution remain
+unverified in this environment (no Android SDK or device attached).
+
+## Diagnostic log export folder and SAF user selection (2026-11-14)
+
+Addressed owner feedback on log export behavior under Android Scoped Storage:
+
+- **Folder renaming**: Renamed the diagnostic export destination from `Vittaz-Diagnostics` to `Vittaz`
+  across `diagnostic_export.ts`, `expo_diagnostic_storage.ts`, `DiagnosticsPanel.tsx`, workflow tests,
+  and documentation (`Downloads/Vittaz/vittaz-diagnostics-<timestamp>.json`).
+- **User-selected folder acceptance**: Eliminated the artificial check that rejected any SAF directory
+  other than `download` or `download/vittaz-diagnostics`. User-selected directories are now respected
+  directly without throwing `export_permission_denied`.
+- **Direct MediaStore export (`vittaz-mediastore`)**: Added native Android Kotlin module
+  `VittazMediaStoreModule` targeting Android 10+ `MediaStore.Downloads.EXTERNAL_CONTENT_URI`
+  with `RELATIVE_PATH = "Download/Vittaz"`. Enables zero-prompt, zero-permission silent export
+  matching Grablytic's capabilities, with seamless fallback to SAF if the native module is
+  unavailable.
+- **Verification**: Updated unit test suites `diagnostic_export.test.ts`, `expo_diagnostic_storage.test.ts`,
+  `DiagnosticsPanel.test.tsx`, and workflow integration tests `mobile_diagnostics_workflow.test.ts`. Full
+  mobile and root test suites pass green. Typecheck, ESLint, Prettier, and privacy gates all clean.
+  Standalone diagnostics test APK workflow run `43615059552` succeeded on branch `feat/provider-ui-redesign`:
+  Gradle release APK built with embedded JS bundle (`assets/index.android.bundle`, 6,325,696 B), native
+  libraries for `arm64-v8a` (including autolinked `vittaz-mediastore`), SHA-256
+  `691a41f110a68a7d3cc60e33392b9f8ef790a29783ac9e983aa183179a3abd49`, artifact `vittaz-diagnostics-test-apk`
+  uploaded. Android device verification for Gate G4 remains pending owner testing on physical device.

@@ -4,6 +4,6 @@ dist/
 coverage/
 *.log
 expo-env.d.ts
-android/
+/android/
 tsconfig.tsbuildinfo
 dist-android/

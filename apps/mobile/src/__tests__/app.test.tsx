@@ -145,8 +145,9 @@ it("keeps chat navigation in a drawer instead of above the transcript", async ()
   // History is a section of this drawer, not a separate screen reached from it.
   expect(screen.getByText("RECENTS")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Chat history" })).toBeNull();
-  // Search and settings are pinned to the footer.
-  expect(screen.getByRole("button", { name: "Search chats" })).toBeTruthy();
+  // Search is a single field beside the list it filters.
+  expect(screen.getAllByLabelText("Search saved chats")).toHaveLength(1);
+  expect(screen.queryByRole("button", { name: "Search chats" })).toBeNull();
   expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
 
   await fireEvent.press(screen.getByRole("button", { name: "Close menu" }));
@@ -188,7 +189,6 @@ it("lists saved chats in the drawer and searches them in place", async () => {
   ).toBeTruthy();
 
   // Search filters the same list rather than navigating anywhere.
-  await fireEvent.press(screen.getByRole("button", { name: "Search chats" }));
   await fireEvent.changeText(
     screen.getByLabelText("Search saved chats"),
     "food",
@@ -210,14 +210,15 @@ it("lists saved chats in the drawer and searches them in place", async () => {
   );
   expect(screen.getByText("No saved chats match that search.")).toBeTruthy();
 
-  // Closing search restores the full list and clears the query.
-  await fireEvent.press(screen.getByRole("button", { name: "Close search" }));
+  // Clearing restores the list while keeping the same search field in place.
+  await fireEvent.press(screen.getByRole("button", { name: "Clear search" }));
   expect(
     screen.getByRole("button", {
       name: "Open conversation: Synthetic owed totals",
     }),
   ).toBeTruthy();
-  expect(screen.queryByLabelText("Search saved chats")).toBeNull();
+  expect(screen.getAllByLabelText("Search saved chats")).toHaveLength(1);
+  expect(screen.getByLabelText("Search saved chats").props.value).toBe("");
 });
 
 it("reaches settings from the drawer footer", async () => {
@@ -568,6 +569,9 @@ describe("Vittaz native shell backed by core", () => {
       screen.getByRole("button", { name: "Model and keys" }),
     );
     expect(screen.getByRole("radio", { name: "Kilo Auto Free" })).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Configure provider" }),
+    );
     expect(screen.getByText(/no key is required/i)).toBeTruthy();
     const key_input = screen.getByLabelText("Kilo Gateway API key");
     expect(key_input.props.secureTextEntry).toBe(true);
@@ -603,6 +607,9 @@ describe("Vittaz native shell backed by core", () => {
           .accessibilityState.checked,
       ).toBe(true),
     );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Configure provider" }),
+    );
     await fireEvent.changeText(
       screen.getByLabelText("OpenAI-compatible API base URL"),
       "https://compatible.example/api/v1",
@@ -631,6 +638,7 @@ describe("Vittaz native shell backed by core", () => {
       }),
     );
 
+    await fireEvent.press(screen.getByRole("button", { name: "Done" }));
     await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     await tab("Home");
     await fireEvent.press(
@@ -664,6 +672,9 @@ describe("Vittaz native shell backed by core", () => {
     await fireEvent.press(
       screen.getByRole("radio", { name: "Anthropic API-key BYOK" }),
     );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Configure provider" }),
+    );
     const key_input = screen.getByLabelText("Anthropic API key");
     expect(key_input.props.secureTextEntry).toBe(true);
     await fireEvent.changeText(key_input, "fake-key");
@@ -684,6 +695,7 @@ describe("Vittaz native shell backed by core", () => {
       }),
     );
 
+    await fireEvent.press(screen.getByRole("button", { name: "Done" }));
     await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     await tab("Home");
     await fireEvent.press(
@@ -742,6 +754,9 @@ describe("Vittaz native shell backed by core", () => {
     await fireEvent.press(
       screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
     );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Configure provider" }),
+    );
     await fireEvent.changeText(
       screen.getByLabelText("OpenAI-compatible model"),
       "synthetic-compatible-model",
@@ -760,6 +775,7 @@ describe("Vittaz native shell backed by core", () => {
         OPENAI_COMPATIBLE_KEY_NAME,
       ),
     );
+    await fireEvent.press(screen.getByRole("button", { name: "Done" }));
     expect(
       screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }).props
         .accessibilityState.checked,
@@ -783,33 +799,31 @@ describe("Vittaz native shell backed by core", () => {
     expect(getMemoryRows("transactions")).toHaveLength(0);
   });
 
-  it("shows only the selected provider's configuration (progressive disclosure)", async () => {
+  it("shows only the selected provider's configuration in the focused editor", async () => {
     await open();
     await tab("Settings");
     await fireEvent.press(
       screen.getByRole("button", { name: "Model and keys" }),
     );
-    // Kilo is selected by default; only its key field is shown.
-    expect(screen.getByLabelText("Kilo Gateway API key")).toBeTruthy();
-    expect(
-      screen.queryByLabelText("OpenAI-compatible API base URL"),
-    ).toBeNull();
-    expect(screen.queryByLabelText("Anthropic API key")).toBeNull();
-    await fireEvent.press(
-      screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
-    );
-    expect(
-      screen.getByLabelText("OpenAI-compatible API base URL"),
-    ).toBeTruthy();
-    expect(screen.queryByLabelText("Kilo Gateway API key")).toBeNull();
-    expect(screen.queryByLabelText("Anthropic API key")).toBeNull();
-    await fireEvent.press(
-      screen.getByRole("radio", { name: "Anthropic API-key BYOK" }),
-    );
-    expect(screen.getByLabelText("Anthropic API key")).toBeTruthy();
-    expect(
-      screen.queryByLabelText("OpenAI-compatible API base URL"),
-    ).toBeNull();
+    for (const [route, label] of [
+      ["Kilo Auto Free", "Kilo Gateway API key"],
+      ["OpenAI-compatible BYOK", "OpenAI-compatible API key"],
+      ["Anthropic API-key BYOK", "Anthropic API key"],
+    ]) {
+      await fireEvent.press(screen.getByRole("radio", { name: route }));
+      expect(screen.queryByLabelText(label)).toBeNull();
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Configure provider" }),
+      );
+      expect(screen.getByLabelText(label)).toBeTruthy();
+      for (const other of [
+        "Kilo Gateway API key",
+        "OpenAI-compatible API key",
+        "Anthropic API key",
+      ].filter((name) => name !== label))
+        expect(screen.queryByLabelText(other)).toBeNull();
+      await fireEvent.press(screen.getByRole("button", { name: "Done" }));
+    }
   });
 
   it("blocks saving an incomplete OpenAI-compatible provider with inline errors", async () => {
@@ -820,6 +834,9 @@ describe("Vittaz native shell backed by core", () => {
     );
     await fireEvent.press(
       screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Configure provider" }),
     );
     // The default base URL is valid HTTPS, but model and key are empty.
     await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
@@ -930,6 +947,9 @@ describe("Vittaz native shell backed by core", () => {
       await fireEvent.press(
         screen.getByRole("radio", { name: "Anthropic API-key BYOK" }),
       );
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Configure provider" }),
+      );
       await fireEvent.changeText(
         screen.getByLabelText("Anthropic API key"),
         "fake-key",
@@ -946,6 +966,7 @@ describe("Vittaz native shell backed by core", () => {
           ANTHROPIC_API_KEY_NAME,
         ),
       );
+      await fireEvent.press(screen.getByRole("button", { name: "Done" }));
       expect(
         screen.getByRole("radio", { name: "Anthropic API-key BYOK" }).props
           .accessibilityState.checked,
@@ -1204,6 +1225,9 @@ it("blames the keystore, not the provider, when the key cannot be opened", async
   await fireEvent.press(
     screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
   );
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Configure provider" }),
+  );
   await fireEvent.changeText(
     screen.getByLabelText("OpenAI-compatible model"),
     "synthetic-compatible-model",
@@ -1216,6 +1240,7 @@ it("blames the keystore, not the provider, when the key cannot be opened", async
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Remove key" })).toBeTruthy(),
   );
+  await fireEvent.press(screen.getByRole("button", { name: "Done" }));
   await fireEvent.press(screen.getByRole("button", { name: "Back" }));
   await tab("Home");
 
@@ -1244,4 +1269,23 @@ it("blames the keystore, not the provider, when the key cannot be opened", async
   } finally {
     jest.mocked(SecureStore.getItemAsync).mockImplementation(real_get);
   }
+});
+
+it("keeps credential editing out of the model chooser", async () => {
+  await open();
+  await tab("Settings");
+  await fireEvent.press(screen.getByRole("button", { name: "Model and keys" }));
+  expect(screen.queryByLabelText("Kilo Gateway API key")).toBeNull();
+  expect(screen.getByRole("button", { name: "Manage providers" })).toBeTruthy();
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Configure provider" }),
+  );
+  expect(screen.getByRole("header", { name: "Kilo setup" })).toBeTruthy();
+  expect(screen.getByLabelText("Kilo Gateway API key")).toBeTruthy();
+  expect(
+    screen.queryByRole("radio", { name: "OpenAI-compatible BYOK" }),
+  ).toBeNull();
+  await fireEvent.press(screen.getByRole("button", { name: "Back" }));
+  expect(screen.getByRole("header", { name: "Choose model" })).toBeTruthy();
+  expect(screen.queryByLabelText("Kilo Gateway API key")).toBeNull();
 });

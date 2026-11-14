@@ -32,7 +32,7 @@ import { format_tokens } from "../assistant/tokens";
 import { InstructionsScreen } from "./InstructionsScreen";
 import { formatPaise } from "../domain";
 import type { AppState } from "../domain";
-import { colors, gradients } from "../theme";
+import { colors, gradients, space } from "../theme";
 import {
   B,
   Button,
@@ -348,7 +348,8 @@ export function ChatScreen() {
             style={{
               marginHorizontal: 12,
               marginBottom: 14,
-              height: 60,
+              minHeight: 60,
+              paddingVertical: 6,
               borderRadius: 30,
               backgroundColor: colors.panel,
               borderWidth: 1,
@@ -363,7 +364,7 @@ export function ChatScreen() {
                 placeholder="Message"
                 textStyle={{
                   flex: 1,
-                  minHeight: 44,
+                  minHeight: space.touchTarget,
                   textAlignVertical: "center",
                 }}
                 value={state.chatInput}
@@ -460,7 +461,7 @@ type DrawerChat = { id: string; title: string };
 /**
  * Slide-over drawer. Mirrors the shape ChatGPT, Claude and Grok converged on —
  * destinations at the top, every saved conversation listed directly beneath
- * them, and the two controls that are places-you-go-to (search, settings) pinned
+ * them, search next to the history it filters, and settings pinned
  * to the footer — while keeping Vittaz's own panel, type and accent tokens.
  *
  * History lives here rather than on its own screen on purpose: opening a past
@@ -491,7 +492,6 @@ function AssistantDrawer({
   onSettings: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const [search_open, set_search_open] = useState(false);
   const [query, set_query] = useState("");
   const needle = query.trim().toLowerCase();
   const shown = needle
@@ -519,41 +519,6 @@ function AssistantDrawer({
           </IconBtn>
         </Row>
 
-        {search_open ? (
-          <Row
-            gap={4}
-            style={{
-              marginBottom: 6,
-              paddingLeft: 12,
-              borderRadius: 999,
-              backgroundColor: colors.panel,
-              borderWidth: 1,
-              borderColor: colors.panelBorder,
-              minHeight: 44,
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <Input
-                label="Search saved chats"
-                placeholder="Search chats"
-                value={query}
-                onChangeText={set_query}
-                autoCapitalize="none"
-                textStyle={{ minHeight: 42, textAlignVertical: "center" }}
-              />
-            </View>
-            <IconBtn
-              label="Close search"
-              onPress={() => {
-                set_search_open(false);
-                set_query("");
-              }}
-            >
-              <X size={18} color={colors.muted} strokeWidth={2.2} />
-            </IconBtn>
-          </Row>
-        ) : null}
-
         <DrawerRow
           icon={SquarePen}
           label="New chat"
@@ -568,6 +533,27 @@ function AssistantDrawer({
         <DrawerRow icon={Link2} label="Connectors" onPress={onConnectors} />
 
         <View style={styles.drawerRule} />
+        <Row gap={8} style={styles.drawerSearch}>
+          <Search size={18} color={colors.muted} strokeWidth={2} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Input
+              label="Search saved chats"
+              placeholder="Search chats"
+              value={query}
+              onChangeText={set_query}
+              autoCapitalize="none"
+              textStyle={{
+                minHeight: space.touchTarget,
+                textAlignVertical: "center",
+              }}
+            />
+          </View>
+          {query ? (
+            <IconBtn label="Clear search" onPress={() => set_query("")}>
+              <X size={18} color={colors.muted} strokeWidth={2.2} />
+            </IconBtn>
+          ) : null}
+        </Row>
         <T
           size={11}
           weight="bold"
@@ -579,6 +565,7 @@ function AssistantDrawer({
 
         <ScrollView
           style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 8 }}
         >
@@ -641,12 +628,6 @@ function AssistantDrawer({
         </ScrollView>
 
         <View style={styles.drawerRule} />
-        <DrawerRow
-          icon={Search}
-          label="Search chats"
-          bold={search_open}
-          onPress={() => set_search_open((open) => !open)}
-        />
         <DrawerRow icon={Settings} label="Settings" onPress={onSettings} />
       </View>
     </View>
@@ -698,14 +679,14 @@ function DrawerRow({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   round: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: space.touchTarget,
+    height: space.touchTarget,
+    borderRadius: space.touchTarget / 2,
     alignItems: "center",
     justifyContent: "center",
   },
   modelPill: {
-    minHeight: 44,
+    minHeight: space.touchTarget,
     paddingHorizontal: 12,
     borderRadius: 999,
     backgroundColor: colors.limeBg,
@@ -729,7 +710,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.hairline,
   },
   suggestion: {
-    height: 44,
+    minHeight: space.touchTarget,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 999,
     borderWidth: 1,
@@ -765,6 +747,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 16,
   },
+  drawerSearch: {
+    minHeight: space.touchTarget,
+    paddingLeft: 12,
+    paddingRight: 4,
+    marginBottom: 16,
+    borderRadius: 14,
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.panelBorder,
+  },
   drawerRule: {
     height: 1,
     backgroundColor: colors.hairline,
@@ -783,7 +775,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    minHeight: 44,
+    minHeight: space.touchTarget,
     paddingLeft: 12,
     paddingRight: 4,
   },
@@ -794,8 +786,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lime,
   },
   chatDelete: {
-    width: 44,
-    height: 44,
+    width: space.touchTarget,
+    height: space.touchTarget,
     alignItems: "center",
     justifyContent: "center",
   },

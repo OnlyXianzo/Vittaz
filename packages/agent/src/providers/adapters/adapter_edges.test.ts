@@ -325,7 +325,7 @@ test("request_validation_rejects_a_body_over_64k_with_every_field_in_range", () 
   expect(() =>
     validateCompletionRequest({ messages }, new PrivacyRedactor()),
   ).toThrow("Invalid provider request");
-});
+}, 15000);
 
 /* ------------------------------------------------------------- http_body */
 

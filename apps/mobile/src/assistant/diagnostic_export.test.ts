@@ -17,11 +17,11 @@ function storage(overrides: Partial<DiagnosticDownloadStorage> = {}) {
     })),
     find_diagnostics_directory: jest.fn(async () => null),
     create_diagnostics_directory: jest.fn(
-      async () => "downloads://root/Vittaz-Diagnostics",
+      async () => "downloads://root/Vittaz",
     ),
     create_json_file: jest.fn(
       async () =>
-        "downloads://root/Vittaz-Diagnostics/vittaz-diagnostics-2026-11-05T10-11-12-000Z.json",
+        "downloads://root/Vittaz/vittaz-diagnostics-2026-11-05T10-11-12-000Z.json",
     ),
     write_utf8: jest.fn(async () => undefined),
     ...overrides,
@@ -55,19 +55,21 @@ describe("diagnostic log export", () => {
     );
     expect(port.create_diagnostics_directory).toHaveBeenCalledWith(
       "downloads://root",
-      "Vittaz-Diagnostics",
+      "Vittaz",
     );
     expect(port.create_json_file).toHaveBeenCalledWith(
-      "downloads://root/Vittaz-Diagnostics",
+      "downloads://root/Vittaz",
       "vittaz-diagnostics-2026-11-05T10-11-12-000Z",
     );
     const [written_uri, content] = (port.write_utf8 as jest.Mock).mock
       .calls[0]!;
-    expect(written_uri).toContain("Vittaz-Diagnostics");
+    expect(written_uri).toContain("Vittaz");
     expect(JSON.parse(content as string).events[0].event_code).toBe(
       "app_started",
     );
-    expect(result.relative_path).toContain("Downloads/Vittaz-Diagnostics/");
+    expect(result.relative_path).toBe(
+      "Downloads/Vittaz/vittaz-diagnostics-2026-11-05T10-11-12-000Z.json",
+    );
     expect(diagnostics.snapshot().at(-1)).toMatchObject({
       event_code: "diagnostic_export_succeeded",
       outcome: "completed",
@@ -93,21 +95,36 @@ describe("diagnostic log export", () => {
     });
   });
 
-  it("refuses to write outside Downloads or its dedicated diagnostics folder", async () => {
+  it("writes directly to a custom user-selected folder when granted", async () => {
     const diagnostics = logger();
     const port = storage({
       request_download_directory: jest.fn(async () => ({
         granted: true,
-        directory_uri: "documents://private",
+        directory_uri: "content://custom/user-folder",
         selected_location: "other" as const,
       })),
+      create_json_file: jest.fn(
+        async () =>
+          "content://custom/user-folder/vittaz-diagnostics-2026-11-05T10-11-12-000Z.json",
+      ),
     });
 
-    await expect(
-      save_diagnostic_log(port, diagnostics, () => fixed_time),
-    ).rejects.toBeInstanceOf(DiagnosticExportError);
-    expect(port.create_diagnostics_directory).not.toHaveBeenCalled();
-    expect(port.create_json_file).not.toHaveBeenCalled();
+    const result = await save_diagnostic_log(
+      port,
+      diagnostics,
+      () => fixed_time,
+    );
+    expect(port.create_json_file).toHaveBeenCalledWith(
+      "content://custom/user-folder",
+      "vittaz-diagnostics-2026-11-05T10-11-12-000Z",
+    );
+    expect(result.relative_path).toBe(
+      "Selected Folder/vittaz-diagnostics-2026-11-05T10-11-12-000Z.json",
+    );
+    expect(diagnostics.snapshot().at(-1)).toMatchObject({
+      event_code: "diagnostic_export_succeeded",
+      outcome: "completed",
+    });
   });
 
   it("converts storage exceptions to a static export failure without echoing them", async () => {

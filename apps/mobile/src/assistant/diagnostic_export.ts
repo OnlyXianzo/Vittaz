@@ -15,7 +15,7 @@ export interface DiagnosticDownloadStorage {
   find_diagnostics_directory(downloads_uri: string): Promise<string | null>;
   create_diagnostics_directory(
     downloads_uri: string,
-    directory_name: "Vittaz-Diagnostics",
+    directory_name: "Vittaz",
   ): Promise<string>;
   create_json_file(folder_uri: string, filename_base: string): Promise<string>;
   write_utf8(file_uri: string, contents: string): Promise<void>;
@@ -51,23 +51,26 @@ export async function save_diagnostic_log(
     ) {
       throw new DiagnosticExportError("export_permission_denied");
     }
-    if (
-      selection.selected_location !== "downloads_root" &&
-      selection.selected_location !== "diagnostics_folder"
-    ) {
-      throw new DiagnosticExportError("export_permission_denied");
+
+    let folder_uri: string;
+    let relative_path_prefix: string;
+
+    if (selection.selected_location === "diagnostics_folder") {
+      folder_uri = selection.directory_uri;
+      relative_path_prefix = "Downloads/Vittaz";
+    } else if (selection.selected_location === "downloads_root") {
+      folder_uri =
+        (await storage.find_diagnostics_directory(selection.directory_uri)) ??
+        (await storage.create_diagnostics_directory(
+          selection.directory_uri,
+          "Vittaz",
+        ));
+      relative_path_prefix = "Downloads/Vittaz";
+    } else {
+      folder_uri = selection.directory_uri;
+      relative_path_prefix = "Selected Folder";
     }
 
-    const folder_uri =
-      selection.selected_location === "diagnostics_folder"
-        ? selection.directory_uri
-        : ((await storage.find_diagnostics_directory(
-            selection.directory_uri,
-          )) ??
-          (await storage.create_diagnostics_directory(
-            selection.directory_uri,
-            "Vittaz-Diagnostics",
-          )));
     const filename_base = `vittaz-diagnostics-${file_timestamp(clock())}`;
     const file_uri = await storage.create_json_file(folder_uri, filename_base);
     await storage.write_utf8(file_uri, diagnostics.dump_json());
@@ -79,7 +82,7 @@ export async function save_diagnostic_log(
       "ok",
     );
     return {
-      relative_path: `Downloads/Vittaz-Diagnostics/${filename_base}.json`,
+      relative_path: `${relative_path_prefix}/${filename_base}.json`,
     };
   } catch (error) {
     const reason =

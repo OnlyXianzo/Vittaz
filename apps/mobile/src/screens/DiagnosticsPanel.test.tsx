@@ -36,7 +36,7 @@ test("test build shows safe events and explicitly exports to the Downloads folde
     "protocol_error",
   );
   const save_log = jest.fn(async () => ({
-    relative_path: "Downloads/Vittaz-Diagnostics/vittaz-diagnostics-test.json",
+    relative_path: "Downloads/Vittaz/vittaz-diagnostics-test.json",
   }));
 
   await render(
@@ -51,7 +51,7 @@ test("test build shows safe events and explicitly exports to the Downloads folde
     screen.getByRole("button", { name: "Save test log to Downloads" }),
   );
   await waitFor(() =>
-    expect(screen.getByText(/Downloads\/Vittaz-Diagnostics/)).toBeTruthy(),
+    expect(screen.getByText(/Downloads\/Vittaz/)).toBeTruthy(),
   );
   expect(save_log).toHaveBeenCalledTimes(1);
 });

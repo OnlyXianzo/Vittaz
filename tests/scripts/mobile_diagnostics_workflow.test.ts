@@ -64,7 +64,7 @@ test("diagnostics_apk_uses_test_only_identity_and_enables_only_safe_test_logging
   expect(logger).toContain("max_entries");
   expect(logger).toContain("console.log");
   const export_service = read("apps/mobile/src/assistant/diagnostic_export.ts");
-  expect(export_service).toContain("Vittaz-Diagnostics");
+  expect(export_service).toContain("Downloads/Vittaz");
   expect(export_service).toContain("export_permission_denied");
   expect(export_service).toContain("export_io_error");
 });
@@ -98,7 +98,7 @@ test("diagnostics_docs_explain_synthetic_only_identity_export_and_not_device_pro
   expect(guide).toContain("mobile-diagnostics-test-apk.yml");
   expect(guide).toContain("TEST ONLY");
   expect(guide).toContain("synthetic data only");
-  expect(guide).toContain("Vittaz-Diagnostics");
+  expect(guide).toContain("Vittaz");
   expect(guide).toContain("does not claim device behavior");
   const references = read("docs/references.md");
   expect(references).toContain("mobile-diagnostics-test-apk.yml");

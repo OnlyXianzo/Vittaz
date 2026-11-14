@@ -36,7 +36,7 @@ export function DiagnosticsPanel({
       set_status(
         error instanceof DiagnosticExportError &&
           error.code === "export_permission_denied"
-          ? "Save canceled or denied. Choose Downloads or Vittaz-Diagnostics."
+          ? "Save canceled or denied. Choose Downloads or any folder."
           : "Could not save the test log. Check available storage and try again.",
       );
     } finally {
@@ -84,9 +84,9 @@ export function DiagnosticsPanel({
         />
         {status ? <M style={{ marginTop: 8 }}>{status}</M> : null}
         <M style={{ marginTop: 12, lineHeight: 18 }}>
-          Select the Downloads folder or the existing Vittaz-Diagnostics folder
-          when Android asks. The exported JSON stays on this device until you
-          share or delete it.
+          Select the Downloads folder or any folder you prefer when Android
+          asks. Saved under Vittaz. The exported JSON stays on this device until
+          you share or delete it.
         </M>
       </Card>
       <SectionLabel>Recent diagnostic events ({entries.length})</SectionLabel>

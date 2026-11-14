@@ -17,6 +17,9 @@ test("mobile_chat_uses_android_keyboard_resize_and_a_visible_composer_input", ()
   expect(chat_screen).toContain(
     'behavior={Platform.OS === "ios" ? "padding" : "height"}',
   );
-  expect(chat_screen).toContain("minHeight: 44");
+  expect(chat_screen).toContain("minHeight: space.touchTarget");
+  const theme = read("apps/mobile/src/theme.ts");
+  const match = theme.match(/touchTarget:\s*(\d+)/);
+  expect(Number(match?.[1])).toBeGreaterThanOrEqual(48);
   expect(chat_screen).toContain('textAlignVertical: "center"');
 });

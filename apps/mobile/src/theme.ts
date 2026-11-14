@@ -52,6 +52,10 @@ export const fonts = {
 export type FontWeight = keyof typeof fonts;
 
 export const space = {
+  unit: 4,
+  controlGap: 8,
+  sectionGap: 24,
+  touchTarget: 48,
   screenX: 20,
   screenTop: 28,
   card: 16,

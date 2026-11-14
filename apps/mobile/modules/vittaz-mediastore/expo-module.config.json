@@ -1,0 +1,7 @@
+{
+  "name": "vittaz-mediastore",
+  "platforms": ["android"],
+  "android": {
+    "modules": ["com.vittaz.modules.mediastore.VittazMediaStoreModule"]
+  }
+}

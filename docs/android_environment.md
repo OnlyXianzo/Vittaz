@@ -61,9 +61,9 @@ This APK is named **Vittaz TEST ONLY**, displays a persistent **TEST BUILD ONLY
 not uninstall or overwrite your personal app to use it. The diagnostics screen
 is in Settings. It displays the most recent safe operational events and has an
 explicit **Save test log to Downloads** button. The first save asks Android for
-folder permission: select Downloads (the app creates `Vittaz-Diagnostics`) or
-select that existing folder. The resulting JSON is stored under
-`Downloads/Vittaz-Diagnostics/` on the device. Exporting is user-triggered; do
+folder permission: select Downloads (the app creates `Vittaz`) or
+select that existing folder (or any folder you prefer). The resulting JSON is stored under
+`Downloads/Vittaz/` (or the selected folder) on the device. Exporting is user-triggered; do
 not share the file until you have checked it.
 
 **Use synthetic data only. Do not enter personal questions, ledger records,

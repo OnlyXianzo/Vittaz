@@ -242,8 +242,8 @@ export function PageHeader({
   large?: boolean;
 }) {
   return (
-    <Row style={{ minHeight: 44 }}>
-      <Row start gap={6} style={{ flexShrink: 1 }}>
+    <Row gap={8} style={{ minHeight: space.touchTarget }}>
+      <Row start gap={4} style={{ flex: 1, minWidth: 0 }}>
         {onBack ? (
           <IconBtn label="Back" onPress={onBack}>
             <ChevronLeft size={22} color={colors.text} />
@@ -254,11 +254,14 @@ export function PageHeader({
           size={large ? 26 : 20}
           weight={large ? "heavy" : "bold"}
           numberOfLines={1}
+          style={{ flexShrink: 1 }}
         >
           {title}
         </T>
       </Row>
-      {right}
+      {right ? (
+        <View style={{ flexShrink: 1, maxWidth: "55%" }}>{right}</View>
+      ) : null}
     </Row>
   );
 }
@@ -322,7 +325,7 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        small && { height: 44 },
+        small && { minHeight: space.touchTarget, paddingVertical: 10 },
         variant === "lime" ? styles.lime : styles.ghost,
         disabled && styles.disabled,
         pressed && styles.pressed,
@@ -333,6 +336,7 @@ export function Button({
       <T
         size={small ? 14 : 16}
         weight={variant === "lime" ? "bold" : "semi"}
+        style={{ flexShrink: 1, textAlign: "center" }}
         color={
           labelColor ?? (variant === "lime" ? colors.limeDark : colors.text)
         }
@@ -368,6 +372,7 @@ export function Chip({
         size={14}
         weight="bold"
         color={selected ? colors.limeDark : colors.text}
+        style={{ flexShrink: 1, textAlign: "center" }}
       >
         {label}
       </T>
@@ -520,14 +525,16 @@ export function SettingRow({
 }) {
   const body = (
     <>
-      <View style={{ flex: 1 }}>
+      <View style={{ flexGrow: 1, flexBasis: "55%", minWidth: 0 }}>
         <B size={15}>{title}</B>
         <M size={12} style={{ marginTop: 2, lineHeight: 16 }}>
           {subtitle}
         </M>
       </View>
-      {right}
-      {onPress ? <ChevronRight size={18} color={colors.dim} /> : null}
+      <Row start gap={8} style={{ flexShrink: 1, maxWidth: "100%" }}>
+        {right ? <View style={{ flexShrink: 1 }}>{right}</View> : null}
+        {onPress ? <ChevronRight size={18} color={colors.dim} /> : null}
+      </Row>
     </>
   );
   const style = [styles.settingRow, !first && styles.hairlineTop];
@@ -603,6 +610,8 @@ export function Input({
   keyboardType,
   onSubmitEditing,
   autoCapitalize,
+  autoCorrect,
+  editable,
 }: {
   label: string;
   value: string;
@@ -615,6 +624,8 @@ export function Input({
   keyboardType?: "default" | "decimal-pad";
   onSubmitEditing?: () => void;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  autoCorrect?: boolean;
+  editable?: boolean;
 }) {
   return (
     <TextInput
@@ -627,6 +638,8 @@ export function Input({
       secureTextEntry={secure}
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize}
+      autoCorrect={autoCorrect}
+      editable={editable}
       onSubmitEditing={onSubmitEditing}
       blurOnSubmit={!multiline}
       returnKeyType={multiline ? "default" : "send"}
@@ -839,19 +852,21 @@ const styles = StyleSheet.create({
   },
   cardGradient: { backgroundColor: "transparent" },
   iconBtn: {
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: space.touchTarget,
+    minHeight: space.touchTarget,
     alignItems: "center",
     justifyContent: "center",
   },
   fab: {
     backgroundColor: colors.lime,
     borderRadius: 22,
-    width: 44,
-    height: 44,
+    width: space.touchTarget,
+    minHeight: space.touchTarget,
   },
   button: {
-    height: 52,
+    minWidth: space.touchTarget,
+    minHeight: 52,
+    paddingVertical: 12,
     borderRadius: radii.chip,
     alignItems: "center",
     justifyContent: "center",
@@ -866,7 +881,9 @@ const styles = StyleSheet.create({
     borderColor: colors.ghostBorder,
   },
   chip: {
-    height: 44,
+    minWidth: space.touchTarget,
+    minHeight: space.touchTarget,
+    paddingVertical: 10,
     borderRadius: radii.chip,
     paddingHorizontal: 16,
     alignItems: "center",
@@ -890,6 +907,7 @@ const styles = StyleSheet.create({
   },
   settingRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
