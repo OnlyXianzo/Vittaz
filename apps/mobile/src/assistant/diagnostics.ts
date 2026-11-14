@@ -85,6 +85,9 @@ export const DIAGNOSTIC_REASONS = [
   "request_rejected",
   "invalid_provider_config",
   "missing_credential",
+  // Stored, but the keystore will not give it back: ask the user to re-enter it
+  // rather than reporting a provider fault.
+  "credential_unreadable",
   "secure_store_error",
   "local_storage_error",
   "profile_invalid",

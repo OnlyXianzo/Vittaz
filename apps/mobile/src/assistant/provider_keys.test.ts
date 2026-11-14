@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, jest } from "@jest/globals";
 import {
   KEY_PROFILES_NAME,
+  KeyRegistryUnreadableError,
   activate_key_profile,
   add_key_profile,
   auth_header_for,
@@ -8,8 +9,15 @@ import {
   mobile_supports_preset,
   profile_api_suffix,
   read_key_registry,
+  read_connection_check,
   read_key_secret,
+  read_key_secret_state,
+  record_connection_check,
   remove_key_profile,
+  reset_connection_checks,
+  reset_key_registry,
+  forget_connection_check,
+  test_connection,
 } from "./provider_keys";
 import {
   ANTHROPIC_API_KEY_NAME,
@@ -299,5 +307,179 @@ describe("mobile_supports_preset", () => {
     ).toBe(true);
     // A preset without an endpoint inherits the form's own value.
     expect(mobile_supports_preset({ id: "anthropic" })).toBe(true);
+  });
+});
+
+describe("unreadable credential state", () => {
+  /** A store whose reads throw, as an invalidated Android keystore does. */
+  function locked_store(): SecureKeyStore {
+    return {
+      getItemAsync: async () => {
+        throw new Error("keystore_locked");
+      },
+      setItemAsync: async () => {
+        throw new Error("keystore_locked");
+      },
+      deleteItemAsync: async () => {
+        throw new Error("keystore_locked");
+      },
+    };
+  }
+
+  it("reports a locked keystore as unreadable, not as a missing key", async () => {
+    const read = await read_key_secret_state(locked_store(), "profile_one");
+    expect(read).toEqual({ state: "unreadable" });
+    // The older string|null shape cannot express this and maps to null.
+    expect(await read_key_secret(locked_store(), "profile_one")).toBeNull();
+  });
+
+  it("reports a value that will not normalise as unreadable", async () => {
+    const corrupt: SecureKeyStore = {
+      getItemAsync: async () => "has a space in it",
+      setItemAsync: async () => undefined,
+      deleteItemAsync: async () => undefined,
+    };
+    expect(await read_key_secret_state(corrupt, "p")).toEqual({
+      state: "unreadable",
+    });
+  });
+
+  it("keeps absent distinct from unreadable", async () => {
+    expect(await read_key_secret_state(memory_store(), "p")).toEqual({
+      state: "absent",
+    });
+  });
+
+  it("throws a typed error for an unreadable registry instead of an empty list", async () => {
+    // An empty list is indistinguishable from a fresh install, which is how the
+    // profiles used to disappear without explanation.
+    await expect(read_key_registry(locked_store())).rejects.toBeInstanceOf(
+      KeyRegistryUnreadableError,
+    );
+  });
+
+  it("throws rather than replacing a corrupt registry, and never writes on a read", async () => {
+    const writes: string[] = [];
+    const corrupt: SecureKeyStore = {
+      getItemAsync: async (key) =>
+        key === KEY_PROFILES_NAME ? "{not json" : null,
+      setItemAsync: async (key) => {
+        writes.push(key);
+      },
+      deleteItemAsync: async (key) => {
+        writes.push(key);
+      },
+    };
+    await expect(read_key_registry(corrupt)).rejects.toBeInstanceOf(
+      KeyRegistryUnreadableError,
+    );
+    // Reading must not destroy what could not be parsed.
+    expect(writes).toEqual([]);
+  });
+
+  it("only discards profiles when the user asks to start over", async () => {
+    const values = new Map<string, string>();
+    const store_with_data: SecureKeyStore = {
+      getItemAsync: async (key) => values.get(key) ?? null,
+      setItemAsync: async (key, value) => {
+        values.set(key, value);
+      },
+      deleteItemAsync: async (key) => {
+        values.delete(key);
+      },
+    };
+    await add_key_profile(store_with_data, {
+      provider: "openai_compatible",
+      label: "Work",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "key-one",
+      activate: true,
+    });
+    expect(values.has(KEY_PROFILES_NAME)).toBe(true);
+
+    await reset_key_registry(store_with_data);
+    expect(values.has(KEY_PROFILES_NAME)).toBe(false);
+    const after = await read_key_registry(store_with_data);
+    expect(after.profiles).toEqual([]);
+  });
+});
+
+describe("connection checks", () => {
+  function model_server(status: number, models: string[] = ["m-one"]) {
+    return jest.fn(async () => {
+      if (status !== 200)
+        return new Response(JSON.stringify({ error: "synthetic" }), {
+          status,
+          headers: { "content-type": "application/json" },
+        });
+      return new Response(
+        JSON.stringify({ data: models.map((id) => ({ id })) }),
+        { status, headers: { "content-type": "application/json" } },
+      );
+    }) as unknown as typeof fetch;
+  }
+
+  const profile = {
+    id: "profile_one",
+    provider: "openai_compatible" as const,
+    label: "Work",
+    base_url: "https://api.example.com",
+    model: "gpt-4o-mini",
+  };
+
+  beforeEach(() => {
+    reset_connection_checks();
+  });
+
+  it("records a reachable endpoint and how many models came back", async () => {
+    const check = await test_connection(
+      memory_store(),
+      profile,
+      model_server(200, ["a", "b"]),
+      "synthetic-key",
+    );
+    expect(check).toMatchObject({ state: "reachable", models: 2 });
+    expect(read_connection_check("profile_one")).toMatchObject({
+      state: "reachable",
+    });
+  });
+
+  it("tells a rejected key apart from an unreachable endpoint", async () => {
+    // Different causes, different next steps: fix the key, or fix the URL.
+    expect(
+      await test_connection(
+        memory_store(),
+        profile,
+        model_server(401),
+        "synthetic-key",
+      ),
+    ).toMatchObject({ state: "rejected" });
+    expect(
+      await test_connection(
+        memory_store(),
+        profile,
+        model_server(500),
+        "synthetic-key",
+      ),
+    ).toMatchObject({ state: "unreachable" });
+  });
+
+  it("treats a network failure as unreachable rather than a bad key", async () => {
+    const offline = jest.fn(async () => {
+      throw new Error("synthetic network down");
+    }) as unknown as typeof fetch;
+    expect(
+      await test_connection(memory_store(), profile, offline, "synthetic-key"),
+    ).toMatchObject({ state: "unreachable" });
+  });
+
+  it("starts untested and can be forgotten", () => {
+    expect(read_connection_check("never_checked")).toEqual({
+      state: "untested",
+    });
+    record_connection_check("p", { state: "rejected", at: 1 });
+    forget_connection_check("p");
+    expect(read_connection_check("p")).toEqual({ state: "untested" });
   });
 });

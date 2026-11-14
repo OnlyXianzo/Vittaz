@@ -1,3 +1,5 @@
+import { read_secret, secret_value, type SecretRead } from "./secret_state";
+
 export const KILO_KEY_NAME = "kilo_gateway_api_key";
 export const OPENAI_COMPATIBLE_KEY_NAME = "openai_compatible_api_key";
 export const ANTHROPIC_API_KEY_NAME = "anthropic_api_key";
@@ -92,18 +94,23 @@ async function save_key(
   await store.setItemAsync(name, key);
 }
 
+/**
+ * The three-state read, for callers that must tell a locked keystore from a
+ * missing key. `read_key` below keeps the older `string | null` shape for
+ * callers that only render a presence flag.
+ */
+export async function read_key_state(
+  store: SecureKeyStore,
+  name: string,
+): Promise<SecretRead> {
+  return read_secret(store, name, normalize_key);
+}
+
 async function read_key(
   store: SecureKeyStore,
   name: string,
 ): Promise<string | null> {
-  const value = await store.getItemAsync(name);
-  if (value === null) return null;
-  try {
-    const key = normalize_key(value);
-    return key || null;
-  } catch {
-    return null;
-  }
+  return secret_value(await read_key_state(store, name));
 }
 
 /** Store an optional Kilo Gateway key in the platform secure store only. */
@@ -119,6 +126,13 @@ export async function read_kilo_key(
   store: SecureKeyStore,
 ): Promise<string | null> {
   return read_key(store, KILO_KEY_NAME);
+}
+
+/** Absent, unreadable or usable — never logged. */
+export async function read_kilo_key_state(
+  store: SecureKeyStore,
+): Promise<SecretRead> {
+  return read_key_state(store, KILO_KEY_NAME);
 }
 
 export async function remove_kilo_key(store: SecureKeyStore): Promise<void> {
@@ -140,6 +154,12 @@ export async function read_openai_compatible_key(
   return read_key(store, OPENAI_COMPATIBLE_KEY_NAME);
 }
 
+export async function read_openai_compatible_key_state(
+  store: SecureKeyStore,
+): Promise<SecretRead> {
+  return read_key_state(store, OPENAI_COMPATIBLE_KEY_NAME);
+}
+
 export async function remove_openai_compatible_key(
   store: SecureKeyStore,
 ): Promise<void> {
@@ -159,6 +179,12 @@ export async function read_anthropic_api_key(
   store: SecureKeyStore,
 ): Promise<string | null> {
   return read_key(store, ANTHROPIC_API_KEY_NAME);
+}
+
+export async function read_anthropic_api_key_state(
+  store: SecureKeyStore,
+): Promise<SecretRead> {
+  return read_key_state(store, ANTHROPIC_API_KEY_NAME);
 }
 
 export async function remove_anthropic_api_key(

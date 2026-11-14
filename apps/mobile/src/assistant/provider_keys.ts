@@ -6,7 +6,11 @@ import {
 } from "../../../../packages/agent/src/providers";
 import { KILO_FREE_MODEL, KILO_GATEWAY_BASE_URL } from "./mobile_qa";
 import {
+  ANTHROPIC_API_KEY_NAME,
+  ASSISTANT_PROVIDER_PROFILE_NAME,
   DEFAULT_ASSISTANT_PROVIDER_PROFILE,
+  KILO_KEY_NAME,
+  OPENAI_COMPATIBLE_KEY_NAME,
   read_anthropic_api_key,
   read_assistant_provider_profile,
   read_kilo_key,
@@ -17,6 +21,7 @@ import {
   save_openai_compatible_key,
 } from "./secure_key";
 import type { AssistantProviderSelection, SecureKeyStore } from "./secure_key";
+import { read_secret, secret_value, type SecretRead } from "./secret_state";
 
 export const KEY_PROFILES_NAME = "assistant_key_profiles_v1";
 export type KeyProvider = AssistantProviderSelection;
@@ -234,15 +239,58 @@ function parse_registry(value: unknown): KeyProfileRegistry {
 }
 
 /** Migrates the legacy single-key profile once, without deleting legacy values. */
+/**
+ * The stored profile list exists but cannot be used.
+ *
+ * Thrown rather than swallowed: returning an empty registry looked exactly like
+ * a fresh install, so a user whose keystore had been invalidated saw their
+ * profiles *vanish* with no explanation. Callers now say what happened, and
+ * nothing overwrites the unreadable value on the way past.
+ */
+export class KeyRegistryUnreadableError extends Error {
+  constructor() {
+    super("key_registry_unreadable");
+    this.name = "KeyRegistryUnreadableError";
+  }
+}
+
+/**
+ * Replace an unreadable registry with an empty one, at the user's request.
+ *
+ * The only path that discards profiles. It exists so that an unreadable store is
+ * recoverable rather than a dead end, but it is never reached automatically: a
+ * keystore that comes back to life after a restart would otherwise have had its
+ * contents deleted by a routine read.
+ */
+export async function reset_key_registry(store: SecureKeyStore): Promise<void> {
+  // The legacy single-key slots are cleared too. Leaving them behind would
+  // rebuild a profile on the next read, so "start over" would not start over.
+  const names = [
+    KEY_PROFILES_NAME,
+    ASSISTANT_PROVIDER_PROFILE_NAME,
+    KILO_KEY_NAME,
+    OPENAI_COMPATIBLE_KEY_NAME,
+    ANTHROPIC_API_KEY_NAME,
+  ];
+  for (const name of names)
+    await store.deleteItemAsync(name).catch(() => undefined);
+}
+
 export async function read_key_registry(
   store: SecureKeyStore,
 ): Promise<KeyProfileRegistry> {
-  const raw = await store.getItemAsync(KEY_PROFILES_NAME);
+  let raw: string | null;
+  try {
+    raw = await store.getItemAsync(KEY_PROFILES_NAME);
+  } catch {
+    // The keystore itself refused. Nothing can be read or repaired from here.
+    throw new KeyRegistryUnreadableError();
+  }
   if (raw !== null) {
     try {
       return parse_registry(JSON.parse(raw));
     } catch {
-      return { active_id: null, profiles: [] };
+      throw new KeyRegistryUnreadableError();
     }
   }
   const legacy = await read_assistant_provider_profile(store);
@@ -294,17 +342,20 @@ export async function read_key_registry(
   return registry;
 }
 
+/** Absent, unreadable or usable, for one profile's secret. */
+export async function read_key_secret_state(
+  store: SecureKeyStore,
+  id: string,
+): Promise<SecretRead> {
+  return read_secret(store, secret_name(id), normalize_key);
+}
+
+/** The value, or `null` for both absent and unreadable. Prefer the state read. */
 export async function read_key_secret(
   store: SecureKeyStore,
   id: string,
 ): Promise<string | null> {
-  const value = await store.getItemAsync(secret_name(id));
-  if (value === null) return null;
-  try {
-    return normalize_key(value) || null;
-  } catch {
-    return null;
-  }
+  return secret_value(await read_key_secret_state(store, id));
 }
 
 /** The one provider the phone flow lets a user save without a credential. */
@@ -434,6 +485,92 @@ function model_url(profile: KeyProfile): string {
   return `${normalize_base_url(profile.base_url)}${profile_api_suffix(profile)}/models`;
 }
 
+/**
+ * What a connection check found.
+ *
+ * A check is not a guarantee: `/models` answering 200 proves the endpoint is
+ * reachable and the key is accepted *for discovery*. Chat entitlement, plan
+ * quotas and free-tier routing differ between the two paths, so the UI must
+ * never call this "verified".
+ */
+export type ConnectionCheck =
+  | { readonly state: "untested" }
+  | {
+      readonly state: "reachable";
+      readonly models: number;
+      readonly at: number;
+    }
+  | {
+      readonly state: "rejected" | "unreachable";
+      readonly at: number;
+    };
+
+/** Last result per profile id, for this app process. */
+const checks = new Map<string, ConnectionCheck>();
+
+export function read_connection_check(id: string): ConnectionCheck {
+  return checks.get(id) ?? { state: "untested" };
+}
+
+export function record_connection_check(
+  id: string,
+  check: ConnectionCheck,
+): void {
+  checks.set(id, check);
+}
+
+export function forget_connection_check(id: string): void {
+  checks.delete(id);
+}
+
+/** Tests only: the map is process-wide. */
+export function reset_connection_checks(): void {
+  checks.clear();
+}
+
+/**
+ * Check a profile against its endpoint and record the class of failure.
+ *
+ * Shares `fetch_model_choices` so the check cannot drift from what the keys
+ * screen does when it lists models. The result distinguishes a rejected key
+ * from an unreachable server, which the old catch-all toast did not.
+ */
+export async function test_connection(
+  store: SecureKeyStore,
+  profile: KeyProfile,
+  fetch_impl: typeof fetch = expo_fetch,
+  secret_override?: string,
+): Promise<ConnectionCheck> {
+  const at = Date.now();
+  try {
+    const choices = await fetch_model_choices(
+      store,
+      profile,
+      fetch_impl,
+      secret_override,
+    );
+    const check: ConnectionCheck =
+      choices.length > 0
+        ? { state: "reachable", models: choices.length, at }
+        : { state: "unreachable", at };
+    record_connection_check(profile.id, check);
+    return check;
+  } catch (error) {
+    // A rejection the endpoint answered is a key problem; anything else (no
+    // network, DNS, timeout) is a reachability problem. They need different
+    // next steps, so they are not collapsed.
+    const check: ConnectionCheck = {
+      state:
+        error instanceof Error && error.message === "key_rejected"
+          ? "rejected"
+          : "unreachable",
+      at,
+    };
+    record_connection_check(profile.id, check);
+    return check;
+  }
+}
+
 /** Fetches model ids from the selected provider; never logs keys or raw bodies. */
 export async function fetch_model_choices(
   store: SecureKeyStore,
@@ -456,7 +593,15 @@ export async function fetch_model_choices(
     headers[name] = value;
   }
   const response = await fetch_impl(model_url(profile), { headers });
-  if (!response.ok) throw new Error("model_fetch_failed");
+  if (!response.ok)
+    // The status is kept so the caller can tell a rejected key (401/403) from a
+    // broken endpoint. It is a class, not a body: nothing provider-authored is
+    // carried out of here.
+    throw new Error(
+      response.status === 401 || response.status === 403
+        ? "key_rejected"
+        : "model_fetch_failed",
+    );
   const payload: unknown = await response.json();
   const data = (payload as { data?: unknown }).data;
   if (!Array.isArray(data)) throw new Error("model_fetch_failed");

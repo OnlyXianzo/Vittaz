@@ -26,12 +26,22 @@ import type {
   DiagnosticReason,
 } from "./assistant/diagnostics";
 import {
-  read_anthropic_api_key,
+  read_anthropic_api_key_state,
   read_assistant_provider_profile,
-  read_kilo_key,
-  read_openai_compatible_key,
+  read_kilo_key_state,
+  read_openai_compatible_key_state,
 } from "./assistant/secure_key";
-import { read_key_registry } from "./assistant/provider_keys";
+import {
+  clear_provider_health,
+  cooldown_remaining_seconds,
+  record_provider_outcome,
+  type ProviderOutcome,
+} from "./assistant/provider_health";
+import { secret_value } from "./assistant/secret_state";
+import {
+  KeyRegistryUnreadableError,
+  read_key_registry,
+} from "./assistant/provider_keys";
 import type { Action, AppState, ChatStep, Transaction } from "./domain";
 import {
   create_conversation,
@@ -337,6 +347,28 @@ function view_reducer(state: AppState, action: Action): AppState {
 
 function error_message(error: unknown): string {
   return error instanceof Error ? error.message : "storage_operation_failed";
+}
+
+/** The health vocabulary for a finished question. */
+function outcome_for_stop(reason: QaStopReason): ProviderOutcome {
+  switch (reason) {
+    case "completed":
+      return "ok";
+    case "provider_auth_failed":
+    case "provider_access_denied":
+      return "auth_failed";
+    case "provider_rate_limited":
+      return "rate_limited";
+    case "provider_unavailable":
+      return "unavailable";
+    case "provider_connection_failed":
+    case "timeout":
+      return "connection_failed";
+    default:
+      // A rejected request or a protocol fault says nothing about the key's
+      // health; the key should not be held back for it.
+      return "ok";
+  }
 }
 
 function diagnostic_reason_for_stop(reason: QaStopReason): DiagnosticReason {
@@ -723,6 +755,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             provider_kind,
           );
           let provider: Parameters<typeof create_mobile_qa_agent>[1];
+          // Assigned inside the try; the catch always rethrows, so anything
+          // reaching the code below has a value.
+          let active_profile_id: string | null;
+          let cooling_down_seconds = 0;
           try {
             // Wire-shape overrides (API path, auth header) live on the active
             // key profile, not on the legacy projection. They are read here so
@@ -733,6 +769,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // account on the same host could be handed the first one's API path
             // and auth header.
             const registry = await read_key_registry(SecureStore);
+            active_profile_id = registry.active_id;
             const active_profile =
               profile.selected_provider === "openai_compatible"
                 ? registry.profiles.find(
@@ -741,12 +778,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
                       candidate.provider === "openai_compatible",
                   )
                 : undefined;
+            // Read the state, not just the value: a key the keystore will not
+            // release must be answered with "re-enter it", not "no key saved"
+            // and certainly not "the provider failed".
+            const credential =
+              profile.selected_provider === "openai_compatible"
+                ? await read_openai_compatible_key_state(SecureStore)
+                : profile.selected_provider === "anthropic"
+                  ? await read_anthropic_api_key_state(SecureStore)
+                  : await read_kilo_key_state(SecureStore);
+            if (credential.state === "unreadable") {
+              mobile_diagnostics.record(
+                "question_rejected",
+                "request_preflight",
+                "rejected",
+                provider_kind,
+                "credential_unreadable",
+              );
+              throw new KeyRegistryUnreadableError();
+            }
             provider =
               profile.selected_provider === "openai_compatible"
                 ? {
                     kind: "openai_compatible" as const,
-                    api_key:
-                      (await read_openai_compatible_key(SecureStore)) ?? "",
+                    api_key: secret_value(credential) ?? "",
                     base_url: profile.base_url,
                     model: profile.model,
                     ...(active_profile?.api_suffix !== undefined
@@ -762,14 +817,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : profile.selected_provider === "anthropic"
                   ? {
                       kind: "anthropic" as const,
-                      api_key:
-                        (await read_anthropic_api_key(SecureStore)) ?? "",
+                      api_key: secret_value(credential) ?? "",
                     }
                   : {
                       kind: "kilo" as const,
-                      api_key: await read_kilo_key(SecureStore),
+                      api_key: secret_value(credential),
                     };
           } catch (error) {
+            // An unreadable secret was already recorded with its own reason and
+            // needs its own message; reporting it again as a store error would
+            // bury the only actionable fact.
+            if (error instanceof KeyRegistryUnreadableError) throw error;
             mobile_diagnostics.record(
               "secure_credential_read_failed",
               "secure_store",
@@ -790,6 +848,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
             undefined,
             provider.api_key ? 1 : 0,
           );
+          // A provider that just rate-limited us is remembered for this
+          // session. Each question gets a fresh agent, so without this the
+          // previous 429 would be forgotten and repeated on the next tap.
+          const cooldown = cooldown_remaining_seconds(active_profile_id ?? "");
+          if (cooldown > 0) {
+            mobile_diagnostics.record(
+              "question_rejected",
+              "request_preflight",
+              "rejected",
+              provider_kind,
+              "rate_limited",
+            );
+            cooling_down_seconds = cooldown;
+          }
+          if (cooling_down_seconds > 0) {
+            if (mounted_ref.current) {
+              const messages = state_ref.current.chatMessages.map((message) =>
+                message.id === assistant_id
+                  ? {
+                      ...message,
+                      text: `${mobile_qa_failure_message("provider_rate_limited", provider_kind)} Try again in about ${cooling_down_seconds}s.`,
+                    }
+                  : message,
+              );
+              setState((value) => ({
+                ...value,
+                chatMode: "idle",
+                chatSteps: [],
+                chatMessages: messages,
+              }));
+            }
+            return;
+          }
           const missing_provider_setup =
             provider.kind === "openai_compatible" && !provider.api_key
               ? "No OpenAI-compatible API key is saved. Add one in Model settings. No ledger changes were made."
@@ -917,6 +1008,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             },
           });
+          if (result.answered) clear_provider_health(active_profile_id ?? "");
+          else
+            record_provider_outcome(
+              active_profile_id ?? "",
+              outcome_for_stop(result.stopReason),
+            );
           mobile_diagnostics.record(
             "qa_result_received",
             "qa_agent",
@@ -1005,7 +1102,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }));
           }
         })()
-          .catch(async () => {
+          .catch(async (reason: unknown) => {
             mobile_diagnostics.record(
               "qa_stage_failed",
               failure_stage === "context_build"
@@ -1033,12 +1130,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
               message.id === assistant_id
                 ? {
                     ...message,
-                    text: instruction_error
-                      ? "Custom instructions could not be read or the combined question is too long. Check your instructions and try again."
-                      : mobile_qa_failure_message(
-                          "provider_error",
-                          provider_kind,
-                        ),
+                    text:
+                      reason instanceof KeyRegistryUnreadableError
+                        ? "Your saved key profiles can no longer be read on this device. Re-enter the key in Model settings. No ledger changes were made."
+                        : instruction_error
+                          ? "Custom instructions could not be read or the combined question is too long. Check your instructions and try again."
+                          : mobile_qa_failure_message(
+                              "provider_error",
+                              provider_kind,
+                            ),
                   }
                 : message,
             );
