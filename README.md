@@ -1,10 +1,55 @@
-# Vittaz
+# Vittaz Blueprint
 
 **Vittaz** is a local-first personal expense and khata application. It is designed to make recording everyday money activity quick, understandable, and reliable, with optional AI assistance that never approves or saves a transaction on the user's behalf.
 
 The initial target is Android. A command-line interface supports development and headless workflows; desktop support may follow later.
 
 > **Project status:** Backend steps S1–S31 are implemented and verified, including S29 full CLI, S30 headless flows, and S31 mutation spot checks; S32 completes the current documentation pass. The G3 backend checkpoint is **accepted by the owner**; S33 Android environment work is in progress and awaits owner device evidence. No Android device behavior has been verified. The product name is Vittaz. The software license has not yet been selected.
+
+## System Overview
+
+Vittaz is structured as a modular TypeScript monorepo operating on local-first, privacy-by-design principles:
+
+- **`packages/core`**: Framework-free business logic implementing double-entry accounting, strict integer paise arithmetic, proposal lifecycle state machines, notification parsers, spreadsheet ingestion, and privacy redaction.
+- **`packages/agent`**: Resilient AI orchestration isolating LLM provider communication (OpenAI-compatible, Anthropic, Kilo Gateway), read-only Q&A agent loops, and Telegram bot connectors. Direct ledger write access is architecturally withheld from the AI layer.
+- **`packages/storage`**: SQLite persistence layer utilizing `better-sqlite3` and `drizzle-orm`, ensuring ACID transactions, versioned migrations, re-entrant serialized execution, and snapshot-based backup/restore.
+- **`apps/mobile`**: Cross-platform Expo / React Native Android client application implementing the UI visual specification with local `expo-sqlite` and hardware-backed `expo-secure-store`.
+- **`apps/mobile/ui`**: Standalone browser preview providing an in-memory interaction prototype and design system reference.
+- **`apps/cli`**: Headless command-line utility for database operations, imports, backups, and scripted workflows emitting structured `snake_case` JSON.
+- **`scripts`**: System audit and compliance utilities enforcing Layer 0 workstation readiness and Layer 2 blocking privacy gates.
+
+## Subdirectories & System Boundaries
+
+- [Apps](./apps/README.md) - User-facing client applications including terminal CLI (`@vittaz/cli`), Expo / React Native mobile app (`@vittaz/mobile`), and isolated web UI preview (`@vittaz/mobile-ui`).
+- [Packages](./packages/README.md) - Foundational workspace libraries: framework-free core accounting (`@vittaz/core`), AI agent orchestration (`@vittaz/agent`), and SQLite storage (`@vittaz/storage`).
+- [Scripts](./scripts/README.md) - Host environment auditors (`android_env.ts`) and Layer 2 non-negotiable blocking privacy verification runners (`privacy_check.ts`).
+
+## Global Invariants
+
+- **Deterministic Integer Currency**: Monetary amounts are strictly safe non-negative integer paise. Floating-point calculations, float drift, and negative zero (`-0`) are forbidden across all layers.
+- **Human Approval Only**: The AI never writes to the database. AI tools can only propose pending drafts (`propose_transaction`). Approve, reject, and undo are strictly user-authorized actions.
+- **Layer 2 Privacy Blocker**: Outbound prompts and network payloads pass through `PrivacyRedactor` and `scrubOutboundText`. Privacy test suites are non-negotiable blocking gates in CI and local checks.
+- **Framework-Free Core Domain**: `@vittaz/core` contains zero UI, zero AI provider SDKs, and zero native database drivers. `@vittaz/agent` and `@vittaz/storage` depend on `@vittaz/core`, never vice-versa.
+- **Unidirectional Lifecycle**: Transactions transition unidirectionally: `unverified` -> `ai_checked` -> `user_confirmed`.
+- **Immutable Audit History**: Every transaction insert, update, or proposal confirmation creates an immutable snapshot row in `audit_log` with full before and after states, enabling atomic reversible undo.
+- **Credential Isolation**: API keys reside strictly in environment variables or hardware-backed `expo-secure-store`; keys are never logged, exported in diagnostics, or saved in SQLite ledger tables.
+
+## Global Side Effects
+
+- **Local SQLite Persistence**: Mutates on-disk SQLite databases (`vittaz.db` or configured path) within ACID serialized transactions.
+- **Outbound AI Communication**: Dispatches HTTPS requests to external LLM provider endpoints (OpenAI-compatible, Anthropic, Kilo Gateway) using privacy-scrubbed prompts.
+- **Hardware Keystore Access**: Reads, writes, and deletes sensitive credentials via `expo-secure-store`.
+- **Process and File Operations**: CLI and scripts execute child processes (`java`, `adb`, `vitest`), read spreadsheet files, and output structured JSON to `stdout`/`stderr`.
+
+## System Verification
+
+- Run: `npm test`
+- Run: `npm run typecheck`
+- Run: `npm run lint`
+- Run: `npm run format:check`
+- Run: `npm run test:privacy`
+
+---
 
 ## What Vittaz aims to do
 
