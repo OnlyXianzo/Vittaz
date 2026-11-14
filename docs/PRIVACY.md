@@ -65,6 +65,8 @@ allowlist of named fields and never spreads the profile object, a test asserts t
 `api_key` added to the input does not reach the stored blob, and the key itself stays in
 secure storage. Everything in the manifest is already visible on the keys screen.
 
+To prevent offline extraction of plain-storage manifest records and local SQLite databases into cloud backups or unauthenticated ADB dumps, Android Auto Backup is explicitly disabled via `allowBackup: false` in `apps/mobile/app.json`.
+
 If this trade-off is ever rejected, deleting the manifest module restores the previous
 behaviour: the list is lost on invalidation, and the screen says so.
 

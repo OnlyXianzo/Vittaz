@@ -1018,6 +1018,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             record_provider_outcome(
               active_profile_id ?? "",
               outcome_for_stop(result.stopReason),
+              Date.now(),
+              result.retry_after_ms,
             );
           mobile_diagnostics.record(
             "qa_result_received",

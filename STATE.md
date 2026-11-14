@@ -686,3 +686,21 @@ tip is an ancestor of `main`, so it carried nothing new — #88 merged it.
 rendering, an APK build, a live provider call, and the keystore invalidation itself (tests
 simulate it with a store whose reads throw) are all owner-side. S36's `KILO_UNKNOWN`
 remains unresolved and is not touched by this work.
+
+## EGM Review & Remediation (2026-11-14)
+
+Consolidated EGM Review conducted across 7 audit lenses (Zoom Out, Comprehension, Critic, Structural, Style, Readiness, Codebase Details) on `feat/credential-lifecycle` and `docs/BYOK_CREDENTIAL_LIFECYCLE.md`. Remediated all 5 Blocker tasks and major action items:
+
+- **TASK-01 (`Retry-After` Pipeline)**: Reconnected upstream `Retry-After` header parsing (`ai_sdk.ts`) through `AllKeysFailedError` and `ReadOnlyQaLoop.answerQuestion` (`retry_after_ms` field in `AnswerQuestionResult`) to `apps/mobile/src/store.tsx` calling `record_provider_outcome(active_profile_id, outcome, Date.now(), result.retry_after_ms)`.
+- **TASK-02 & TASK-06 (SSRF Protection & Save-Check Target)**: Restricted automated post-save connection tests in `KeysScreen.tsx` to pinned standard hosts (`api.openai.com`, `api.anthropic.com`, `ai-gateway.kilo.ai`) to eliminate secret exfiltration risks. Fixed active-profile lock by targeting explicit saved profile ID.
+- **TASK-03 (Backup Manifest Leak Exclusion)**: Configured `"allowBackup": false` in `apps/mobile/app.json` under `android` to prevent Android Auto Backup and unauthenticated ADB extraction of local SQLite databases (`vittaz.assistant.key_manifest.v1`). Documented threat model in `docs/PRIVACY.md`.
+- **TASK-05 (UI Grounding)**: Added on-demand "Test connection" button to profile cards on `KeysScreen.tsx` so users can explicitly verify endpoints on demand (required for custom endpoints).
+- **TASK-07 (Awaited Disk Persistence)**: Added `await` to `record_connection_check(...)` in `provider_keys.ts` try/catch branches.
+- **TASK-08 (404 Error Taxonomy)**: Added `"not_found"` state to `ConnectionCheck` in `connection_check.ts` and `provider_keys.ts` to distinguish 404 route errors from physical network drops.
+- **TASK-09 (Discovery Timeout)**: Enforced 5,000 ms timeout via `AbortController` in `fetch_model_choices`.
+- **TASK-10 (Keystore Invalidation Model)**: Explicitly deleted existing aliases with `deleteItemAsync` prior to calling `setItemAsync` in `provider_keys.ts` and `secure_key.ts`.
+- **TASK-11 (Per-Profile Secret State)**: Surfaced keystore unreadable recovery card when any profile in `hints` has an unreadable key state.
+- **TASK-16 (Stale Checks on Profile Edit)**: Added `forget_connection_check(id)` in `update_key_profile` whenever model, endpoint, provider, or key changes.
+- **TASK-04, 12, 13, 14, 15, 17 (Document Overhaul)**: Completely restructured `docs/BYOK_CREDENTIAL_LIFECYCLE.md` into an Architectural Decision Record and Contract Specification, removing contradictions, standardizing heading hierarchy, replacing line numbers with symbol references, adding links, and establishing deprecation boundaries.
+
+Verification: Root typecheck, ESLint, Prettier (`npm run format:check`), privacy check (`npm run test:privacy`), and QA loop vitest suite all passing cleanly.

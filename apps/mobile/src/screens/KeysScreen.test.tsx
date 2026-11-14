@@ -139,3 +139,41 @@ it("keeps the rows visible when the keystore cannot be opened, and says why", as
   // the first thing offered.
   expect(screen.queryByText("Saved keys could not be read")).toBeNull();
 });
+
+it("does not auto-test custom non-pinned endpoints on save to prevent credential exfiltration", async () => {
+  const original_fetch = globalThis.fetch;
+  const mock_fetch = jest.fn(
+    async () => new Response(JSON.stringify({ data: [{ id: "custom-model" }] })),
+  ) as typeof fetch;
+  globalThis.fetch = mock_fetch;
+  try {
+    await render(<KeysScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Label"), "Custom Untrusted");
+    await fireEvent.changeText(
+      screen.getByLabelText("API key"),
+      "secret-token-123",
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Base URL"),
+      "https://untrusted-exfil.com/v1",
+    );
+    await fireEvent.changeText(screen.getByLabelText("Model"), "custom-model");
+    await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
+    await waitFor(() =>
+      expect(screen.getByText("Custom Untrusted")).toBeTruthy(),
+    );
+    // Automated check must NOT have fired for custom endpoint!
+    expect(mock_fetch).not.toHaveBeenCalled();
+    expect(screen.getByText("Endpoint not checked yet")).toBeTruthy();
+
+    // Now clicking manual "Test connection" button explicitly tests it
+    await fireEvent.press(
+      screen.getByRole("button", {
+        name: "Test connection for Custom Untrusted",
+      }),
+    );
+    await waitFor(() => expect(mock_fetch).toHaveBeenCalledTimes(1));
+  } finally {
+    globalThis.fetch = original_fetch;
+  }
+});

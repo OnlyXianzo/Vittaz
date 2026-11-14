@@ -429,7 +429,10 @@ export async function read_key_registry(
           : profile.provider === "openai_compatible"
             ? openai
             : anthropic;
-      if (secret) await store.setItemAsync(secret_name(profile.id), secret);
+      if (secret) {
+        await store.deleteItemAsync(secret_name(profile.id)).catch(() => undefined);
+        await store.setItemAsync(secret_name(profile.id), secret);
+      }
     }
     await write_registry(store, registry);
     if (active) await activate_key_profile(store, active.id);
@@ -481,7 +484,10 @@ export async function add_key_profile(
   const profile = { id: next_id(), ...validate_profile(input) };
   const key = normalize_key(input.api_key);
   if (!key && profile.provider !== "kilo") throw new Error("invalid_api_key");
-  if (key) await store.setItemAsync(secret_name(profile.id), key);
+  if (key) {
+    await store.deleteItemAsync(secret_name(profile.id)).catch(() => undefined);
+    await store.setItemAsync(secret_name(profile.id), key);
+  }
   registry.profiles.push(profile);
   await write_registry(store, registry);
   if (input.activate) await activate_key_profile(store, profile.id);
@@ -509,8 +515,18 @@ export async function update_key_profile(
   if (input.api_key !== undefined) {
     const key = normalize_key(input.api_key);
     if (!key && next.provider !== "kilo") throw new Error("invalid_api_key");
-    if (key) await store.setItemAsync(secret_name(id), key);
-    else await store.deleteItemAsync(secret_name(id));
+    if (key) {
+      await store.deleteItemAsync(secret_name(id)).catch(() => undefined);
+      await store.setItemAsync(secret_name(id), key);
+    } else await store.deleteItemAsync(secret_name(id));
+  }
+  const endpoint_or_secret_changed =
+    (input.base_url !== undefined && input.base_url !== current.base_url) ||
+    (input.model !== undefined && input.model !== current.model) ||
+    (input.provider !== undefined && input.provider !== current.provider) ||
+    input.api_key !== undefined;
+  if (endpoint_or_secret_changed) {
+    await forget_connection_check(id);
   }
   registry.profiles[index] = next;
   await write_registry(store, registry);
@@ -646,20 +662,21 @@ export async function test_connection(
       choices.length > 0
         ? { state: "reachable", models: choices.length, at }
         : { state: "unreachable", at };
-    record_connection_check(profile.id, check);
+    await record_connection_check(profile.id, check);
     return check;
   } catch (error) {
-    // A rejection the endpoint answered is a key problem; anything else (no
-    // network, DNS, timeout) is a reachability problem. They need different
-    // next steps, so they are not collapsed.
+    // A rejection the endpoint answered is a key problem; 404 is a bad endpoint
+    // path; anything else (no network, DNS, timeout) is a reachability problem.
     const check: ConnectionCheck = {
       state:
         error instanceof Error && error.message === "key_rejected"
           ? "rejected"
-          : "unreachable",
+          : error instanceof Error && error.message === "route_not_found"
+            ? "not_found"
+            : "unreachable",
       at,
     };
-    record_connection_check(profile.id, check);
+    await record_connection_check(profile.id, check);
     return check;
   }
 }
@@ -685,15 +702,29 @@ export async function fetch_model_choices(
     const { name, value } = auth_header_for(profile, secret);
     headers[name] = value;
   }
-  const response = await fetch_impl(model_url(profile), { headers });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  let response: Response;
+  try {
+    response = await fetch_impl(model_url(profile), {
+      headers,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timer);
+    throw error;
+  }
+  clearTimeout(timer);
   if (!response.ok)
     // The status is kept so the caller can tell a rejected key (401/403) from a
-    // broken endpoint. It is a class, not a body: nothing provider-authored is
-    // carried out of here.
+    // broken endpoint or bad path (404). It is a class, not a body: nothing
+    // provider-authored is carried out of here.
     throw new Error(
       response.status === 401 || response.status === 403
         ? "key_rejected"
-        : "model_fetch_failed",
+        : response.status === 404
+          ? "route_not_found"
+          : "model_fetch_failed",
     );
   const payload: unknown = await response.json();
   const data = (payload as { data?: unknown }).data;

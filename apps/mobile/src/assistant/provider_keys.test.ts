@@ -600,7 +600,7 @@ describe("connection checks", () => {
     });
   });
 
-  it("tells a rejected key apart from an unreachable endpoint", async () => {
+  it("tells a rejected key apart from an unreachable endpoint and route not found", async () => {
     // Different causes, different next steps: fix the key, or fix the URL.
     expect(
       await test_connection(
@@ -614,10 +614,38 @@ describe("connection checks", () => {
       await test_connection(
         memory_store(),
         profile,
+        model_server(404),
+        "synthetic-key",
+      ),
+    ).toMatchObject({ state: "not_found" });
+    expect(
+      await test_connection(
+        memory_store(),
+        profile,
         model_server(500),
         "synthetic-key",
       ),
     ).toMatchObject({ state: "unreachable" });
+  });
+
+  it("resets connection check when profile endpoint or model changes", async () => {
+    const p = await add_key_profile(store, {
+      provider: "openai_compatible",
+      label: "Work",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "synthetic-key",
+    });
+    await record_connection_check(p.id, {
+      state: "reachable",
+      models: 2,
+      at: 1000,
+    });
+    expect(await read_connection_check(p.id)).toMatchObject({
+      state: "reachable",
+    });
+    await update_key_profile(store, p.id, { model: "gpt-4o" });
+    expect(await read_connection_check(p.id)).toEqual({ state: "untested" });
   });
 
   it("treats a network failure as unreachable rather than a bad key", async () => {
