@@ -771,3 +771,8 @@ Addressed owner feedback on log export behavior under Android Scoped Storage:
 - **Verification**: Updated unit test suites `diagnostic_export.test.ts`, `expo_diagnostic_storage.test.ts`,
   `DiagnosticsPanel.test.tsx`, and workflow integration tests `mobile_diagnostics_workflow.test.ts`. Full
   mobile and root test suites pass green. Typecheck, ESLint, Prettier, and privacy gates all clean.
+  Standalone diagnostics test APK workflow run `43615059552` succeeded on branch `feat/provider-ui-redesign`:
+  Gradle release APK built with embedded JS bundle (`assets/index.android.bundle`, 6,325,696 B), native
+  libraries for `arm64-v8a` (including autolinked `vittaz-mediastore`), SHA-256
+  `691a41f110a68a7d3cc60e33392b9f8ef790a29783ac9e983aa183179a3abd49`, artifact `vittaz-diagnostics-test-apk`
+  uploaded. Android device verification for Gate G4 remains pending owner testing on physical device.
