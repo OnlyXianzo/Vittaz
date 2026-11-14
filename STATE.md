@@ -704,3 +704,25 @@ Consolidated EGM Review conducted across 7 audit lenses (Zoom Out, Comprehension
 - **TASK-04, 12, 13, 14, 15, 17 (Document Overhaul)**: Completely restructured `docs/BYOK_CREDENTIAL_LIFECYCLE.md` into an Architectural Decision Record and Contract Specification, removing contradictions, standardizing heading hierarchy, replacing line numbers with symbol references, adding links, and establishing deprecation boundaries.
 
 Verification: Root typecheck, ESLint, Prettier (`npm run format:check`), privacy check (`npm run test:privacy`), and QA loop vitest suite all passing cleanly.
+
+## PR #93 corrective verification
+
+Follow-up to the review remediation: removed destructive pre-deletion of secrets;
+replacement-write failure tests preserve the previous profile and legacy keys. Wire
+configuration edits now persist and invalidate connection checks. Discovery retains its
+five-second deadline through response-body parsing. Automatic checks require HTTPS on
+standard ports without URL credentials at allowlisted hosts; this is not claimed as a
+complete SSRF boundary. Corrected device-local ADR links, obsolete G3 wording and backup
+security claims. The native UI regression test now restores its invalidated-keystore
+mock between cases and explicitly selects Custom before testing a custom endpoint;
+all assertions remain intact.
+
+Local verification: root 470 tests / 64 files at 100% statements, branches, functions
+and lines; mobile 170 tests / 19 suites. Root typecheck, lint, format and privacy checks
+pass; mobile typecheck, lint and format checks pass. Four new mobile regressions were
+observed failing before the implementation fixes. Added a synthetic HTTP 429 transport
+test exercising Retry-After propagation; coverage thresholds are unchanged.
+
+Not yet pushed or merged. CI rerun and Android device verification remain pending.
+Real invalidated-alias replacement is not proved and is not handled by blindly deleting
+an existing credential before every write.

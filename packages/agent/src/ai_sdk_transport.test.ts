@@ -523,3 +523,15 @@ test("transport_requests_usage_on_streamed_calls", async () => {
     stream_options: { include_usage: true },
   });
 });
+
+test("transport_preserves_retry_after_in_rate_limit_failure", async () => {
+  const { client } = await open(() => ({
+    status: 429,
+    headers: { "retry-after": "12" },
+  }));
+  const failure = await client.chatCompletion(ask()).catch((error) => error);
+  expect(failure).toBeInstanceOf(AllKeysFailedError);
+  expect(failure.failures).toEqual([
+    { nickname: "alpha", reason: "rate_limited", retry_after_ms: 12000 },
+  ]);
+});

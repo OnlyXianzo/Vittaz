@@ -723,3 +723,83 @@ describe("connection checks", () => {
     expect((await read_manifest(manifest))!.checks).toEqual({});
   });
 });
+
+it("preserves an existing profile secret when replacement fails", async () => {
+  const p = await add_key_profile(store, {
+    provider: "openai_compatible",
+    label: "Work",
+    base_url: "https://api.example.com/v1",
+    model: "example",
+    api_key: "synthetic-old",
+  });
+  const failing = {
+    ...store,
+    setItemAsync: async () => {
+      throw new Error("write_failed");
+    },
+  };
+  await expect(
+    update_key_profile(failing, p.id, { api_key: "synthetic-new" }),
+  ).rejects.toThrow("write_failed");
+  expect(await read_key_secret(store, p.id)).toBe("synthetic-old");
+});
+
+it("persists wire overrides and invalidates the old connection check", async () => {
+  const p = await add_key_profile(store, {
+    provider: "openai_compatible",
+    label: "Work",
+    base_url: "https://api.example.com",
+    model: "example",
+    api_key: "synthetic-key",
+  });
+  for (const change of [
+    { api_suffix: "/v2" },
+    { auth_header: "x-api-key" as const },
+    { auth_scheme: "Token" },
+  ]) {
+    await record_connection_check(p.id, {
+      state: "reachable",
+      models: 1,
+      at: 1000,
+    });
+    await update_key_profile(store, p.id, change);
+    expect(
+      (await read_key_registry(store)).profiles.find((row) => row.id === p.id),
+    ).toMatchObject(change);
+    expect(await read_connection_check(p.id)).toEqual({ state: "untested" });
+  }
+});
+
+it("keeps the discovery deadline active while reading the response body", async () => {
+  jest.useFakeTimers();
+  try {
+    const fetcher = jest.fn(
+      async (_url: unknown, init: RequestInit | undefined) => ({
+        ok: true,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            init!.signal!.addEventListener("abort", () =>
+              reject(new Error("aborted")),
+            );
+          }),
+      }),
+    ) as unknown as typeof fetch;
+    const pending = fetch_model_choices(
+      store,
+      {
+        id: "test",
+        provider: "openai_compatible",
+        label: "Work",
+        base_url: "https://api.example.com",
+        model: "example",
+      },
+      fetcher,
+      "synthetic-key",
+    );
+    const assertion = expect(pending).rejects.toThrow("aborted");
+    await jest.advanceTimersByTimeAsync(5000);
+    await assertion;
+  } finally {
+    jest.useRealTimers();
+  }
+});

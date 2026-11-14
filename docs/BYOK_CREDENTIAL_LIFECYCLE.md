@@ -31,7 +31,7 @@ Personal financial management requires strong data isolation. Vittaz permits opt
 
 ### 3.1 Syntax vs. Network Validation
 
-Syntax validation is performed locally and synchronously in [`validate_profile`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts):
+Syntax validation is performed locally and synchronously in [`validate_profile`](../apps/mobile/src/assistant/provider_keys.ts):
 
 - Protocol must strictly be `https:`.
 - No userinfo, query parameters, or URL fragments are permitted.
@@ -43,9 +43,9 @@ Syntax validation serves as the sole blocking gate before writing a profile to l
 
 Upon saving a key profile:
 
-1. **Pinned Hosts**: For verified standard providers (`api.openai.com`, `api.anthropic.com`, `ai-gateway.kilo.ai`), [`KeysScreen`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/screens/KeysScreen.tsx) initiates an automatic background discovery request (`GET {base_url}/models`) via [`test_connection`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts) to verify credential validity.
+1. **Pinned Hosts**: For verified standard providers (`api.openai.com`, `api.anthropic.com`, `ai-gateway.kilo.ai`), [`KeysScreen`](../apps/mobile/src/screens/KeysScreen.tsx) initiates an automatic background discovery request (`GET {base_url}/models`) via [`test_connection`](../apps/mobile/src/assistant/provider_keys.ts) to verify credential validity.
 2. **Custom / Untrusted Endpoints**: For custom `openai_compatible` endpoints, automated background requests are suppressed to prevent credential exfiltration (SSRF). The user must explicitly press the manual **Test connection** button on the profile card.
-3. **Timeout Enforcement**: All discovery requests enforce a 5,000 ms timeout via `AbortController` in [`fetch_model_choices`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts).
+3. **Timeout Enforcement**: All discovery requests enforce a 5,000 ms timeout via `AbortController` in [`fetch_model_choices`](../apps/mobile/src/assistant/provider_keys.ts).
 
 ### 3.3 Semantic Interpretation of Connection Checks
 
@@ -85,25 +85,25 @@ Credential storage divides operational metadata from cryptographic secrets:
 ```
 
 1. **Secrets (`expo-secure-store`)**: API keys are encrypted at rest using platform-managed hardware keystores. Keys are indexed by profile ID (`vittaz_key_<id>`).
-2. **Manifest (`expo-sqlite/kv-store`)**: Non-secret metadata is stored in `vittaz.assistant.key_manifest.v1` via [`profile_manifest.ts`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/profile_manifest.ts). Only allowlisted fields are persisted; secrets are strictly excluded by construction.
-3. **Explicit Alias Deletion**: Android Keystore entries invalidated by lock-screen changes throw exceptions if overwritten directly. [`save_key_secret`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts) and [`save_single_key`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/secure_key.ts) explicitly delete existing aliases prior to writing replacement credentials.
+2. **Manifest (`expo-sqlite/kv-store`)**: Non-secret metadata is stored in `vittaz.assistant.key_manifest.v1` via [`profile_manifest.ts`](../apps/mobile/src/assistant/profile_manifest.ts). Only allowlisted fields are persisted; secrets are strictly excluded by construction.
+3. **Replacement writes**: Existing secrets are overwritten without pre-deletion. A failed write must not proactively erase the previous key. Recovery of genuinely invalidated Android aliases remains device-unverified; no automatic destructive reset is claimed.
 
 ### 4.2 Recovery Flow on Keystore Invalidation
 
 When hardware keystore reads fail:
 
-1. [`read_key_registry`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts) catches the error and recovers non-secret profile rows from [`read_manifest`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/profile_manifest.ts), tagging the registry with `source: "manifest"`.
+1. [`read_key_registry`](../apps/mobile/src/assistant/provider_keys.ts) catches the error and recovers non-secret profile rows from [`read_manifest`](../apps/mobile/src/assistant/profile_manifest.ts), tagging the registry with `source: "manifest"`.
 2. The read operation is strictly non-mutating; it does not overwrite keystore records. If the keystore recovers after reboot, original secrets remain intact.
-3. [`read_key_secret_state`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts) evaluates each profile individually. If a key is unreadable, the UI displays `Key unreadable — re-enter` for that specific row.
-4. When any profile is unreadable, [`KeysScreen`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/screens/KeysScreen.tsx) renders an informative recovery banner advising the user to re-enter credentials.
+3. [`read_key_secret_state`](../apps/mobile/src/assistant/provider_keys.ts) evaluates each profile individually. If a key is unreadable, the UI displays `Key unreadable — re-enter` for that specific row.
+4. When any profile is unreadable, [`KeysScreen`](../apps/mobile/src/screens/KeysScreen.tsx) renders an informative recovery banner advising the user to re-enter credentials.
 
 ### 4.3 Backup & Extraction Threat Model
 
 Plaintext manifest storage risks data exposure if transferred off-device during cloud backups:
 
-- **Android Auto Backup**: Disabled by setting `"allowBackup": false` in [`apps/mobile/app.json`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/app.json) under the `android` stanza.
-- **ADB Extraction**: Prohibited by `allowBackup: false`, preventing SQLite databases from being extracted via unauthenticated desktop backups.
-- Reference: Documented in [`docs/PRIVACY.md`](file:///data/data/com.termux/files/home/Vittaz/docs/PRIVACY.md) and [`DECISIONS.md`](file:///data/data/com.termux/files/home/Vittaz/DECISIONS.md).
+- **Android Auto Backup**: Disabled by setting `"allowBackup": false` in [`apps/mobile/app.json`](../apps/mobile/app.json) under the `android` stanza.
+- **Limits**: This disables Android app backup participation; it does not protect against rooted devices, debug access, or every manufacturer-specific transfer path. Native configuration and device behaviour remain unverified.
+- Reference: Documented in [`docs/PRIVACY.md`](../docs/PRIVACY.md) and [`DECISIONS.md`](../DECISIONS.md).
 
 ---
 
@@ -114,7 +114,7 @@ Plaintext manifest storage risks data exposure if transferred off-device during 
 Vittaz enforces a strict single-active-profile model:
 
 - Only one provider profile is active at any given moment.
-- The active profile is projected to legacy slots in [`activate_key_profile`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts) to maintain backward compatibility.
+- The active profile is projected to legacy slots in [`activate_key_profile`](../apps/mobile/src/assistant/provider_keys.ts) to maintain backward compatibility.
 - **Zero Cross-Provider Fallback**: If a request to the active provider fails, the request fails immediately and closed. The system will **never** silently divert prompts, financial data, or user queries to an alternate provider or model pool.
 
 ### 5.2 Named Explicit Routing (Deferred Non-Goal)
@@ -131,15 +131,15 @@ Future routing capabilities, if developed, will follow declarative, user-defined
 
 When an upstream provider responds with HTTP 429 Too Many Requests:
 
-1. **Header Extraction**: [`retry_after_ms`](file:///data/data/com.termux/files/home/Vittaz/packages/agent/src/providers/adapters/retry_after.ts) parses standard HTTP `Retry-After` headers (both integer delta-seconds and RFC 7231 HTTP-date strings), capping values to 86,400,000 ms (24 hours).
-2. **Adapter Propagation**: [`ai_sdk.ts`](file:///data/data/com.termux/files/home/Vittaz/packages/agent/src/providers/adapters/ai_sdk.ts) records `retry_after_ms` into the failure record of [`AllKeysFailedError`](file:///data/data/com.termux/files/home/Vittaz/packages/agent/src/key_pool.ts).
-3. **Agent Q&A Loop**: [`ReadOnlyQaLoop.answerQuestion`](file:///data/data/com.termux/files/home/Vittaz/packages/agent/src/qa_loop.ts) extracts `retry_after_ms` from `AllKeysFailedError` and populates [`AnswerQuestionResult.retry_after_ms`](file:///data/data/com.termux/files/home/Vittaz/packages/agent/src/qa_loop.ts).
-4. **Mobile State Update**: [`store.tsx`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/store.tsx) passes `result.retry_after_ms` and `Date.now()` into [`record_provider_outcome`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_health.ts).
+1. **Header Extraction**: [`retry_after_ms`](../packages/agent/src/providers/adapters/retry_after.ts) parses standard HTTP `Retry-After` headers (both integer delta-seconds and RFC 7231 HTTP-date strings), capping values to 86,400,000 ms (24 hours).
+2. **Adapter Propagation**: [`ai_sdk.ts`](../packages/agent/src/providers/adapters/ai_sdk.ts) records `retry_after_ms` into the failure record of [`AllKeysFailedError`](../packages/agent/src/key_pool.ts).
+3. **Agent Q&A Loop**: [`ReadOnlyQaLoop.answerQuestion`](../packages/agent/src/qa_loop.ts) extracts `retry_after_ms` from `AllKeysFailedError` and populates [`AnswerQuestionResult.retry_after_ms`](../packages/agent/src/qa_loop.ts).
+4. **Mobile State Update**: [`store.tsx`](../apps/mobile/src/store.tsx) passes `result.retry_after_ms` and `Date.now()` into [`record_provider_outcome`](../apps/mobile/src/assistant/provider_health.ts).
 
 ### 6.2 Provider Health Tracking
 
-- **In-Memory Per-Process**: Provider cooldowns are maintained in memory via [`provider_health.ts`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_health.ts). If an upstream provider omits `Retry-After`, the client defaults to a 30-second backoff (`DEFAULT_COOLDOWN_MS`).
-- **Success Reset**: A successful answer explicitly clears provider cooldowns via [`clear_provider_health`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_health.ts).
+- **In-Memory Per-Process**: Provider cooldowns are maintained in memory via [`provider_health.ts`](../apps/mobile/src/assistant/provider_health.ts). If an upstream provider omits `Retry-After`, the client defaults to a 30-second backoff (`DEFAULT_COOLDOWN_MS`).
+- **Success Reset**: A successful answer explicitly clears provider cooldowns via [`clear_provider_health`](../apps/mobile/src/assistant/provider_health.ts).
 - **Process Scope**: Provider health is intentionally process-scoped. It is not persisted to disk to avoid storing operational metadata without explicit user consent.
 
 ---
@@ -151,7 +151,7 @@ When an upstream provider responds with HTTP 429 Too Many Requests:
    - _Rejection Reason_: Unrecoverable user friction. A biometric change or device password reset caused all profile labels and endpoints to disappear without recourse.
 2. **Automated Save Validation on All Endpoints**:
    - _Alternative_: Automatically execute `fetch_model_choices` upon saving any endpoint.
-   - _Rejection Reason_: Security vulnerability. Allows attacker-supplied endpoints in saved profiles to exfiltrate valid API keys via automatic outbound GET requests. Pinned host allowlisting prevents this.
+   - _Rejection Reason_: Security vulnerability. Allows attacker-supplied endpoints in saved profiles to exfiltrate valid API keys via automatic outbound GET requests. The allowlist reduces unsolicited requests; it is not a complete SSRF or redirect security boundary.
 3. **Cross-Provider Fallback Pools**:
    - _Alternative_: When Provider A is rate-limited (HTTP 429), automatically reroute query to Provider B.
    - _Rejection Reason_: Violates core Vittaz privacy boundaries. Prompts must only ever be dispatched to the user's explicitly selected active provider.
@@ -160,10 +160,10 @@ When an upstream provider responds with HTTP 429 Too Many Requests:
 
 ## 8. Deprecation Boundary: Single-Key Projection Shims
 
-To maintain backward compatibility with legacy single-key callers, [`provider_keys.ts`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts) projects the active profile into legacy storage slots (`save_openai_compatible_key`, `save_anthropic_api_key`, `save_kilo_key`).
+To maintain backward compatibility with legacy single-key callers, [`provider_keys.ts`](../apps/mobile/src/assistant/provider_keys.ts) projects the active profile into legacy storage slots (`save_openai_compatible_key`, `save_anthropic_api_key`, `save_kilo_key`).
 
 **Deprecation Plan**:
 
-- Legacy projection shims are retained as read/write mirrors through milestone G3.
-- Direct consumption of single-key slots in [`store.tsx`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/store.tsx) will be migrated to query [`read_key_registry`](file:///data/data/com.termux/files/home/Vittaz/apps/mobile/src/assistant/provider_keys.ts) exclusively.
+- Legacy projection shims are retained as read/write mirrors until profile management passes end-to-end device testing.
+- Direct consumption of single-key slots in [`store.tsx`](../apps/mobile/src/store.tsx) will be migrated to query [`read_key_registry`](../apps/mobile/src/assistant/provider_keys.ts) exclusively.
 - Legacy slots will be retired once full profile management is verified in end-to-end device testing.

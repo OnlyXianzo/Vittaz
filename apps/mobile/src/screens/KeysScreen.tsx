@@ -98,7 +98,13 @@ function is_pinned_endpoint(url: string | undefined): boolean {
   if (!url) return true;
   try {
     const parsed = new URL(url);
-    return PINNED_HOSTS.has(parsed.hostname);
+    return (
+      parsed.protocol === "https:" &&
+      !parsed.port &&
+      !parsed.username &&
+      !parsed.password &&
+      PINNED_HOSTS.has(parsed.hostname)
+    );
   } catch {
     return false;
   }
@@ -308,8 +314,8 @@ export function KeysScreen() {
         (target_id
           ? registry.profiles.find((entry) => entry.id === target_id)
           : undefined) ??
-        (registry.profiles.find((entry) => entry.id === registry.active_id) ??
-        registry.profiles[0]);
+        registry.profiles.find((entry) => entry.id === registry.active_id) ??
+        registry.profiles[0];
       if (!target) return;
       if (
         options?.auto &&

@@ -91,7 +91,6 @@ async function save_key(
     await store.deleteItemAsync(name);
     return;
   }
-  await store.deleteItemAsync(name).catch(() => undefined);
   await store.setItemAsync(name, key);
 }
 
