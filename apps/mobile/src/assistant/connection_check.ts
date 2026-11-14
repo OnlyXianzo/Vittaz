@@ -13,7 +13,7 @@ export type ConnectionCheck =
       readonly at: number;
     }
   | {
-      readonly state: "rejected" | "unreachable";
+      readonly state: "rejected" | "unreachable" | "not_found";
       readonly at: number;
     };
 
@@ -46,7 +46,11 @@ export function parse_connection_check(value: unknown): ConnectionCheck {
     if (!is_instant(check.models)) return UNTESTED;
     return { state: "reachable", models: check.models, at: check.at };
   }
-  if (check.state === "rejected" || check.state === "unreachable")
+  if (
+    check.state === "rejected" ||
+    check.state === "unreachable" ||
+    check.state === "not_found"
+  )
     return { state: check.state, at: check.at };
   return UNTESTED;
 }

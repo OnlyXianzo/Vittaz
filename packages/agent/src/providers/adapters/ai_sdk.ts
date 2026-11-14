@@ -492,10 +492,15 @@ export function create_ai_sdk_provider(
             elapsed_ms: Math.max(0, Date.now() - started_at),
           });
 
+          const retry_ms = status === 429 ? retry_after_ms(error) : undefined;
           if (status === 401) active_pool.markUnauthorized(entry.nickname);
           else if (status === 429)
-            active_pool.markRateLimited(entry.nickname, retry_after_ms(error));
-          failures.push({ nickname: entry.nickname, reason });
+            active_pool.markRateLimited(entry.nickname, retry_ms);
+          failures.push({
+            nickname: entry.nickname,
+            reason,
+            ...(retry_ms !== undefined ? { retry_after_ms: retry_ms } : {}),
+          });
 
           report_agent_diagnostic(params.onDiagnostic, {
             event_code: "provider_failure_classified",

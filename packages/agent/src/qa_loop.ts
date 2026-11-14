@@ -204,6 +204,7 @@ export interface AnswerQuestionResult {
   tokensUsed: number;
   toolsUsed: string[];
   answer: string | null;
+  retry_after_ms?: number;
 }
 export interface QuestionAnsweringAgent {
   answerQuestion(
@@ -290,7 +291,10 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     let stepsUsed = 0;
     let tokensUsed = 0;
     const toolsUsed: string[] = [];
-    const stopped = (stopReason: QaFailureStopReason): AnswerQuestionResult => {
+    const stopped = (
+      stopReason: QaFailureStopReason,
+      retry_after_ms?: number,
+    ): AnswerQuestionResult => {
       report_agent_diagnostic(this.params.onDiagnostic, {
         event_code: "qa_failed",
         source: "qa_loop",
@@ -309,6 +313,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
           stopReason === "sensitive_dropped"
             ? null
             : "Could not answer safely within the request limits.",
+        ...(retry_after_ms !== undefined ? { retry_after_ms } : {}),
       };
     };
     failure_stage = "preflight";
@@ -560,6 +565,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
     } catch (error) {
       let stop_reason: QaFailureStopReason = "provider_error";
       let diagnostic_reason: AgentDiagnosticReason = "provider_error";
+      let failure_retry_after_ms: number | undefined;
       if (cancelled()) {
         stop_reason = caller?.aborted ? "aborted" : "timeout";
         diagnostic_reason = stop_reason === "aborted" ? "cancelled" : "timeout";
@@ -572,9 +578,13 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
         );
         if (reasons.size === 1 && reasons.has("unauthorized"))
           stop_reason = "provider_auth_failed";
-        else if (reasons.size === 1 && reasons.has("rate_limited"))
+        else if (reasons.size === 1 && reasons.has("rate_limited")) {
           stop_reason = "provider_rate_limited";
-        else if (reasons.size === 1 && reasons.has("connection_error"))
+          failure_retry_after_ms = error.failures.find(
+            (f) =>
+              f.reason === "rate_limited" && f.retry_after_ms !== undefined,
+          )?.retry_after_ms;
+        } else if (reasons.size === 1 && reasons.has("connection_error"))
           stop_reason = "provider_connection_failed";
         else if (reasons.size === 1 && reasons.has("provider_unavailable"))
           stop_reason = "provider_unavailable";
@@ -604,7 +614,7 @@ export class ReadOnlyQaLoop implements QuestionAnsweringAgent {
         failure_stage,
         count: stepsUsed,
       });
-      return stopped(stop_reason);
+      return stopped(stop_reason, failure_retry_after_ms);
     } finally {
       clearTimeout(timer);
     }

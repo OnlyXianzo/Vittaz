@@ -79,10 +79,34 @@ function check_label(check: ConnectionCheck | undefined): string {
       return `Endpoint reachable · key accepted · ${check.models} models`;
     case "rejected":
       return "Last check: the endpoint rejected this key";
+    case "not_found":
+      return "Last check: path not found (404) · check URL";
     case "unreachable":
       return "Last check: could not reach the endpoint";
     default:
       return "Endpoint not checked yet";
+  }
+}
+
+const PINNED_HOSTS = new Set([
+  "api.openai.com",
+  "api.anthropic.com",
+  "ai-gateway.kilo.ai",
+]);
+
+function is_pinned_endpoint(url: string | undefined): boolean {
+  if (!url) return true;
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      !parsed.port &&
+      !parsed.username &&
+      !parsed.password &&
+      PINNED_HOSTS.has(parsed.hostname)
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -229,6 +253,7 @@ export function KeysScreen() {
   const save = async () => {
     set_busy(true);
     try {
+      let saved_id = editing_id;
       if (editing_id) {
         await update_key_profile(SecureStore, editing_id, {
           provider,
@@ -241,7 +266,7 @@ export function KeysScreen() {
           ...(api_key.trim() ? { api_key } : {}),
         });
       } else {
-        await add_key_profile(SecureStore, {
+        const added = await add_key_profile(SecureStore, {
           provider,
           label,
           base_url,
@@ -252,15 +277,17 @@ export function KeysScreen() {
           api_key,
           activate: true,
         });
+        saved_id = added.id;
         dispatch({ type: "select_model", model: MODEL_FOR_PROVIDER[provider] });
       }
       dispatch({ type: "show_toast", message: "Key profile saved securely." });
       reset_form();
       await refresh();
-      // Saving proves nothing about the endpoint, so check it once and keep the
-      // answer. Absent this, a key that was never tested looked the same as one
-      // that had just failed.
-      void check_saved_profile();
+      // Pinned standard providers are checked once automatically.
+      // Custom endpoints require an explicit user test to prevent credential exfiltration.
+      if (saved_id) {
+        void check_saved_profile(saved_id, { auto: true });
+      }
     } catch {
       dispatch({
         type: "show_toast",
@@ -273,19 +300,32 @@ export function KeysScreen() {
   };
 
   /**
-   * Check the active profile against its endpoint and report the class of
+   * Check a saved profile against its endpoint and report the class of
    * result. Deliberately reports "accepted", never "verified": discovery and
    * chat are different endpoints on every provider that matters here.
    */
-  const check_saved_profile = async () => {
+  const check_saved_profile = async (
+    target_id?: string,
+    options?: { auto?: boolean },
+  ) => {
     try {
       const registry = await read_key_registry(SecureStore);
-      const active =
+      const target =
+        (target_id
+          ? registry.profiles.find((entry) => entry.id === target_id)
+          : undefined) ??
         registry.profiles.find((entry) => entry.id === registry.active_id) ??
         registry.profiles[0];
-      if (!active) return;
-      const check = await test_connection(SecureStore, active);
-      set_checks((current) => ({ ...current, [active.id]: check }));
+      if (!target) return;
+      if (
+        options?.auto &&
+        target.base_url &&
+        !is_pinned_endpoint(target.base_url)
+      ) {
+        return;
+      }
+      const check = await test_connection(SecureStore, target);
+      set_checks((current) => ({ ...current, [target.id]: check }));
       dispatch({
         type: "show_toast",
         message:
@@ -293,7 +333,9 @@ export function KeysScreen() {
             ? "Endpoint reachable and key accepted. No request was sent to a model."
             : check.state === "rejected"
               ? "The endpoint rejected this key. Check it and save again."
-              : "Could not reach that endpoint. Check the URL and your connection.",
+              : check.state === "not_found"
+                ? "The endpoint path was not found (404). Check the base URL."
+                : "Could not reach that endpoint. Check the URL and your connection.",
       });
     } catch {
       // A failed check is not a failed save; stay quiet rather than nagging.
@@ -592,7 +634,8 @@ export function KeysScreen() {
       </Card>
 
       <SectionLabel>Saved keys</SectionLabel>
-      {registry_from_manifest ? (
+      {registry_from_manifest ||
+      Object.values(hints).some((hint) => hint.includes("unreadable")) ? (
         <Card tone="soft">
           <B>Your keys cannot be opened on this device</B>
           <M size={12} style={{ marginTop: 4 }}>
@@ -662,6 +705,13 @@ export function KeysScreen() {
                 small
                 disabled={active_id === profile.id}
                 onPress={() => void use_profile(profile)}
+              />
+              <Button
+                label="Test connection"
+                variant="ghost"
+                small
+                accessibilityLabel={`Test connection for ${profile.label}`}
+                onPress={() => void check_saved_profile(profile.id)}
               />
               <Button
                 label={revealed[profile.id] ? "Hide" : "Show"}

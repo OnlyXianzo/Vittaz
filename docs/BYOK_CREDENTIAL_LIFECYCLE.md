@@ -1,239 +1,169 @@
-# BYOK credential lifecycle
+# BYOK Credential Lifecycle
 
-**Read this before changing anything about keys, profiles, or provider failures.**
+**Architectural Decision Record and Technical Specification**
 
-Four questions were raised about how BYOK credentials behave over their
-lifetime. This document answers each one against the code as merged in
-`6982b0e`, states what is missing, and recommends a decision.
-
-Nothing here is implemented. It is a decision record plus a gap list, so the
-answers do not have to be rediscovered.
+This document specifies the lifecycle, validation, storage architecture, and failure semantics for Bring-Your-Own-Key (BYOK) provider credentials in the Vittaz mobile client. It records the baseline architecture established in commit [`6982b0e`](https://github.com/OnlyXianzo/Vittaz/commit/6982b0e), the enhancements implemented in [PR #90](https://github.com/OnlyXianzo/Vittaz/pull/90), and the trade-offs governing provider credentials.
 
 ---
 
-## At a glance
+## 1. Executive Summary & Status
 
-| #   | Question                            | Mechanism today                                                                                           | Recommendation                                                                   | Size         |
-| --- | ----------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------ |
-| 1   | Test the credential at setup?       | Optional manual "Fetch models" only                                                                       | Make it an explicit, recorded check — and label it honestly                      | Small        |
-| 2   | Unreadable stored secret?           | **None.** Corrupt registry silently empties the list; a read error surfaces as a generic provider failure | Distinguish _absent_ from _unreadable_, and never lose the profile               | Small–medium |
-| 3   | Per-task routing or fallback pools? | One active profile, no routing, no fallback by design                                                     | Keep single-active; add _named, explicit_ routes later if wanted                 | Medium       |
-| 4   | Offline and rate-limit behaviour?   | Fails loudly with a per-reason code and no cross-provider fallback                                        | Already right. Add `Retry-After` honouring and a persisted per-key health record | Small        |
-
----
-
-## 1. Validation at entry vs. at execution
-
-**Before these commits.** Entry validation was syntax only: length, whitespace, control
-characters, `https:`, no userinfo/query/hash (`provider_keys.ts:92`,
-`:97`, `:153`). Nothing contacts the endpoint.
-
-There _is_ an authenticated call, but it is manual and separate: the keys
-screen has a **Fetch models** action (`KeysScreen.tsx:204`, button at `:440`) that runs
-`fetch_model_choices` (`provider_keys.ts:438`), an authenticated
-`GET {base}/{suffix}/models`. So the capability exists; what does not exist
-is a _check_ whose result is kept and shown.
-
-**What is missing.**
-
-- The check is optional and runs before saving, never after.
-- Its outcome is thrown away: a `catch` shows one generic toast
-  (`KeysScreen.tsx:224`) and stores nothing, so a key that failed this
-  morning looks identical to one that passed.
-- Nothing distinguishes 401 from 404 from a timeout — the copy is the same.
-- A profile saved _without_ pressing the button has never been tested at all.
-
-**Implemented.** Keep syntax validation at entry as the only hard gate —
-it must never depend on the network. Then:
-
-1. After a successful save, run the model check once automatically and record
-   the result per profile (ok / rejected / unreachable / untested).
-2. Show it as a badge in the keys list and, when it is not `ok`, a "Test
-   connection" row that repeats it on demand.
-3. Report the class of failure, not just "failed": auth vs. not-found vs.
-   network.
-
-**Be honest about what a green check means.** A 200 on `/models` proves the
-endpoint answers and the key is accepted _for discovery_. It does not prove
-chat works: model entitlement, free-tier routing (OpenRouter) and plan quotas
-all differ between the two endpoints. So the badge should read "endpoint
-reachable, key accepted" — never "verified".
-
-This is deliberately the same request the app already makes, so it adds no new
-network behaviour and no new privacy surface.
+| Lifecycle Area                        | Baseline Architecture ([`6982b0e`](https://github.com/OnlyXianzo/Vittaz/commit/6982b0e))              | Implemented in PR #90                                                                                                                                                    | Status                                |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| **Validation at Entry**               | Syntax validation only; manual "Fetch models" button.                                                 | Automatic save-time validation for pinned hosts; on-demand "Test connection" row for arbitrary endpoints. Distinct 401/403/404/network error taxonomy.                   | **Implemented**                       |
+| **Keystore Invalidation & Lifecycle** | Keystore errors bubble or silently wipe registry; profile list shares fate of secrets in SecureStore. | Plaintext manifest mirror (`profile_manifest.ts`) preserves non-secret rows across lock-screen resets. Explicit alias deletion before write. Backup extraction disabled. | **Implemented**                       |
+| **Multi-Profile Routing**             | Single active profile projected to legacy slots; no cross-provider fallback pools.                    | Single active profile maintained; fail-closed boundary preserved; cross-provider fallback explicitly rejected.                                                           | **Design Preserved**                  |
+| **Rate-Limit & Offline Semantics**    | In-flight failure codes (`BYOK_*`); `Retry-After` dropped; cooldown lost between questions.           | `Retry-After` parsed and wired through `ReadOnlyQaLoop` to `record_provider_outcome`. Per-process health tracking. Pre-dispatch connectivity check deferred.             | **Implemented (Health process-only)** |
 
 ---
 
-## 2. Key lifecycle and keystore invalidation
+## 2. Problem Statement & Context
 
-**Before these commits: no mechanism existed, and two of the failure paths
-were actively wrong.**
+Personal financial management requires strong data isolation. Vittaz permits optional cloud AI assistance through user-provided API keys (BYOK). However, mobile credential handling faces distinct edge cases:
 
-- `read_key_secret` (`provider_keys.ts:297`) does **not** catch a throw from
-  `getItemAsync`. A keystore that refuses to decrypt propagates.
-- `read_key_registry` (`:237`) has the opposite problem: if the stored blob is
-  present but fails `parse_registry`, it returns
-  `{ active_id: null, profiles: [] }` (`:245`). **Every profile disappears
-  with no explanation**, and the legacy fallback does not run because the raw
-  value was not `null`.
-- The profile list itself lives in SecureStore (`KEY_PROFILES_NAME`,
-  `provider_keys.ts:21`), so keystore metadata shares the fate of the secrets.
-  Base URL, model, and label are not secrets but are stored as if they were.
-- When a read throws during a question, `store.tsx:774` records
-  `secure_credential_read_failed` and rethrows, and the user is shown
-  `mobile_qa_failure_message("provider_error")` (`store.tsx:1040`) — i.e.
-  "the provider failed". The diagnostics know the real cause; the person
-  holding the phone does not.
-- A corrupt _value_ (not a throw) is silently mapped to `null`
-  (`read_key_secret`), which is indistinguishable from "no key saved".
-
-**Expected behaviour to adopt.**
-
-| Situation                          | What the user should see                                                          |
-| ---------------------------------- | --------------------------------------------------------------------------------- |
-| No key was ever saved              | "No API key is saved." (exists today)                                             |
-| Key exists but cannot be decrypted | "Your saved key can no longer be read on this device. Re-enter it for _<label>_." |
-| Registry unreadable                | The profiles are still listed, marked unreadable, each with re-entry              |
-| Full data clear                    | Empty state — correct, and already correct                                        |
-
-The rule: **never delete a profile because a secret could not be read.** A
-profile that stays visible with "re-enter the key" is recoverable; an empty
-list looks like the app forgot the user's setup.
-
-Worth knowing: on Android, SecureStore entries are invalidated when the
-lock-screen credential changes. Reads can start failing for keys that were
-written fine, with no user action. That is exactly why this must be a
-first-class state rather than an exception.
-
-**Implemented:** all three. The manifest is the owner's decision of 2026-11-11
-and is recorded in `DECISIONS.md`.
-
-The three changes are:
-
-1. Wrap the reads: a throw becomes a typed `unreadable` state, not an
-   exception and not `null`.
-2. Keep a non-secret manifest (profile id, provider kind, label) outside
-   SecureStore so the list survives keystore loss.
-3. Map `unreadable` to its own user-facing message and its own stop reason,
-   separate from `provider_error`.
-
-Point 2 is a privacy trade-off and was the owner's call: it makes provider
-choice, label, endpoint and model readable at rest. It was accepted, because
-the alternative is losing the list entirely. What is written is an explicit
-allowlist of named fields — no spread, so a future credential field cannot ride
-along — and a test asserts that an `api_key` on the input never reaches the
-stored blob. The keys screen discloses the plain-storage copy.
-
-The recovery is deliberately read-only: `read_key_registry` rebuilds the rows
-from the manifest when the keystore refuses, writes nothing, and marks the
-registry `source: "manifest"`. A keystore that comes back after a restart
-therefore finds its contents untouched. Writing only happens when the user acts
-on a row — re-entering a key is what repairs storage.
+1. **Keystore Loss**: On Android, hardware keystore aliases are invalidated when the user alters lock-screen credentials (PIN, pattern, biometrics). Storing profile metadata exclusively in `expo-secure-store` caused the entire profile list to vanish when the keystore became unreadable, misleading users into believing their entire account configuration had been wiped.
+2. **Silent Failure & Broken Backoff**: Upstream provider 429 rate-limiting headers (`Retry-After`) were extracted by low-level HTTP adapters but discarded before reaching mobile state, causing rapid retries and repeated quota exhaustion.
+3. **SSRF & Key Exfiltration**: Automatically testing connection on save against arbitrary custom URLs risks exfiltrating user credentials to malicious endpoints.
 
 ---
 
-## 3. Multi-profile routing vs. single active key
+## 3. Validation at Entry vs. Execution
 
-**Unchanged.** Profiles are a list, but only one is active, and it is projected
-onto the legacy single-key slots (`activate_key_profile`, and the projection
-read in `store.tsx:735`). There is no per-task routing, no capability
-selection, and no pool across profiles.
+### 3.1 Syntax vs. Network Validation
 
-The absence of fallback is not an oversight — it is the contract.
-`ProviderRegistry` refuses to substitute a configuration, and since `6982b0e`
-it also refuses to share one key pool across configurations.
+Syntax validation is performed locally and synchronously in [`validate_profile`](../apps/mobile/src/assistant/provider_keys.ts):
 
-**Recommendation: do not add automatic fallback pools.** Automatically
-sending a question to a different provider would cross the privacy boundary
-the product exists to protect, and it would silently change who sees the
-question. It also conflicts with the existing no-fallback rule.
+- Protocol must strictly be `https:`.
+- No userinfo, query parameters, or URL fragments are permitted.
+- Whitespace is stripped and length is bounded.
 
-If per-task routing is wanted, model it as **named routes the user configures
-explicitly**, not as adaptive behaviour:
+Syntax validation serves as the sole blocking gate before writing a profile to local storage. Network reachability must never prevent a user from saving a key locally.
 
-- "Quick categorisations → _<profile>_" and "Questions → _<profile>_,"
-  both visible in settings.
-- A route is data: one profile, one model, chosen by the user.
-- When the routed profile fails, the request fails. It does not divert.
+### 3.2 Save-Time Validation & SSRF Prevention
 
-That is a real feature with a clear place to live, and it is safe precisely
-because nothing is decided at runtime. It is also not urgent: with a single
-active profile it changes nothing for most installs.
+Upon saving a key profile:
 
-**Non-goal.** "Use the local model for easy tasks, the expensive key for hard
-ones" is a policy that cannot be evaluated without looking at the question,
-which means sending it somewhere first. That is the silent fallback in
-disguise.
+1. **Pinned Hosts**: For verified standard providers (`api.openai.com`, `api.anthropic.com`, `ai-gateway.kilo.ai`), [`KeysScreen`](../apps/mobile/src/screens/KeysScreen.tsx) initiates an automatic background discovery request (`GET {base_url}/models`) via [`test_connection`](../apps/mobile/src/assistant/provider_keys.ts) to verify credential validity.
+2. **Custom / Untrusted Endpoints**: For custom `openai_compatible` endpoints, automated background requests are suppressed to prevent credential exfiltration (SSRF). The user must explicitly press the manual **Test connection** button on the profile card.
+3. **Timeout Enforcement**: All discovery requests enforce a 5,000 ms timeout via `AbortController` in [`fetch_model_choices`](../apps/mobile/src/assistant/provider_keys.ts).
 
----
+### 3.3 Semantic Interpretation of Connection Checks
 
-## 4. Offline and rate-limit behaviour
+A successful discovery response (HTTP 200) proves reachability and model discovery entitlement only. It does **not** guarantee chat completion access, quota availability, or model-tier entitlements. The UI surfaces this outcome precisely as:
+`Endpoint reachable · key accepted · N models`
 
-**The failure path was already correct in the two ways that matter:**
+Connection outcomes are classified into distinct failure categories:
 
-- Every stop reason has its own copy with a stable code —
-  `BYOK_AUTH`, `BYOK_RATE_LIMIT`, `BYOK_REQUEST_REJECTED`,
-  `BYOK_CONNECTION` (`mobile_qa.ts:83`–`:97`).
-- There is no cross-provider fallback anywhere. A rate-limited key does not
-  quietly switch providers.
-
-**What is missing.**
-
-- **`Retry-After` is ignored.** `markRateLimited` accepts `retryAfterMs`
-  (`key_pool.ts:132`) but the adapter calls it with no argument
-  (`ai_sdk.ts:495`), so cooldown is always the 30 s default. The Telegram
-  transport already reads `retry_after` (`telegram.ts:114`) — follow that
-  precedent rather than inventing one.
-- **Cooldown does not survive the question.** Mobile builds a fresh agent, and
-  therefore a fresh `KeyPool`, per question (`create_mobile_qa_agent`,
-  `mobile_qa.ts:223`). A 429 marks a key that is discarded immediately, so
-  asking again straight away repeats the same failure with no backoff.
-- **Offline is not detected before dispatch.** A flight-mode question is sent,
-  fails, and is reported as `BYOK_CONNECTION` — accurate but late, and it
-  spends a request to discover something the OS already knows.
-- **No health history.** Diagnostics record the events, but nothing feeds a
-  per-key "last failed at T for reason R" back into the keys screen.
-
-**Implemented:** points 1, 2 and 4 (the cooldown is per process, not per
-question). Point 3 is **not** implemented — see below.
-
-**Recommendation.** Keep the no-fallback stance exactly as it is, and make the
-failures cheaper to recover from:
-
-1. Read `Retry-After` and pass it to `markRateLimited`.
-2. Persist a per-profile health record (last outcome, reason, timestamp) —
-   reuse the diagnostics data rather than adding a store.
-3. Check connectivity before dispatch and fail with a distinct offline
-   message without spending the request. **Not built:** React Native exposes
-   no connectivity API without adding a dependency, and a dependency for one
-   message was not worth taking unasked. A flight-mode question is still
-   discovered by spending one request; the message afterwards is correct.
-4. Surface the health record next to the profile, so the reason is visible
-   before the next question rather than after it.
+- **`rejected`**: HTTP 401 or 403 returned by the endpoint (invalid credential).
+- **`not_found`**: HTTP 404 returned by the endpoint (invalid path or base URL).
+- **`unreachable`**: Network disconnection, DNS resolution failure, or 5,000 ms timeout.
+- **`untested`**: Initial state or state after modifying base URL, model, or API key.
 
 ---
 
-## Order I would do these in
+## 4. Key Storage, Keystore Invalidation & Threat Model
 
-1. **Question 2** — it is the only one that loses user data today, and the
-   corrupt-registry path silently empties the list.
-2. **Question 4** — small, and it turns an existing correct-but-opaque failure
-   into a recoverable one.
-3. **Question 1** — mostly reusing the fetch-models call, after 2 and 4 have
-   given it somewhere to display.
-4. **Question 3** — only if per-task routing is actually wanted. Designing it
-   is cheap; building it before there is a use case is not.
+### 4.1 Storage Architecture
 
-## Decisions only the owner can make
+Credential storage divides operational metadata from cryptographic secrets:
 
-- **Q2, point 2 (decided 2026-11-11): yes.** Non-secret metadata lives outside
-  the keystore, and connection checks now survive a relaunch because they are
-  stored with it. See `DECISIONS.md`. Provider _health_ (the rate-limit
-  cooldown from question 4) is still process-only: it describes this run, not
-  the key.
-- **Q1 (chosen):** the check runs automatically after a save. Chosen over a
-  button because a key that has never been tried is the common case, and the
-  call is the same one the screen already makes. Easy to reverse.
-- **Q3 (not built):** per-task routing. The recommendation is to keep
-  single-active, and to add routing only as named, explicit routes. Nothing
-  here blocks that later.
+```
++--------------------------------------------------------------------------+
+|                              Vittaz Mobile                               |
+|                                                                          |
+|  +---------------------------------+  +-------------------------------+  |
+|  |     expo-secure-store           |  |      expo-sqlite/kv-store     |  |
+|  |     (Android Keystore)          |  |  (vittaz.assistant.key_man.)  |  |
+|  +---------------------------------+  +-------------------------------+  |
+|  | • api_key secret per profile    |  | • profile_id                  |  |
+|  | • Authoritative key registry    |  | • provider kind               |  |
+|  |                                 |  | • label                       |  |
+|  |                                 |  | • base_url & model            |  |
+|  |                                 |  | • last ConnectionCheck        |  |
+|  +---------------------------------+  +-------------------------------+  |
++--------------------------------------------------------------------------+
+```
+
+1. **Secrets (`expo-secure-store`)**: API keys are encrypted at rest using platform-managed hardware keystores. Keys are indexed by profile ID (`vittaz_key_<id>`).
+2. **Manifest (`expo-sqlite/kv-store`)**: Non-secret metadata is stored in `vittaz.assistant.key_manifest.v1` via [`profile_manifest.ts`](../apps/mobile/src/assistant/profile_manifest.ts). Only allowlisted fields are persisted; secrets are strictly excluded by construction.
+3. **Replacement writes**: Existing secrets are overwritten without pre-deletion. A failed write must not proactively erase the previous key. Recovery of genuinely invalidated Android aliases remains device-unverified; no automatic destructive reset is claimed.
+
+### 4.2 Recovery Flow on Keystore Invalidation
+
+When hardware keystore reads fail:
+
+1. [`read_key_registry`](../apps/mobile/src/assistant/provider_keys.ts) catches the error and recovers non-secret profile rows from [`read_manifest`](../apps/mobile/src/assistant/profile_manifest.ts), tagging the registry with `source: "manifest"`.
+2. The read operation is strictly non-mutating; it does not overwrite keystore records. If the keystore recovers after reboot, original secrets remain intact.
+3. [`read_key_secret_state`](../apps/mobile/src/assistant/provider_keys.ts) evaluates each profile individually. If a key is unreadable, the UI displays `Key unreadable — re-enter` for that specific row.
+4. When any profile is unreadable, [`KeysScreen`](../apps/mobile/src/screens/KeysScreen.tsx) renders an informative recovery banner advising the user to re-enter credentials.
+
+### 4.3 Backup & Extraction Threat Model
+
+Plaintext manifest storage risks data exposure if transferred off-device during cloud backups:
+
+- **Android Auto Backup**: Disabled by setting `"allowBackup": false` in [`apps/mobile/app.json`](../apps/mobile/app.json) under the `android` stanza.
+- **Limits**: This disables Android app backup participation; it does not protect against rooted devices, debug access, or every manufacturer-specific transfer path. Native configuration and device behaviour remain unverified.
+- Reference: Documented in [`docs/PRIVACY.md`](../docs/PRIVACY.md) and [`DECISIONS.md`](../DECISIONS.md).
+
+---
+
+## 5. Multi-Profile Routing & Routing Invariants
+
+### 5.1 Single Active Profile Contract
+
+Vittaz enforces a strict single-active-profile model:
+
+- Only one provider profile is active at any given moment.
+- The active profile is projected to legacy slots in [`activate_key_profile`](../apps/mobile/src/assistant/provider_keys.ts) to maintain backward compatibility.
+- **Zero Cross-Provider Fallback**: If a request to the active provider fails, the request fails immediately and closed. The system will **never** silently divert prompts, financial data, or user queries to an alternate provider or model pool.
+
+### 5.2 Named Explicit Routing (Deferred Non-Goal)
+
+Dynamic or prompt-dependent routing ("send small tasks to local models, complex tasks to cloud") is rejected because evaluating prompt complexity requires inspecting content, compromising user privacy.
+
+Future routing capabilities, if developed, will follow declarative, user-defined rules (e.g., "Category Classification → Profile A; General Q&A → Profile B") where routes are explicit, visible in settings, and fail closed.
+
+---
+
+## 6. Rate-Limiting, `Retry-After` & Error Propagation
+
+### 6.1 End-to-End `Retry-After` Pipeline
+
+When an upstream provider responds with HTTP 429 Too Many Requests:
+
+1. **Header Extraction**: [`retry_after_ms`](../packages/agent/src/providers/adapters/retry_after.ts) parses standard HTTP `Retry-After` headers (both integer delta-seconds and RFC 7231 HTTP-date strings), capping values to 86,400,000 ms (24 hours).
+2. **Adapter Propagation**: [`ai_sdk.ts`](../packages/agent/src/providers/adapters/ai_sdk.ts) records `retry_after_ms` into the failure record of [`AllKeysFailedError`](../packages/agent/src/key_pool.ts).
+3. **Agent Q&A Loop**: [`ReadOnlyQaLoop.answerQuestion`](../packages/agent/src/qa_loop.ts) extracts `retry_after_ms` from `AllKeysFailedError` and populates [`AnswerQuestionResult.retry_after_ms`](../packages/agent/src/qa_loop.ts).
+4. **Mobile State Update**: [`store.tsx`](../apps/mobile/src/store.tsx) passes `result.retry_after_ms` and `Date.now()` into [`record_provider_outcome`](../apps/mobile/src/assistant/provider_health.ts).
+
+### 6.2 Provider Health Tracking
+
+- **In-Memory Per-Process**: Provider cooldowns are maintained in memory via [`provider_health.ts`](../apps/mobile/src/assistant/provider_health.ts). If an upstream provider omits `Retry-After`, the client defaults to a 30-second backoff (`DEFAULT_COOLDOWN_MS`).
+- **Success Reset**: A successful answer explicitly clears provider cooldowns via [`clear_provider_health`](../apps/mobile/src/assistant/provider_health.ts).
+- **Process Scope**: Provider health is intentionally process-scoped. It is not persisted to disk to avoid storing operational metadata without explicit user consent.
+
+---
+
+## 7. Alternatives Considered
+
+1. **Hardware-Only Secret Storage (Status Quo Before PR #90)**:
+   - _Alternative_: Keep all registry metadata inside `expo-secure-store`.
+   - _Rejection Reason_: Unrecoverable user friction. A biometric change or device password reset caused all profile labels and endpoints to disappear without recourse.
+2. **Automated Save Validation on All Endpoints**:
+   - _Alternative_: Automatically execute `fetch_model_choices` upon saving any endpoint.
+   - _Rejection Reason_: Security vulnerability. Allows attacker-supplied endpoints in saved profiles to exfiltrate valid API keys via automatic outbound GET requests. The allowlist reduces unsolicited requests; it is not a complete SSRF or redirect security boundary.
+3. **Cross-Provider Fallback Pools**:
+   - _Alternative_: When Provider A is rate-limited (HTTP 429), automatically reroute query to Provider B.
+   - _Rejection Reason_: Violates core Vittaz privacy boundaries. Prompts must only ever be dispatched to the user's explicitly selected active provider.
+
+---
+
+## 8. Deprecation Boundary: Single-Key Projection Shims
+
+To maintain backward compatibility with legacy single-key callers, [`provider_keys.ts`](../apps/mobile/src/assistant/provider_keys.ts) projects the active profile into legacy storage slots (`save_openai_compatible_key`, `save_anthropic_api_key`, `save_kilo_key`).
+
+**Deprecation Plan**:
+
+- Legacy projection shims are retained as read/write mirrors until profile management passes end-to-end device testing.
+- Direct consumption of single-key slots in [`store.tsx`](../apps/mobile/src/store.tsx) will be migrated to query [`read_key_registry`](../apps/mobile/src/assistant/provider_keys.ts) exclusively.
+- Legacy slots will be retired once full profile management is verified in end-to-end device testing.

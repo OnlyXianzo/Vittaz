@@ -33,6 +33,7 @@ export interface KeyFailureRecord {
     | "provider_error"
     | "disabled"
     | "cooldown";
+  retry_after_ms?: number;
 }
 export class BadRequestNoFallbackError extends Error {
   readonly status = 400;

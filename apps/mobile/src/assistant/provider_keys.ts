@@ -429,7 +429,9 @@ export async function read_key_registry(
           : profile.provider === "openai_compatible"
             ? openai
             : anthropic;
-      if (secret) await store.setItemAsync(secret_name(profile.id), secret);
+      if (secret) {
+        await store.setItemAsync(secret_name(profile.id), secret);
+      }
     }
     await write_registry(store, registry);
     if (active) await activate_key_profile(store, active.id);
@@ -481,7 +483,9 @@ export async function add_key_profile(
   const profile = { id: next_id(), ...validate_profile(input) };
   const key = normalize_key(input.api_key);
   if (!key && profile.provider !== "kilo") throw new Error("invalid_api_key");
-  if (key) await store.setItemAsync(secret_name(profile.id), key);
+  if (key) {
+    await store.setItemAsync(secret_name(profile.id), key);
+  }
   registry.profiles.push(profile);
   await write_registry(store, registry);
   if (input.activate) await activate_key_profile(store, profile.id);
@@ -504,13 +508,31 @@ export async function update_key_profile(
       label: input.label ?? current.label,
       base_url: input.base_url ?? current.base_url,
       model: input.model ?? current.model,
+      api_suffix: input.api_suffix ?? current.api_suffix,
+      auth_header: input.auth_header ?? current.auth_header,
+      auth_scheme: input.auth_scheme ?? current.auth_scheme,
     }),
   };
   if (input.api_key !== undefined) {
     const key = normalize_key(input.api_key);
     if (!key && next.provider !== "kilo") throw new Error("invalid_api_key");
-    if (key) await store.setItemAsync(secret_name(id), key);
-    else await store.deleteItemAsync(secret_name(id));
+    if (key) {
+      await store.setItemAsync(secret_name(id), key);
+    } else await store.deleteItemAsync(secret_name(id));
+  }
+  const endpoint_or_secret_changed =
+    (input.base_url !== undefined && input.base_url !== current.base_url) ||
+    (input.model !== undefined && input.model !== current.model) ||
+    (input.provider !== undefined && input.provider !== current.provider) ||
+    (input.api_suffix !== undefined &&
+      input.api_suffix !== current.api_suffix) ||
+    (input.auth_header !== undefined &&
+      input.auth_header !== current.auth_header) ||
+    (input.auth_scheme !== undefined &&
+      input.auth_scheme !== current.auth_scheme) ||
+    input.api_key !== undefined;
+  if (endpoint_or_secret_changed) {
+    await forget_connection_check(id);
   }
   registry.profiles[index] = next;
   await write_registry(store, registry);
@@ -646,20 +668,21 @@ export async function test_connection(
       choices.length > 0
         ? { state: "reachable", models: choices.length, at }
         : { state: "unreachable", at };
-    record_connection_check(profile.id, check);
+    await record_connection_check(profile.id, check);
     return check;
   } catch (error) {
-    // A rejection the endpoint answered is a key problem; anything else (no
-    // network, DNS, timeout) is a reachability problem. They need different
-    // next steps, so they are not collapsed.
+    // A rejection the endpoint answered is a key problem; 404 is a bad endpoint
+    // path; anything else (no network, DNS, timeout) is a reachability problem.
     const check: ConnectionCheck = {
       state:
         error instanceof Error && error.message === "key_rejected"
           ? "rejected"
-          : "unreachable",
+          : error instanceof Error && error.message === "route_not_found"
+            ? "not_found"
+            : "unreachable",
       at,
     };
-    record_connection_check(profile.id, check);
+    await record_connection_check(profile.id, check);
     return check;
   }
 }
@@ -685,29 +708,40 @@ export async function fetch_model_choices(
     const { name, value } = auth_header_for(profile, secret);
     headers[name] = value;
   }
-  const response = await fetch_impl(model_url(profile), { headers });
-  if (!response.ok)
-    // The status is kept so the caller can tell a rejected key (401/403) from a
-    // broken endpoint. It is a class, not a body: nothing provider-authored is
-    // carried out of here.
-    throw new Error(
-      response.status === 401 || response.status === 403
-        ? "key_rejected"
-        : "model_fetch_failed",
-    );
-  const payload: unknown = await response.json();
-  const data = (payload as { data?: unknown }).data;
-  if (!Array.isArray(data)) throw new Error("model_fetch_failed");
-  const choices: ModelChoice[] = [];
-  for (const item of data.slice(0, 100)) {
-    if (item === null || typeof item !== "object") continue;
-    const id = (item as { id?: unknown }).id;
-    if (typeof id !== "string" || !id.trim()) continue;
-    const display = (item as { display_name?: unknown }).display_name;
-    choices.push({
-      id,
-      label: typeof display === "string" && display.trim() ? display : id,
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch_impl(model_url(profile), {
+      headers,
+      signal: controller.signal,
     });
+    if (!response.ok)
+      // The status is kept so the caller can tell a rejected key (401/403) from a
+      // broken endpoint or bad path (404). It is a class, not a body: nothing
+      // provider-authored is carried out of here.
+      throw new Error(
+        response.status === 401 || response.status === 403
+          ? "key_rejected"
+          : response.status === 404
+            ? "route_not_found"
+            : "model_fetch_failed",
+      );
+    const payload: unknown = await response.json();
+    const data = (payload as { data?: unknown }).data;
+    if (!Array.isArray(data)) throw new Error("model_fetch_failed");
+    const choices: ModelChoice[] = [];
+    for (const item of data.slice(0, 100)) {
+      if (item === null || typeof item !== "object") continue;
+      const id = (item as { id?: unknown }).id;
+      if (typeof id !== "string" || !id.trim()) continue;
+      const display = (item as { display_name?: unknown }).display_name;
+      choices.push({
+        id,
+        label: typeof display === "string" && display.trim() ? display : id,
+      });
+    }
+    return choices;
+  } finally {
+    clearTimeout(timer);
   }
-  return choices;
 }

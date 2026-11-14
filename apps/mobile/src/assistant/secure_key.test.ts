@@ -185,3 +185,13 @@ describe("assistant provider profile storage", () => {
     expect(store.setItemAsync).not.toHaveBeenCalled();
   });
 });
+
+it("preserves the previous legacy key if a replacement write fails", async () => {
+  const store = secret_store();
+  await save_kilo_key(store, "synthetic-old");
+  store.setItemAsync.mockRejectedValueOnce(new Error("write_failed"));
+  await expect(save_kilo_key(store, "synthetic-new")).rejects.toThrow(
+    "write_failed",
+  );
+  expect(await read_kilo_key(store)).toBe("synthetic-old");
+});

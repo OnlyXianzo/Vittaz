@@ -113,6 +113,29 @@ test("qa_classifies_provider_failures_without_returning_raw_error_text", async (
   }
 });
 
+test("qa_propagates_retry_after_ms_from_rate_limited_provider", async () => {
+  const f = await fixture();
+  const qa = new ReadOnlyQaLoop({
+    client: {
+      chatCompletion: vi.fn(async () => {
+        throw new AllKeysFailedError([
+          {
+            nickname: "kilo_free",
+            reason: "rate_limited",
+            retry_after_ms: 12500,
+          },
+        ]);
+      }),
+    },
+    data: f.source,
+    redactor: f.redactor,
+  });
+  const result = await qa.answerQuestion("How much did I spend?");
+  expect(result.answered).toBe(false);
+  expect(result.stopReason).toBe("provider_rate_limited");
+  expect(result.retry_after_ms).toBe(12500);
+});
+
 test("qa_reports_static_stage_for_unknown_failure_without_exposing_exception", async () => {
   const f = await fixture();
   const events: unknown[] = [];
