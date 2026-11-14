@@ -100,7 +100,7 @@ Fail: the old provider keeps answering, or models from the wrong profile appear.
 ## Test 6 — diagnostics export (analysis material)
 
 1. Open the diagnostics viewer (TEST ONLY build).
-2. Export to Downloads via the save button (`Vittaz-Diagnostics` folder).
+2. Export to Downloads via the save button (`Vittaz` folder).
 3. Share the JSON file for analysis.
 
 The export must contain **stages, static reason codes, provider kind, HTTP

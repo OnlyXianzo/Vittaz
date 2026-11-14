@@ -1476,3 +1476,9 @@ controls. Keep the current theme, preserve credential storage/recovery behavior
 and explicit provider selection, and confirm removal. This refines Phase J and
 S38c/S39 interactions; it adds no provider protocol, connector or AI permission.
 Design and implementation notes stay local at the owner's request.
+
+## Diagnostic log export folder and SAF user selection (owner feedback, 2026-11-14)
+
+Owner feedback on Gate G4 verification highlighted two issues with diagnostic log export:
+1. Export folder naming: the dedicated folder is renamed from `Vittaz-Diagnostics` to `Vittaz` (saving to `Downloads/Vittaz/vittaz-diagnostics-<timestamp>.json`).
+2. Folder selection: previously, `save_diagnostic_log` strictly enforced that the selected SAF URI must match `download` or `download/vittaz-diagnostics`, throwing `export_permission_denied` if the user chose any other folder. Removed this artificial restriction: any user-granted directory is respected, and the file is written to the chosen destination.

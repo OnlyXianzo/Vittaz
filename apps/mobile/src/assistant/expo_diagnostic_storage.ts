@@ -7,7 +7,7 @@ import type {
 } from "./diagnostic_export";
 import { mobile_diagnostics } from "./diagnostics";
 
-const diagnostic_folder_name = "Vittaz-Diagnostics" as const;
+const diagnostic_folder_name = "Vittaz" as const;
 
 function decoded_uri(uri: string): string {
   try {
@@ -21,8 +21,7 @@ function selected_download_location(
   uri: string,
 ): DiagnosticDirectorySelection["selected_location"] {
   const decoded = decoded_uri(uri);
-  if (/(?:^|[:/])download\/vittaz-diagnostics$/.test(decoded))
-    return "diagnostics_folder";
+  if (/(?:^|[:/])download\/vittaz$/.test(decoded)) return "diagnostics_folder";
   if (/(?:^|[:/])download$/.test(decoded)) return "downloads_root";
   return "other";
 }
@@ -49,10 +48,7 @@ export const expo_diagnostic_download_storage: DiagnosticDownloadStorage = {
   async find_diagnostics_directory(downloads_uri) {
     const files =
       await FileSystem.StorageAccessFramework.readDirectoryAsync(downloads_uri);
-    return (
-      files.find((uri) => decoded_uri(uri).endsWith("/vittaz-diagnostics")) ??
-      null
-    );
+    return files.find((uri) => decoded_uri(uri).endsWith("/vittaz")) ?? null;
   },
 
   create_diagnostics_directory(downloads_uri, directory_name) {

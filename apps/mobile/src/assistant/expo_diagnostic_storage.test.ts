@@ -43,9 +43,8 @@ test("Android SAF starts at Downloads and classifies a granted Downloads selecti
   expect(saf.requestDirectoryPermissionsAsync).toHaveBeenCalledWith(root_uri);
 });
 
-test("Android SAF accepts only the dedicated Vittaz folder directly under Downloads", async () => {
-  const folder_uri =
-    "content://downloads/tree/primary%3ADownload%2FVittaz-Diagnostics";
+test("Android SAF classifies the dedicated Vittaz folder directly under Downloads", async () => {
+  const folder_uri = "content://downloads/tree/primary%3ADownload%2FVittaz";
   jest.mocked(saf.requestDirectoryPermissionsAsync).mockResolvedValueOnce({
     granted: true,
     directoryUri: folder_uri,
@@ -57,13 +56,11 @@ test("Android SAF accepts only the dedicated Vittaz folder directly under Downlo
   });
   jest.mocked(saf.requestDirectoryPermissionsAsync).mockResolvedValueOnce({
     granted: true,
-    directoryUri:
-      "content://downloads/tree/primary%3APictures%2FVittaz-Diagnostics",
+    directoryUri: "content://downloads/tree/primary%3APictures%2FVittaz",
   });
   await expect(storage.request_download_directory()).resolves.toEqual({
     granted: true,
-    directory_uri:
-      "content://downloads/tree/primary%3APictures%2FVittaz-Diagnostics",
+    directory_uri: "content://downloads/tree/primary%3APictures%2FVittaz",
     selected_location: "other",
   });
 
