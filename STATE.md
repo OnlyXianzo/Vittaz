@@ -187,8 +187,8 @@ ci_proof: "PR #93 merged 2026-11-14 as a578f0673a8a7d9e911ed92d0ce779ab6a2dc9a1.
 ## Next actions (2026-11-14)
 
 1. Verify CI for the documentation update. Diagnostics APK run `43598998406`
-   is in progress on `a578f06` as of this status check. Check its outcome and
-   record the artifact hash before asking for device acceptance.
+   succeeded on `a578f06` on 2026-11-14. Record the downloaded APK hash before
+   asking for device acceptance; workflow success alone is build evidence.
 2. Run the owner checks in `docs/provider_device_test_plan.md`: a safe answer
    with a tool call, cancellation, error mapping, provider switching and safe
    diagnostics export. Confirm keyboard-open composer and force-stop/reopen.
