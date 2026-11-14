@@ -124,6 +124,11 @@ export function KeysScreen() {
    * profiles", which is what an empty array means everywhere else.
    */
   const [registry_unreadable, set_registry_unreadable] = useState(false);
+  /**
+   * The list came back from the non-secret mirror because the keystore would
+   * not open. Every row is real, every key is unusable until re-entered.
+   */
+  const [registry_from_manifest, set_registry_from_manifest] = useState(false);
   /** Last connection check per profile, for this session. */
   const [checks, set_checks] = useState<Record<string, ConnectionCheck>>({});
 
@@ -145,15 +150,20 @@ export function KeysScreen() {
       // The list could not be read. Say so and keep the screen usable; never
       // render it as "no keys saved", which looks like the app forgot them.
       if (error instanceof KeyRegistryUnreadableError) {
+        // Neither the keystore nor the mirror had anything: this really is
+        // indistinguishable from a fresh install, so say that.
         set_registry_unreadable(true);
+        set_registry_from_manifest(false);
         set_profiles([]);
         set_active_id(null);
         set_hints({});
+        set_checks({});
         return;
       }
       throw error;
     }
     set_registry_unreadable(false);
+    set_registry_from_manifest(registry.source === "manifest");
     set_profiles(registry.profiles);
     set_active_id(registry.active_id);
     const next_hints: Record<string, string> = {};
@@ -170,7 +180,7 @@ export function KeysScreen() {
     set_hints(next_hints);
     const next_checks: Record<string, ConnectionCheck> = {};
     for (const profile of registry.profiles)
-      next_checks[profile.id] = read_connection_check(profile.id);
+      next_checks[profile.id] = await read_connection_check(profile.id);
     set_checks(next_checks);
   }, []);
 
@@ -582,13 +592,24 @@ export function KeysScreen() {
       </Card>
 
       <SectionLabel>Saved keys</SectionLabel>
+      {registry_from_manifest ? (
+        <Card tone="soft">
+          <B>Your keys cannot be opened on this device</B>
+          <M size={12} style={{ marginTop: 4 }}>
+            The profiles below survived because their label, provider, endpoint
+            and model are stored on this device outside the keystore. The keys
+            themselves are not, and this device will not release them. Re-enter
+            a key on any profile to use it again. Nothing was sent anywhere.
+          </M>
+        </Card>
+      ) : null}
       {registry_unreadable ? (
         <Card tone="soft">
           <B>Saved keys could not be read</B>
           <M size={12} style={{ marginTop: 4 }}>
-            This device will not release the stored key data. That can happen
-            after a lock-screen change or a restore. Re-enter the key to carry
-            on; nothing was sent anywhere.
+            This device will not release the stored key data, and there is no
+            profile list to fall back on. That can happen after a lock-screen
+            change or a restore. Nothing was sent anywhere.
           </M>
           <Row gap={8} style={{ marginTop: 10 }}>
             <Button
@@ -674,6 +695,14 @@ export function KeysScreen() {
           </Card>
         ))
       )}
+
+      {profiles.length > 0 ? (
+        <M size={11} style={{ marginTop: 8 }}>
+          Keys are stored in this device&apos;s secure storage. Profile labels,
+          provider, endpoint, model and the last connection result are stored
+          unencrypted on this device so the list survives a lock-screen change.
+        </M>
+      ) : null}
     </Screen>
   );
 }

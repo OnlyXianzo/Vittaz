@@ -730,15 +730,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
           let profile;
           try {
             profile = await read_assistant_provider_profile(SecureStore);
-          } catch (error) {
+          } catch {
+            // The keystore refused to open, which is a device state and not a
+            // provider fault. `read_assistant_provider_profile` only throws
+            // when the store itself throws — malformed JSON fails closed to a
+            // default profile — so this cannot be anything else. Reusing the
+            // credential error keeps one message for one cause.
             mobile_diagnostics.record(
               "provider_profile_read_failed",
               "secure_store",
               "failed",
               provider_kind,
-              "secure_store_error",
+              "credential_unreadable",
             );
-            throw error;
+            throw new KeyRegistryUnreadableError();
           }
           provider_kind = profile.selected_provider;
           mobile_diagnostics.record(

@@ -1188,3 +1188,60 @@ describe("Vittaz native shell backed by core", () => {
     ).toBeTruthy();
   });
 });
+
+/**
+ * An invalidated Android keystore is not a provider failure.
+ *
+ * The first read on the question path is the legacy provider projection, which
+ * used to rethrow the store error straight into the catch-all: the user was told
+ * the provider had failed when the truth was that this device would not open
+ * the key. It has to be the same message as the later credential check.
+ */
+it("blames the keystore, not the provider, when the key cannot be opened", async () => {
+  await open();
+  await tab("Settings");
+  await fireEvent.press(screen.getByRole("button", { name: "Model and keys" }));
+  await fireEvent.press(
+    screen.getByRole("radio", { name: "OpenAI-compatible BYOK" }),
+  );
+  await fireEvent.changeText(
+    screen.getByLabelText("OpenAI-compatible model"),
+    "synthetic-compatible-model",
+  );
+  await fireEvent.changeText(
+    screen.getByLabelText("OpenAI-compatible API key"),
+    "synthetic-key",
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Remove key" })).toBeTruthy(),
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Back" }));
+  await tab("Home");
+
+  const real_get = jest
+    .mocked(SecureStore.getItemAsync)
+    .getMockImplementation()!;
+  jest.mocked(SecureStore.getItemAsync).mockImplementation(async () => {
+    throw new Error("keystore_locked");
+  });
+  try {
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add or ask by message" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Message"),
+      "Synthetic balance question",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/can no longer be read on this device/i),
+      ).toBeTruthy(),
+    );
+    expect(create_mobile_qa_agent).not.toHaveBeenCalled();
+    expect(getMemoryRows("transactions")).toHaveLength(0);
+  } finally {
+    jest.mocked(SecureStore.getItemAsync).mockImplementation(real_get);
+  }
+});

@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, jest } from "@jest/globals";
+import { afterAll, beforeEach, expect, it, jest } from "@jest/globals";
 import {
   KEY_PROFILES_NAME,
   KeyRegistryUnreadableError,
@@ -16,9 +16,14 @@ import {
   remove_key_profile,
   reset_connection_checks,
   reset_key_registry,
+  reset_key_manifest_store,
   forget_connection_check,
+  set_key_manifest_store,
   test_connection,
+  update_key_profile,
 } from "./provider_keys";
+import { read_manifest } from "./profile_manifest";
+import type { ManifestStore } from "./profile_manifest";
 import {
   ANTHROPIC_API_KEY_NAME,
   read_assistant_provider_profile,
@@ -42,9 +47,30 @@ function memory_store(): SecureKeyStore {
   };
 }
 
+/** The plain-storage mirror; in-memory here so tests never share a blob. */
+function memory_manifest(): ManifestStore {
+  const values = new Map<string, string>();
+  return {
+    getItemAsync: async (key: string) => values.get(key) ?? null,
+    setItemAsync: async (key: string, value: string) => {
+      values.set(key, value);
+    },
+    removeItemAsync: async (key: string) => {
+      values.delete(key);
+    },
+  };
+}
+
 let store: SecureKeyStore;
+let manifest: ManifestStore;
 beforeEach(() => {
   store = memory_store();
+  manifest = memory_manifest();
+  set_key_manifest_store(manifest);
+  reset_connection_checks();
+});
+afterAll(() => {
+  reset_key_manifest_store();
 });
 
 it("stores multiple labeled keys and activates one explicitly", async () => {
@@ -403,6 +429,135 @@ describe("unreadable credential state", () => {
     const after = await read_key_registry(store_with_data);
     expect(after.profiles).toEqual([]);
   });
+
+  /**
+   * Reads that fail, writes that succeed and are recorded. Models an
+   * invalidated keystore while still proving the recovery path does not write.
+   */
+  function read_only_locked_store(writes: string[]): SecureKeyStore {
+    return {
+      getItemAsync: async () => {
+        throw new Error("keystore_locked");
+      },
+      setItemAsync: async (key) => {
+        writes.push(key);
+      },
+      deleteItemAsync: async (key) => {
+        writes.push(key);
+      },
+    };
+  }
+
+  it("still lists the profiles after the keystore stops opening", async () => {
+    // The lock-screen credential changed, so every stored secret is gone. The
+    // list must not be: until now this returned an empty registry and looked
+    // exactly like a fresh install.
+    const added = await add_key_profile(store, {
+      provider: "openai_compatible",
+      label: "Work endpoint",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "synthetic-key",
+      activate: true,
+    });
+    const recovered = await read_key_registry(read_only_locked_store([]));
+    expect(recovered.source).toBe("manifest");
+    expect(recovered.profiles).toEqual([
+      {
+        id: added.id,
+        provider: "openai_compatible",
+        label: "Work endpoint",
+        base_url: "https://api.example.com",
+        model: "gpt-4o-mini",
+      },
+    ]);
+    expect(recovered.active_id).toBe(added.id);
+    // No secret came back with the list, because none was stored there.
+    expect(JSON.stringify(recovered)).not.toContain("synthetic-key");
+  });
+
+  it("writes nothing while recovering", async () => {
+    // A keystore that comes back after a restart must find its contents intact,
+    // so recovering the list is a read-only act.
+    await add_key_profile(store, {
+      provider: "anthropic",
+      label: "Claude",
+      base_url: "",
+      model: "",
+      api_key: "synthetic-key",
+    });
+    const writes: string[] = [];
+    await read_key_registry(read_only_locked_store(writes));
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses when the keystore is locked and there is nothing to recover from", async () => {
+    // Both copies unusable: no list can be invented, so the typed error stands.
+    set_key_manifest_store(memory_manifest());
+    await expect(read_key_registry(locked_store())).rejects.toBeInstanceOf(
+      KeyRegistryUnreadableError,
+    );
+  });
+
+  it("rebuilds the registry for real once the user re-enters a key", async () => {
+    // Recovery gets the row on screen; this is the write that repairs storage.
+    const added = await add_key_profile(store, {
+      provider: "openai_compatible",
+      label: "Work endpoint",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "synthetic-key",
+      activate: true,
+    });
+    // Seed a copy of the working store with an unparseable registry, then let
+    // it behave normally so the repair write is observable.
+    const values = new Map<string, string>();
+    values.set(KEY_PROFILES_NAME, "{not json");
+    values.set(`assistant_key_${added.id}`, "synthetic-key");
+    const corrupt: SecureKeyStore = {
+      getItemAsync: async (key) => values.get(key) ?? null,
+      setItemAsync: async (key, value) => {
+        values.set(key, value);
+      },
+      deleteItemAsync: async (key) => {
+        values.delete(key);
+      },
+    };
+    const recovered = await read_key_registry(corrupt);
+    expect(recovered.source).toBe("manifest");
+    await update_key_profile(corrupt, added.id, {
+      api_key: "synth-key-2",
+    });
+    const repaired = await read_key_registry(corrupt);
+    expect(repaired.source).toBe("keystore");
+    expect(repaired.profiles).toHaveLength(1);
+    expect(await read_key_secret(corrupt, added.id)).toBe("synth-key-2");
+  });
+
+  it("survives a manifest that cannot be written", async () => {
+    // The mirror is a convenience; the key store is the authority.
+    const failing: ManifestStore = {
+      getItemAsync: async () => {
+        throw new Error("synthetic storage failure");
+      },
+      setItemAsync: async () => {
+        throw new Error("synthetic storage failure");
+      },
+      removeItemAsync: async () => {
+        throw new Error("synthetic storage failure");
+      },
+    };
+    const own: SecureKeyStore = memory_store();
+    set_key_manifest_store(failing);
+    const added = await add_key_profile(own, {
+      provider: "openai_compatible",
+      label: "Work",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "synthetic-key",
+    });
+    expect(await read_key_secret(own, added.id)).toBe("synthetic-key");
+  });
 });
 
 describe("connection checks", () => {
@@ -440,7 +595,7 @@ describe("connection checks", () => {
       "synthetic-key",
     );
     expect(check).toMatchObject({ state: "reachable", models: 2 });
-    expect(read_connection_check("profile_one")).toMatchObject({
+    expect(await read_connection_check("profile_one")).toMatchObject({
       state: "reachable",
     });
   });
@@ -474,12 +629,69 @@ describe("connection checks", () => {
     ).toMatchObject({ state: "unreachable" });
   });
 
-  it("starts untested and can be forgotten", () => {
-    expect(read_connection_check("never_checked")).toEqual({
+  it("starts untested and can be forgotten", async () => {
+    expect(await read_connection_check("never_checked")).toEqual({
       state: "untested",
     });
-    record_connection_check("p", { state: "rejected", at: 1 });
-    forget_connection_check("p");
-    expect(read_connection_check("p")).toEqual({ state: "untested" });
+    await record_connection_check("p", { state: "rejected", at: 1 });
+    await forget_connection_check("p");
+    expect(await read_connection_check("p")).toEqual({ state: "untested" });
+  });
+
+  it("remembers the last check when the app restarts", async () => {
+    // The memory map is per process, so a check vanished on every relaunch and
+    // the screen showed "not checked yet" for a key that had just failed. The
+    // manifest carries it across a restart because it is not a secret.
+    const profile = await add_key_profile(store, {
+      provider: "openai_compatible",
+      label: "Work",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "synthetic-key",
+    });
+    await record_connection_check(profile.id, {
+      state: "reachable",
+      models: 4,
+      at: 1_700_000_000_000,
+    });
+    reset_connection_checks();
+    expect(await read_connection_check(profile.id)).toEqual({
+      state: "reachable",
+      models: 4,
+      at: 1_700_000_000_000,
+    });
+  });
+
+  it("drops a persisted check when the profile is removed", async () => {
+    const profile = await add_key_profile(store, {
+      provider: "openai_compatible",
+      label: "Work",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "synthetic-key",
+    });
+    await record_connection_check(profile.id, { state: "rejected", at: 9 });
+    await remove_key_profile(store, profile.id);
+    reset_connection_checks();
+    expect(await read_connection_check(profile.id)).toEqual({
+      state: "untested",
+    });
+    expect((await read_manifest(manifest))!.checks).toEqual({});
+  });
+
+  it("does not persist a check for a profile that is not stored", async () => {
+    // Guards the stored blob against unbounded growth from stale ids.
+    await add_key_profile(store, {
+      provider: "openai_compatible",
+      label: "Work",
+      base_url: "https://api.example.com/v1",
+      model: "gpt-4o-mini",
+      api_key: "synthetic-key",
+    });
+    await record_connection_check("not_a_profile", {
+      state: "rejected",
+      at: 1,
+    });
+    expect((await read_manifest(manifest))!.checks).toEqual({});
   });
 });

@@ -24,8 +24,13 @@ On-device AI assistant integration, diagnostics engine, secure credential storag
   - Functions: `save_kilo_key`, `read_kilo_key`, `remove_kilo_key`, `save_openai_compatible_key`, `read_openai_compatible_key`, `remove_openai_compatible_key`, `save_anthropic_api_key`, `read_anthropic_api_key`, `remove_anthropic_api_key`, `save_assistant_provider_profile`, `read_assistant_provider_profile`.
   - Constants & Types: `KILO_KEY_NAME`, `OPENAI_COMPATIBLE_KEY_NAME`, `ANTHROPIC_API_KEY_NAME`, `ASSISTANT_PROVIDER_PROFILE_NAME`, `DEFAULT_ASSISTANT_PROVIDER_PROFILE`, `SecureKeyStore`, `AssistantProviderProfile`, `AssistantProviderSelection`.
 - **Key Profile Management & Model Discovery (`provider_keys.ts`)**:
-  - Functions: `read_key_registry`, `read_key_secret`, `add_key_profile`, `update_key_profile`, `activate_key_profile`, `remove_key_profile`, `fetch_model_choices`.
-  - Constants & Types: `KEY_PROFILES_NAME`, `KeyProfile`, `KeyProfileRegistry`, `ModelChoice`, `KeyProvider`.
+  - Functions: `read_key_registry`, `read_key_secret`, `read_key_secret_state`, `add_key_profile`, `update_key_profile`, `activate_key_profile`, `remove_key_profile`, `fetch_model_choices`, `test_connection`, `read_connection_check`, `record_connection_check`, `forget_connection_check`, `reset_key_registry`.
+  - Constants & Types: `KEY_PROFILES_NAME`, `KeyProfile`, `KeyProfileRegistry` (`source: "keystore" | "manifest"`), `ModelChoice`, `KeyProvider`, `KeyRegistryUnreadableError`.
+  - A read never writes. When the keystore refuses, the list is rebuilt read-only from `profile_manifest.ts` and marked `source: "manifest"`.
+- **Profile Manifest (`profile_manifest.ts`)**: plain-storage mirror of the non-secret profile fields (id, provider kind, label, endpoint, model, wire-shape overrides), the active id and the last connection check. Never a credential: fields are copied from an explicit allowlist, not spread. See `DECISIONS.md`.
+  - Functions: `read_manifest`, `write_manifest`, `record_manifest_check`, `remove_manifest_check`, `clear_manifest`.
+  - Constants & Types: `KEY_MANIFEST_NAME`, `KeyManifest`, `ManifestProfile`, `ManifestStore`.
+- **Connection Check (`connection_check.ts`)**: `ConnectionCheck`, `parse_connection_check`, `UNTESTED`. Shared by the registry and the manifest so neither imports the other.
 - **Conversations (`conversations.ts`)**:
   - Functions: `load_conversations`, `create_conversation`, `save_conversation_messages`, `select_conversation`, `delete_conversation`.
   - Constants & Types: `CONVERSATIONS_KEY`, `LocalConversation`, `ConversationIndex`.

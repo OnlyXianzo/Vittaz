@@ -22,6 +22,18 @@ import {
 } from "./secure_key";
 import type { AssistantProviderSelection, SecureKeyStore } from "./secure_key";
 import { read_secret, secret_value, type SecretRead } from "./secret_state";
+import Storage from "expo-sqlite/kv-store";
+import { UNTESTED, type ConnectionCheck } from "./connection_check";
+import {
+  clear_manifest,
+  read_manifest,
+  record_manifest_check,
+  remove_manifest_check,
+  write_manifest,
+  type ManifestStore,
+} from "./profile_manifest";
+
+export type { ConnectionCheck } from "./connection_check";
 
 export const KEY_PROFILES_NAME = "assistant_key_profiles_v1";
 export type KeyProvider = AssistantProviderSelection;
@@ -74,6 +86,12 @@ export function profile_api_suffix(profile: KeyProfile): string {
 export interface KeyProfileRegistry {
   active_id: string | null;
   profiles: KeyProfile[];
+  /**
+   * Where this list came from. `"manifest"` means the keystore could not be
+   * read and the rows were rebuilt from the non-secret mirror, so every secret
+   * is currently unusable and each row needs its key re-entered.
+   */
+  source: "keystore" | "manifest";
 }
 
 export interface ModelChoice {
@@ -211,11 +229,66 @@ function next_id(): string {
   return `key_${Date.now()}_${id_counter}`;
 }
 
+/**
+ * Where the non-secret mirror lives.
+ *
+ * Device-global, like the keystore it mirrors: one device, one list. Injectable
+ * only so tests can run against memory instead of the shared mock, matching the
+ * existing `reset_connection_checks` seam.
+ */
+let manifest_store: ManifestStore = Storage;
+
+export function set_key_manifest_store(store: ManifestStore): void {
+  manifest_store = store;
+}
+
+export function reset_key_manifest_store(): void {
+  manifest_store = Storage;
+}
+
 async function write_registry(
   store: SecureKeyStore,
   registry: KeyProfileRegistry,
 ): Promise<void> {
-  await store.setItemAsync(KEY_PROFILES_NAME, JSON.stringify(registry));
+  await store.setItemAsync(
+    KEY_PROFILES_NAME,
+    JSON.stringify({
+      active_id: registry.active_id,
+      profiles: registry.profiles,
+    }),
+  );
+  // Best effort, and after the authoritative write: a mirror that cannot be
+  // written must not turn a successful key save into a failure.
+  await write_manifest(manifest_store, registry);
+}
+
+/**
+ * Rebuild the visible list from the non-secret mirror.
+ *
+ * Called only when the keystore refused to open. The secrets are gone until the
+ * user re-enters them, but the rows survive, which is the difference between
+ * "re-enter your key" and "the app forgot everything".
+ */
+function registry_from_manifest(manifest: {
+  active_id: string | null;
+  profiles: readonly unknown[];
+}): KeyProfileRegistry {
+  const profiles: KeyProfile[] = [];
+  for (const entry of manifest.profiles) {
+    try {
+      const source = entry as KeyProfile;
+      profiles.push({ id: source.id, ...validate_profile(source) });
+    } catch {
+      // An entry that no longer validates is skipped rather than fatal: one bad
+      // row must not cost the user the rest of their list.
+    }
+  }
+  const active_id = profiles.some(
+    (profile) => profile.id === manifest.active_id,
+  )
+    ? manifest.active_id
+    : null;
+  return { active_id, profiles, source: "manifest" };
 }
 
 function parse_registry(value: unknown): KeyProfileRegistry {
@@ -235,7 +308,7 @@ function parse_registry(value: unknown): KeyProfileRegistry {
     registry.active_id && profiles.some((p) => p.id === registry.active_id)
       ? registry.active_id
       : null;
-  return { active_id, profiles };
+  return { active_id, profiles, source: "keystore" };
 }
 
 /** Migrates the legacy single-key profile once, without deleting legacy values. */
@@ -274,6 +347,20 @@ export async function reset_key_registry(store: SecureKeyStore): Promise<void> {
   ];
   for (const name of names)
     await store.deleteItemAsync(name).catch(() => undefined);
+  // The mirror holds profile rows, so leaving it behind would make "start over"
+  // bring the list back on the next read.
+  await clear_manifest(manifest_store);
+}
+
+async function recover_from_manifest(): Promise<KeyProfileRegistry> {
+  const manifest = await read_manifest(manifest_store);
+  // Nothing to recover: the typed error is the honest answer, and the screen
+  // still offers "start over" rather than pretending this is a fresh install.
+  if (!manifest || manifest.profiles.length === 0)
+    throw new KeyRegistryUnreadableError();
+  const registry = registry_from_manifest(manifest);
+  if (registry.profiles.length === 0) throw new KeyRegistryUnreadableError();
+  return registry;
 }
 
 export async function read_key_registry(
@@ -283,14 +370,18 @@ export async function read_key_registry(
   try {
     raw = await store.getItemAsync(KEY_PROFILES_NAME);
   } catch {
-    // The keystore itself refused. Nothing can be read or repaired from here.
-    throw new KeyRegistryUnreadableError();
+    // The keystore itself refused — an invalidated Android keystore, or a
+    // device that has not been unlocked since a credential change. The list
+    // still exists in the mirror, so recover the rows (never the secrets) and
+    // write nothing: a keystore that comes back to life must find its contents
+    // intact.
+    return recover_from_manifest();
   }
   if (raw !== null) {
     try {
-      return parse_registry(JSON.parse(raw));
+      return { ...parse_registry(JSON.parse(raw)), source: "keystore" };
     } catch {
-      throw new KeyRegistryUnreadableError();
+      return recover_from_manifest();
     }
   }
   const legacy = await read_assistant_provider_profile(store);
@@ -325,7 +416,11 @@ export async function read_key_registry(
   const active =
     profiles.find((profile) => profile.provider === legacy.selected_provider) ??
     profiles[0];
-  const registry = { active_id: active?.id ?? null, profiles };
+  const registry: KeyProfileRegistry = {
+    active_id: active?.id ?? null,
+    profiles,
+    source: "keystore",
+  };
   if (profiles.length > 0) {
     for (const profile of profiles) {
       const secret =
@@ -464,6 +559,7 @@ export async function remove_key_profile(
   const profile = registry.profiles.find((candidate) => candidate.id === id);
   if (!profile) return;
   await store.deleteItemAsync(secret_name(id));
+  await remove_manifest_check(manifest_store, id);
   registry.profiles = registry.profiles.filter(
     (candidate) => candidate.id !== id,
   );
@@ -486,46 +582,43 @@ function model_url(profile: KeyProfile): string {
 }
 
 /**
- * What a connection check found.
+ * Last result per profile id, cached for this process.
  *
- * A check is not a guarantee: `/models` answering 200 proves the endpoint is
- * reachable and the key is accepted *for discovery*. Chat entitlement, plan
- * quotas and free-tier routing differ between the two paths, so the UI must
- * never call this "verified".
+ * The cache exists so rendering a list does not hit storage per row; the
+ * authoritative copy is the manifest, because a check that vanished on every
+ * relaunch told the user nothing.
  */
-export type ConnectionCheck =
-  | { readonly state: "untested" }
-  | {
-      readonly state: "reachable";
-      readonly models: number;
-      readonly at: number;
-    }
-  | {
-      readonly state: "rejected" | "unreachable";
-      readonly at: number;
-    };
-
-/** Last result per profile id, for this app process. */
 const checks = new Map<string, ConnectionCheck>();
 
-export function read_connection_check(id: string): ConnectionCheck {
-  return checks.get(id) ?? { state: "untested" };
-}
-
-export function record_connection_check(
-  id: string,
-  check: ConnectionCheck,
-): void {
-  checks.set(id, check);
-}
-
-export function forget_connection_check(id: string): void {
-  checks.delete(id);
-}
-
-/** Tests only: the map is process-wide. */
+/** Tests only: the cache is process-wide. */
 export function reset_connection_checks(): void {
   checks.clear();
+}
+
+export async function read_connection_check(
+  id: string,
+): Promise<ConnectionCheck> {
+  const cached = checks.get(id);
+  if (cached) return cached;
+  const manifest = await read_manifest(manifest_store);
+  const stored = manifest?.checks[id];
+  if (!stored) return UNTESTED;
+  checks.set(id, stored);
+  return stored;
+}
+
+export async function record_connection_check(
+  id: string,
+  check: ConnectionCheck,
+): Promise<void> {
+  checks.set(id, check);
+  // A check is metadata, not a secret, so it can outlive the process.
+  await record_manifest_check(manifest_store, id, check);
+}
+
+export async function forget_connection_check(id: string): Promise<void> {
+  checks.delete(id);
+  await remove_manifest_check(manifest_store, id);
 }
 
 /**
