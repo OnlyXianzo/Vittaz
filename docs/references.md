@@ -755,3 +755,26 @@ payloads. The root CI `test:coverage` command still runs the complete suite.
 - Hermes remains unverifiable here: no Android SDK, JDK 17, `adb` or emulator exists in
   this environment, and the Hermes VM CLI cannot evaluate a Metro bundle. The Android
   export is static bundle evidence only.
+
+### Provider and chat UI consistency (2026-11-14)
+
+Existing versions retained: React Native **0.88.1**, React **19.3.0**, Expo
+**58.0.23** (resolved in the mobile lockfile). No new UI dependency.
+
+- https://reactnative.dev/docs/flexbox and
+  https://reactnative.dev/docs/textinput: default `flexShrink: 0` and enabled
+  font scaling require explicit shrinking and growable controls. Keep bare chat
+  inputs separate from visibly labelled provider fields.
+- https://reactnative.dev/docs/keyboardavoidingview and
+  https://reactnative.dev/docs/scrollview: bounded scroll regions, explicit
+  keyboard handling and `keyboardShouldPersistTaps` for form actions.
+- https://reactnative.dev/docs/pressable and
+  https://support.google.com/accessibility/android/answer/7101858: use at least
+  48 dp touch targets; `hitSlop` cannot fix a parent clipping a control.
+- https://docs.expo.dev/versions/latest/sdk/securestore/: writes can reject;
+  preserve drafts and existing keys on failure. Simulated unreadable stores
+  remain separate from Android device evidence.
+- https://docs.expo.dev/workflow/web/ and
+  https://developer.chrome.com/docs/chromedriver/get-started: browser checks
+  render the actual React Native components through a local synthetic harness;
+  they do not establish Android keyboard or Keystore behavior.

@@ -2,7 +2,7 @@ import { ChevronDown, Sparkles } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { useApp } from "../store";
 import type { Direction, Mode } from "../domain";
-import { colors, fonts } from "../theme";
+import { colors, fonts, space } from "../theme";
 import {
   B,
   Button,
@@ -58,7 +58,13 @@ export function AddScreen() {
             onChangeText={(amount) =>
               dispatch({ type: "update_draft", patch: { amount } })
             }
-            textStyle={{ fontSize: 38, fontFamily: fonts.heavy, flex: 1 }}
+            textStyle={{
+              fontSize: 38,
+              fontFamily: fonts.heavy,
+              flex: 1,
+              minWidth: 0,
+              flexShrink: 1,
+            }}
           />
         </Row>
       </Card>
@@ -103,8 +109,18 @@ export function AddScreen() {
         ))}
       </Row>
 
-      <Row gap={10} style={{ marginTop: 10 }}>
-        <Card style={{ flex: 1, paddingVertical: 10 }}>
+      <Row
+        gap={16}
+        style={{ marginTop: 16, flexWrap: "wrap", alignItems: "stretch" }}
+      >
+        <Card
+          style={{
+            flexGrow: 1,
+            flexBasis: 180,
+            minWidth: 0,
+            paddingVertical: 12,
+          }}
+        >
           <Row>
             <M>Person</M>
             <Input
@@ -131,8 +147,12 @@ export function AddScreen() {
           }
           style={({ pressed }) => [
             {
-              flex: 1,
-              paddingVertical: 10,
+              flexGrow: 1,
+              flexBasis: 180,
+              minWidth: 0,
+              minHeight: space.touchTarget,
+              justifyContent: "center",
+              paddingVertical: 12,
               paddingHorizontal: 16,
               backgroundColor: colors.card,
               borderWidth: 1,
@@ -161,7 +181,7 @@ export function AddScreen() {
           onChangeText={(note) =>
             dispatch({ type: "update_draft", patch: { note } })
           }
-          textStyle={{ height: 56, marginTop: 4, textAlignVertical: "top" }}
+          textStyle={{ minHeight: 56, marginTop: 8, textAlignVertical: "top" }}
         />
       </Card>
 

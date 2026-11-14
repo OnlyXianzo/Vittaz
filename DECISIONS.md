@@ -1467,3 +1467,12 @@ The keys screen copy discloses the plain-storage copy while it exists.
 
 **Not verified:** the invalidation scenario itself. It is simulated in tests by a store
 whose reads throw; no Android device was used.
+
+## Provider and chat UI redesign (owner-approved, 2026-11-14)
+
+The owner approved a saved-provider list with a focused add/edit page, one
+persistent chat-history search field and fixes to crowded margins and overlapping
+controls. Keep the current theme, preserve credential storage/recovery behavior
+and explicit provider selection, and confirm removal. This refines Phase J and
+S38c/S39 interactions; it adds no provider protocol, connector or AI permission.
+Design and implementation notes stay local at the owner's request.

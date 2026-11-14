@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { BackHandler, Pressable, View } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { useApp } from "../store";
 import {
@@ -17,16 +17,15 @@ import type {
   AssistantProviderProfile,
   AssistantProviderSelection,
 } from "../assistant/secure_key";
+import { ProviderField } from "./ProviderField";
 import { ANTHROPIC_DEFAULT_MODEL } from "../assistant/mobile_qa";
 import type { AppState } from "../domain";
 import {
   B,
   Button,
   Card,
-  Input,
   M,
   PageHeader,
-  Pill,
   Radio,
   Row,
   Screen,
@@ -99,6 +98,37 @@ export function ModelsScreen() {
   const [anthropic_error, set_anthropic_error] = useState<string | null>(null);
 
   const selected = profile.selected_provider;
+  const [editing, set_editing] = useState(false);
+  const saving = saving_kilo || saving_openai || saving_anthropic;
+  const editor_title =
+    selected === "kilo"
+      ? "Kilo setup"
+      : selected === "anthropic"
+        ? "Anthropic setup"
+        : "OpenAI-compatible setup";
+  const close_editor = useCallback(() => {
+    if (saving) return;
+    set_editing(false);
+    set_kilo_key_value("");
+    set_openai_key_value("");
+    set_anthropic_key_value("");
+    set_openai_errors({});
+    set_anthropic_error(null);
+    set_base_url(profile.base_url);
+    set_model(profile.model);
+  }, [saving, profile]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        close_editor();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [editing, close_editor]);
 
   useEffect(() => {
     let active = true;
@@ -306,14 +336,13 @@ export function ModelsScreen() {
         >
           <Row start gap={12} style={{ alignItems: "flex-start" }}>
             <Radio on={is_selected} />
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <B>{label}</B>
               <M style={{ marginTop: 4, lineHeight: 18 }}>{description}</M>
               <M size={12} style={{ marginTop: 6, color: "#9aa0a6" }}>
                 {status}
               </M>
             </View>
-            {is_selected ? <Pill>Selected</Pill> : null}
           </Row>
         </Card>
       </Pressable>
@@ -323,49 +352,61 @@ export function ModelsScreen() {
   return (
     <Screen>
       <PageHeader
-        title="Choose model"
-        onBack={() => dispatch({ type: "back" })}
+        title={editing ? editor_title : "Choose model"}
+        onBack={editing ? close_editor : () => dispatch({ type: "back" })}
       />
-      <Button
-        label="Manage keys and models"
-        variant="ghost"
-        onPress={() => dispatch({ type: "navigate", screen: "keys" })}
-      />
-      <M style={{ marginTop: 8, marginHorizontal: 4, lineHeight: 18 }}>
-        Pick one assistant provider. Only the provider you select is used; there
-        is no automatic fallback. Configure it below, then save once.
-      </M>
-
-      <SectionLabel>Provider</SectionLabel>
-      {provider_card(
-        "kilo",
-        "Kilo Auto Free",
-        "Read-only ledger questions. Works without a key.",
-        "Ready · no key needed",
-      )}
-      {provider_card(
-        "openai_compatible",
-        "OpenAI-compatible BYOK",
-        "Your own key, endpoint, and model. Never falls back to Kilo.",
-        has_openai_key ? "Key saved" : "Needs endpoint, model, and key",
-      )}
-      {provider_card(
-        "anthropic",
-        "Anthropic API-key BYOK",
-        `Direct Anthropic Messages API with ${ANTHROPIC_DEFAULT_MODEL}. Never falls back to Kilo.`,
-        has_anthropic_key ? "Key saved" : "Needs API key",
-      )}
-
-      {selected === "kilo" ? (
+      {!editing ? (
         <>
-          <SectionLabel>Kilo setup</SectionLabel>
-          <Card style={{ gap: 12 }}>
+          <M style={{ marginTop: 8, lineHeight: 19 }}>
+            Pick the route used for chat. Only your selection is used; there is
+            no automatic fallback.
+          </M>
+          <SectionLabel>Provider</SectionLabel>
+          {provider_card(
+            "kilo",
+            "Kilo Auto Free",
+            "Read-only ledger questions. Works without a key.",
+            "Ready · no key needed",
+          )}
+          {provider_card(
+            "openai_compatible",
+            "OpenAI-compatible BYOK",
+            "Your own key, endpoint, and model. Never falls back to Kilo.",
+            has_openai_key ? "Key saved" : "Needs endpoint, model, and key",
+          )}
+          {provider_card(
+            "anthropic",
+            "Anthropic API-key BYOK",
+            `Direct Anthropic Messages API with ${ANTHROPIC_DEFAULT_MODEL}. Never falls back to Kilo.`,
+            has_anthropic_key ? "Key saved" : "Needs API key",
+          )}
+          <View style={{ gap: 12, marginTop: 24 }}>
+            <Button
+              label="Configure provider"
+              onPress={() => set_editing(true)}
+            />
+            <Button
+              label="Manage providers"
+              variant="ghost"
+              onPress={() => dispatch({ type: "navigate", screen: "keys" })}
+            />
+            <M size={12} style={{ lineHeight: 18 }}>
+              Add, edit and remove saved profiles in Providers. Configure
+              provider updates this route's existing settings.
+            </M>
+          </View>
+        </>
+      ) : null}
+
+      {editing && selected === "kilo" ? (
+        <>
+          <Card style={{ gap: 16, marginTop: 24 }}>
             <M style={{ lineHeight: 18 }}>
               {has_kilo_key
                 ? "A key is stored in Android secure storage. The key itself is never shown."
                 : "No key is required for Kilo Auto Free. Add your own Kilo Gateway key only if you prefer."}
             </M>
-            <Input
+            <ProviderField
               label="Kilo Gateway API key"
               value={kilo_key_value}
               onChangeText={set_kilo_key_value}
@@ -373,12 +414,12 @@ export function ModelsScreen() {
               secure
               textStyle={{ minHeight: 48 }}
             />
-            <Row gap={8}>
+            <Row gap={8} style={{ flexWrap: "wrap" }}>
               <Button
                 label={saving_kilo ? "Saving…" : "Save key"}
                 disabled={saving_kilo || !kilo_key_value.trim()}
                 onPress={() => void save_kilo_credential(kilo_key_value)}
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 112 }}
               />
               {has_kilo_key ? (
                 <Button
@@ -386,7 +427,7 @@ export function ModelsScreen() {
                   variant="ghost"
                   disabled={saving_kilo}
                   onPress={() => void save_kilo_credential("")}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 112 }}
                 />
               ) : null}
             </Row>
@@ -394,16 +435,15 @@ export function ModelsScreen() {
         </>
       ) : null}
 
-      {selected === "openai_compatible" ? (
+      {editing && selected === "openai_compatible" ? (
         <>
-          <SectionLabel>OpenAI-compatible setup</SectionLabel>
-          <Card style={{ gap: 12 }}>
+          <Card style={{ gap: 16, marginTop: 24 }}>
             <M style={{ lineHeight: 18 }}>
               Enter the endpoint, model, and key together, then save once. The
               key is stored in Expo SecureStore and is never shown.
             </M>
             <View>
-              <Input
+              <ProviderField
                 label="OpenAI-compatible API base URL"
                 value={base_url}
                 onChangeText={set_base_url}
@@ -417,7 +457,7 @@ export function ModelsScreen() {
               ) : null}
             </View>
             <View>
-              <Input
+              <ProviderField
                 label="OpenAI-compatible model"
                 value={model}
                 onChangeText={set_model}
@@ -431,7 +471,7 @@ export function ModelsScreen() {
               ) : null}
             </View>
             <View>
-              <Input
+              <ProviderField
                 label="OpenAI-compatible API key"
                 value={openai_key_value}
                 onChangeText={set_openai_key_value}
@@ -449,12 +489,12 @@ export function ModelsScreen() {
                 </M>
               ) : null}
             </View>
-            <Row gap={8}>
+            <Row gap={8} style={{ flexWrap: "wrap" }}>
               <Button
                 label={saving_openai ? "Saving…" : "Save and use"}
                 disabled={saving_openai}
                 onPress={() => void save_openai_provider()}
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 112 }}
               />
               {has_openai_key ? (
                 <Button
@@ -462,7 +502,7 @@ export function ModelsScreen() {
                   variant="ghost"
                   disabled={saving_openai}
                   onPress={() => void remove_openai_key()}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 112 }}
                 />
               ) : null}
             </Row>
@@ -474,17 +514,16 @@ export function ModelsScreen() {
         </>
       ) : null}
 
-      {selected === "anthropic" ? (
+      {editing && selected === "anthropic" ? (
         <>
-          <SectionLabel>Anthropic setup</SectionLabel>
-          <Card style={{ gap: 12 }}>
+          <Card style={{ gap: 16, marginTop: 24 }}>
             <M style={{ lineHeight: 18 }}>
               {has_anthropic_key
                 ? "An Anthropic API key is stored in Expo SecureStore and is never shown."
                 : "Add your own Anthropic Console API key. No subscription login or bundled key is used."}
             </M>
             <View>
-              <Input
+              <ProviderField
                 label="Anthropic API key"
                 value={anthropic_key_value}
                 onChangeText={set_anthropic_key_value}
@@ -502,12 +541,12 @@ export function ModelsScreen() {
                 </M>
               ) : null}
             </View>
-            <Row gap={8}>
+            <Row gap={8} style={{ flexWrap: "wrap" }}>
               <Button
                 label={saving_anthropic ? "Saving…" : "Save and use"}
                 disabled={saving_anthropic}
                 onPress={() => void save_anthropic_provider()}
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 112 }}
               />
               {has_anthropic_key ? (
                 <Button
@@ -515,7 +554,7 @@ export function ModelsScreen() {
                   variant="ghost"
                   disabled={saving_anthropic}
                   onPress={() => void remove_anthropic_key()}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 112 }}
                 />
               ) : null}
             </Row>
@@ -523,6 +562,15 @@ export function ModelsScreen() {
         </>
       ) : null}
 
+      {editing ? (
+        <Button
+          label="Done"
+          variant="ghost"
+          disabled={saving}
+          onPress={close_editor}
+          style={{ marginTop: 16 }}
+        />
+      ) : null}
       <SectionLabel>Privacy</SectionLabel>
       <Card>
         <M style={{ lineHeight: 19 }}>

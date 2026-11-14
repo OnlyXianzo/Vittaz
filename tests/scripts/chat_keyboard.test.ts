@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
+import { space } from "../../apps/mobile/src/theme.js";
 
 function read(path: string) {
   return readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
@@ -17,6 +18,7 @@ test("mobile_chat_uses_android_keyboard_resize_and_a_visible_composer_input", ()
   expect(chat_screen).toContain(
     'behavior={Platform.OS === "ios" ? "padding" : "height"}',
   );
-  expect(chat_screen).toContain("minHeight: 44");
+  expect(chat_screen).toContain("minHeight: space.touchTarget");
+  expect(space.touchTarget).toBeGreaterThanOrEqual(48);
   expect(chat_screen).toContain('textAlignVertical: "center"');
 });
