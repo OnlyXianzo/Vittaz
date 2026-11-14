@@ -53,6 +53,21 @@ Provider API keys and Telegram bot tokens must be stored using platform secure s
 
 Tests must use fake credentials and synthetic data. Never commit real transaction records, bank messages, personal names, provider keys, or private spreadsheets.
 
+**One documented exception: provider metadata is not a credential.** The key profile list
+also keeps a plain-storage copy — profile id, provider kind, label, endpoint URL, model,
+wire-shape overrides and the last connection check — in
+`vittaz.assistant.key_manifest.v1` (`apps/mobile/src/assistant/profile_manifest.ts`). It
+exists because Android invalidates secure-storage entries when the lock-screen credential
+changes, and keeping the list encrypted meant the whole list vanished with the keys.
+
+The exception is bounded by construction, not by convention: the writer copies an explicit
+allowlist of named fields and never spreads the profile object, a test asserts that an
+`api_key` added to the input does not reach the stored blob, and the key itself stays in
+secure storage. Everything in the manifest is already visible on the keys screen.
+
+If this trade-off is ever rejected, deleting the manifest module restores the previous
+behaviour: the list is lost on invalidation, and the screen says so.
+
 ## AI permissions
 
 The AI may propose a transaction and perform approved read-only queries. It must not:

@@ -9,8 +9,13 @@ import {
   activate_key_profile,
   fetch_model_choices,
   mobile_supports_preset,
+  KeyRegistryUnreadableError,
+  read_connection_check,
   read_key_registry,
-  read_key_secret,
+  read_key_secret_state,
+  reset_key_registry,
+  test_connection,
+  type ConnectionCheck,
   remove_key_profile,
   update_key_profile,
 } from "../assistant/provider_keys";
@@ -61,6 +66,26 @@ const PRESET_CHOICES = [
   })
   .map((choice) => choice as { id: string; label: string });
 
+/**
+ * What the last connection check found.
+ *
+ * "Accepted" rather than "verified": a 200 from the model list proves the key
+ * is accepted for discovery, not that chat will work. Claiming more would be a
+ * promise this check cannot keep.
+ */
+function check_label(check: ConnectionCheck | undefined): string {
+  switch (check?.state) {
+    case "reachable":
+      return `Endpoint reachable · key accepted · ${check.models} models`;
+    case "rejected":
+      return "Last check: the endpoint rejected this key";
+    case "unreachable":
+      return "Last check: could not reach the endpoint";
+    default:
+      return "Endpoint not checked yet";
+  }
+}
+
 const AUTH_CHOICES = [
   { id: "authorization", label: "Bearer" },
   { id: "x-api-key", label: "x-api-key" },
@@ -94,6 +119,18 @@ export function KeysScreen() {
   const [auth_scheme, set_auth_scheme] = useState("Bearer");
   const [show_advanced, set_show_advanced] = useState(false);
   const [preset_id, set_preset_id] = useState<string>("custom");
+  /**
+   * The stored profile list exists but cannot be read. Distinct from "no
+   * profiles", which is what an empty array means everywhere else.
+   */
+  const [registry_unreadable, set_registry_unreadable] = useState(false);
+  /**
+   * The list came back from the non-secret mirror because the keystore would
+   * not open. Every row is real, every key is unusable until re-entered.
+   */
+  const [registry_from_manifest, set_registry_from_manifest] = useState(false);
+  /** Last connection check per profile, for this session. */
+  const [checks, set_checks] = useState<Record<string, ConnectionCheck>>({});
 
   /** Advanced fields open automatically when a preset deviates from /v1+Bearer. */
   const setShowAdvancedForPreset = (id: string) => {
@@ -106,15 +143,45 @@ export function KeysScreen() {
   };
 
   const refresh = useCallback(async () => {
-    const registry = await read_key_registry(SecureStore);
+    let registry;
+    try {
+      registry = await read_key_registry(SecureStore);
+    } catch (error) {
+      // The list could not be read. Say so and keep the screen usable; never
+      // render it as "no keys saved", which looks like the app forgot them.
+      if (error instanceof KeyRegistryUnreadableError) {
+        // Neither the keystore nor the mirror had anything: this really is
+        // indistinguishable from a fresh install, so say that.
+        set_registry_unreadable(true);
+        set_registry_from_manifest(false);
+        set_profiles([]);
+        set_active_id(null);
+        set_hints({});
+        set_checks({});
+        return;
+      }
+      throw error;
+    }
+    set_registry_unreadable(false);
+    set_registry_from_manifest(registry.source === "manifest");
     set_profiles(registry.profiles);
     set_active_id(registry.active_id);
     const next_hints: Record<string, string> = {};
     for (const profile of registry.profiles) {
-      const secret = await read_key_secret(SecureStore, profile.id);
-      next_hints[profile.id] = secret ? `••••${secret.slice(-4)}` : "No key";
+      const read = await read_key_secret_state(SecureStore, profile.id);
+      // "No key" and "key that cannot be read" are different problems.
+      next_hints[profile.id] =
+        read.state === "ok"
+          ? `••••${read.value.slice(-4)}`
+          : read.state === "unreadable"
+            ? "Key unreadable — re-enter"
+            : "No key";
     }
     set_hints(next_hints);
+    const next_checks: Record<string, ConnectionCheck> = {};
+    for (const profile of registry.profiles)
+      next_checks[profile.id] = await read_connection_check(profile.id);
+    set_checks(next_checks);
   }, []);
 
   useEffect(() => {
@@ -190,6 +257,10 @@ export function KeysScreen() {
       dispatch({ type: "show_toast", message: "Key profile saved securely." });
       reset_form();
       await refresh();
+      // Saving proves nothing about the endpoint, so check it once and keep the
+      // answer. Absent this, a key that was never tested looked the same as one
+      // that had just failed.
+      void check_saved_profile();
     } catch {
       dispatch({
         type: "show_toast",
@@ -198,6 +269,34 @@ export function KeysScreen() {
       });
     } finally {
       set_busy(false);
+    }
+  };
+
+  /**
+   * Check the active profile against its endpoint and report the class of
+   * result. Deliberately reports "accepted", never "verified": discovery and
+   * chat are different endpoints on every provider that matters here.
+   */
+  const check_saved_profile = async () => {
+    try {
+      const registry = await read_key_registry(SecureStore);
+      const active =
+        registry.profiles.find((entry) => entry.id === registry.active_id) ??
+        registry.profiles[0];
+      if (!active) return;
+      const check = await test_connection(SecureStore, active);
+      set_checks((current) => ({ ...current, [active.id]: check }));
+      dispatch({
+        type: "show_toast",
+        message:
+          check.state === "reachable"
+            ? "Endpoint reachable and key accepted. No request was sent to a model."
+            : check.state === "rejected"
+              ? "The endpoint rejected this key. Check it and save again."
+              : "Could not reach that endpoint. Check the URL and your connection.",
+      });
+    } catch {
+      // A failed check is not a failed save; stay quiet rather than nagging.
     }
   };
 
@@ -239,9 +338,21 @@ export function KeysScreen() {
   };
 
   const copy_key = async (profile: KeyProfile) => {
-    const secret = await read_key_secret(SecureStore, profile.id);
-    if (!secret) return;
-    await Clipboard.setStringAsync(secret, { android: { isSensitive: true } });
+    const read = await read_key_secret_state(SecureStore, profile.id);
+    if (read.state !== "ok") {
+      // Doing nothing here looked like a broken button. Say which problem it is.
+      dispatch({
+        type: "show_toast",
+        message:
+          read.state === "unreadable"
+            ? "This key can no longer be read on this device. Re-enter it."
+            : "No key is saved for this profile.",
+      });
+      return;
+    }
+    await Clipboard.setStringAsync(read.value, {
+      android: { isSensitive: true },
+    });
     dispatch({ type: "show_toast", message: "Key copied to clipboard." });
   };
 
@@ -250,8 +361,16 @@ export function KeysScreen() {
       set_revealed((current) => ({ ...current, [profile.id]: null }));
       return;
     }
-    const secret = await read_key_secret(SecureStore, profile.id);
-    set_revealed((current) => ({ ...current, [profile.id]: secret }));
+    const read = await read_key_secret_state(SecureStore, profile.id);
+    set_revealed((current) => ({
+      ...current,
+      [profile.id]: read.state === "ok" ? read.value : null,
+    }));
+    if (read.state === "unreadable")
+      dispatch({
+        type: "show_toast",
+        message: "This key can no longer be read on this device. Re-enter it.",
+      });
   };
 
   const edit = (profile: KeyProfile) => {
@@ -473,7 +592,45 @@ export function KeysScreen() {
       </Card>
 
       <SectionLabel>Saved keys</SectionLabel>
-      {profiles.length === 0 ? (
+      {registry_from_manifest ? (
+        <Card tone="soft">
+          <B>Your keys cannot be opened on this device</B>
+          <M size={12} style={{ marginTop: 4 }}>
+            The profiles below survived because their label, provider, endpoint
+            and model are stored on this device outside the keystore. The keys
+            themselves are not, and this device will not release them. Re-enter
+            a key on any profile to use it again. Nothing was sent anywhere.
+          </M>
+        </Card>
+      ) : null}
+      {registry_unreadable ? (
+        <Card tone="soft">
+          <B>Saved keys could not be read</B>
+          <M size={12} style={{ marginTop: 4 }}>
+            This device will not release the stored key data, and there is no
+            profile list to fall back on. That can happen after a lock-screen
+            change or a restore. Nothing was sent anywhere.
+          </M>
+          <Row gap={8} style={{ marginTop: 10 }}>
+            <Button
+              label="Start over"
+              onPress={() => {
+                // The only path that discards profiles, and only on request.
+                set_busy(true);
+                void reset_key_registry(SecureStore)
+                  .then(refresh)
+                  .catch(() =>
+                    dispatch({
+                      type: "show_toast",
+                      message: "Could not reset saved keys.",
+                    }),
+                  )
+                  .finally(() => set_busy(false));
+              }}
+            />
+          </Row>
+        </Card>
+      ) : profiles.length === 0 ? (
         <M>No key profiles saved yet.</M>
       ) : (
         profiles.map((profile) => (
@@ -492,6 +649,9 @@ export function KeysScreen() {
               profile.auth_header !== "authorization"
                 ? ` · ${profile.auth_header}`
                 : ""}
+            </M>
+            <M size={12} style={{ marginTop: 4 }}>
+              {check_label(checks[profile.id])}
             </M>
             <M size={12} style={{ marginTop: 4 }}>
               {revealed[profile.id] ?? hints[profile.id] ?? "No key"}
@@ -535,6 +695,14 @@ export function KeysScreen() {
           </Card>
         ))
       )}
+
+      {profiles.length > 0 ? (
+        <M size={11} style={{ marginTop: 8 }}>
+          Keys are stored in this device&apos;s secure storage. Profile labels,
+          provider, endpoint, model and the last connection result are stored
+          unencrypted on this device so the list survives a lock-screen change.
+        </M>
+      ) : null}
     </Screen>
   );
 }

@@ -8,7 +8,10 @@ import {
 import * as SecureStore from "expo-secure-store";
 import * as Clipboard from "expo-clipboard";
 import { KeysScreen } from "./KeysScreen";
-import { KEY_PROFILES_NAME } from "../assistant/provider_keys";
+import {
+  add_key_profile,
+  reset_key_registry,
+} from "../assistant/provider_keys";
 
 const mock_dispatch = jest.fn();
 jest.mock("../store", () => ({
@@ -17,7 +20,9 @@ jest.mock("../store", () => ({
 
 beforeEach(async () => {
   jest.clearAllMocks();
-  await SecureStore.deleteItemAsync(KEY_PROFILES_NAME);
+  // Clears the registry, the legacy key slots and the plain-storage mirror, so
+  // one test's profiles cannot leak into the next one's recovery.
+  await reset_key_registry(SecureStore);
   mock_dispatch.mockClear();
 });
 
@@ -96,4 +101,41 @@ it("applies a preset on a blank form without crashing", async () => {
   );
   await fireEvent.press(screen.getByRole("button", { name: "Save and use" }));
   await waitFor(() => expect(screen.getByText("Google Gemini")).toBeTruthy());
+});
+
+/**
+ * Regression: the profile list lived in the same store as the secrets, so an
+ * invalidated keystore took the list with it and the screen looked like a fresh
+ * install. The rows now come back from the plain-storage mirror.
+ */
+it("keeps the rows visible when the keystore cannot be opened, and says why", async () => {
+  await add_key_profile(SecureStore, {
+    provider: "openai_compatible",
+    label: "Survivor",
+    base_url: "https://api.example.com/v1",
+    model: "gpt-4o-mini",
+    api_key: "synth-key-3",
+    activate: true,
+  });
+  // An invalidated keystore refuses every read, not just the registry one.
+  jest.mocked(SecureStore.getItemAsync).mockImplementation(async () => {
+    throw new Error("keystore_locked");
+  });
+
+  await render(<KeysScreen />);
+  await waitFor(() => expect(screen.getByText("Survivor")).toBeTruthy());
+  expect(
+    screen.getByText("Your keys cannot be opened on this device"),
+  ).toBeTruthy();
+  // The key itself is unusable and the row must say so rather than "No key".
+  expect(screen.getAllByText("Key unreadable — re-enter").length).toBe(1);
+  // What is on disk in plain text is disclosed, not left to be discovered.
+  expect(
+    screen.getByText(
+      /stored\s+unencrypted on this device so the list survives/,
+    ),
+  ).toBeTruthy();
+  // Never the old dead end: the list is recoverable, so "start over" is not
+  // the first thing offered.
+  expect(screen.queryByText("Saved keys could not be read")).toBeNull();
 });

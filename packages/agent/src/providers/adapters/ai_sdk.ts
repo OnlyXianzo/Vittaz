@@ -40,6 +40,7 @@ import {
   to_tool_calls,
 } from "./sdk_prompt.js";
 import { bounded_fetch } from "./bounded_fetch.js";
+import { retry_after_ms } from "./retry_after.js";
 
 /**
  * OpenAI-compatible transport backed by the Vercel AI SDK.
@@ -492,7 +493,8 @@ export function create_ai_sdk_provider(
           });
 
           if (status === 401) active_pool.markUnauthorized(entry.nickname);
-          else if (status === 429) active_pool.markRateLimited(entry.nickname);
+          else if (status === 429)
+            active_pool.markRateLimited(entry.nickname, retry_after_ms(error));
           failures.push({ nickname: entry.nickname, reason });
 
           report_agent_diagnostic(params.onDiagnostic, {

@@ -355,3 +355,18 @@ represented as fixing that failure.
       occurrences 149 → 0. Static bundle evidence only — no device run.
       Multi-account persistence already existed (S38c `provider_keys.ts`); only
       feeding the persisted profile list into `ProviderRegistry` was left out.
+- [x] **S41. Profile list survives an invalidated keystore.** Owner-approved
+      2026-11-11 (see `DECISIONS.md`). Keep a plain-storage mirror of the
+      non-secret profile fields — id, provider kind, label, endpoint, model,
+      wire-shape overrides — plus the active id and the last connection check,
+      so an Android lock-screen credential change no longer takes the list with
+      the keys. The mirror is written only after the secure write, copies an
+      explicit allowlist of fields (never a spread), and is read only when the
+      keystore refuses; recovery writes nothing. The keys screen names the
+      situation, keeps every row visible with "re-enter", and discloses what is
+      stored unencrypted. A keystore failure on the question path now reports
+      the credential problem instead of a provider failure.
+      **Done 2026-11-11:** mobile 19 suites / 164 tests, typecheck/lint/format
+      clean; root 468 tests at 100% coverage, typecheck/lint/format clean;
+      secret scan zero findings. No device run: the invalidation is simulated
+      by a store whose reads throw.
