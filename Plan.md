@@ -174,7 +174,9 @@ For each step: write the failing test from the inventory, implement, pass, refac
   - [x] Tests: full root suite 359/359, all mobile tests 46/46, root/mobile TypeScript checks, root privacy gate, and 24 workflow/promotion tests pass; generic provider failures report fixed safe reason/stage without exception text.
   - [x] Android JavaScript export contains the test banner/export button; temp Expo prebuild confirms test label, distinct `com.vittaz.diagnostics.test` package ID, and `expo-file-system` autolinking.
   - [x] Owner selected the actual Vittaz app workflow; replaced it with `.github/workflows/mobile-diagnostics-test-apk.yml` and left the unrelated blank Expo proof workflow unchanged. All 24 workflow/promotion regression tests pass.
-  - [ ] Run the manual workflow and deliver the standalone APK. Local runner lacks JDK 17/Android SDK/ADB (only JDK 11 present), so no Gradle/APK run is available here.
+  - [x] Diagnostics APKs delivered: run `42571222498` (S38d) and run
+        `42814649169` (S39e). These precede S40/S41 and PR #93; build a fresh
+        diagnostics APK for acceptance of the current provider path.
   - [ ] Owner device retest with synthetic data; validate SAF Downloads permission, folder creation, and saved JSON. Do not claim a root cause until device evidence identifies one.
 
 ### Phase J: UI and UX (only after G3)
@@ -266,7 +268,8 @@ notes: <anything the next agent must know>
 - License. Undecided, so no license file yet.
 - Backup encryption and key recovery.
 - Which local model and size ship first.
-- Whether to persist several provider configurations with one active selection (needs an owner decision; see `DECISIONS.md`, 2026-11-11).
+- Multi-profile persistence with explicit active selection is resolved and implemented
+  in S38c. Feeding every saved profile into ProviderRegistry remains optional cleanup.
 
 ## 14. Deferred, not in this plan
 
@@ -370,3 +373,7 @@ represented as fixing that failure.
       clean; root 468 tests at 100% coverage, typecheck/lint/format clean;
       secret scan zero findings. No device run: the invalidation is simulated
       by a store whose reads throw.
+      **Follow-up merged 2026-11-14:** PR #93 (`a578f06`) corrects replacement
+      writes, connection-check invalidation, discovery deadlines and automatic
+      check URL restrictions. Recorded local verification: root 470 tests at
+      100% coverage; mobile 170 tests. PR checks passed; device checks pending.
